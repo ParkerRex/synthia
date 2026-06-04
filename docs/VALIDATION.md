@@ -12,9 +12,12 @@ ctest --test-dir build --output-on-failure
 ./build/SynthRender --list-parameters --output build/reports/parameters.json
 ./build/SynthRender --validate-presets presets/factory --output build/reports/presets.json
 ./build/SynthRender --voice-test --output build/reports/voice-core.json
+./build/SynthRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
+./build/SynthRender --filter-test --output build/reports/filter.json
+./build/SynthRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
 ```
 
-The current smoke render is intentionally silent and only proves initialization, finite output, report writing, and command shape.
+The current smoke render is intentionally note-less and proves initialization, finite output, report writing, and command shape.
 
 The current contract validation proves:
 
@@ -30,7 +33,22 @@ The current voice-core validation proves:
 - LFO phase reset,
 - poly voice allocation and release,
 - engine note-on/note-off voice lifecycle,
-- silent render remains finite while voices are active.
+- audio render remains finite while voices are active.
+
+The current DSP validation proves:
+
+- oscillator tuning for C1, C3, C5, and C7 within the 5-cent target,
+- high-band oscillator spectral metrics are recorded for C1, C3, C5, and C7,
+- pulse duty cycle at 10, 25, 50, 75, and 90 percent widths,
+- sub octave accuracy for -1, -2, and -3,
+- deterministic noise, stack detune symmetry, and hard-sync finite output,
+- semitone filter cutoff mapping,
+- nonlinear filter mode response for L2, L4, B2, B4, H2, H4, Peak2, Notch2, and Notch4,
+- finite resonant impulse behavior,
+- drive changes filter response,
+- `Pluck Core 01` dry render loads the requested preset and MIDI fixture, writes a finite non-clipping WAV/report, and records note-local LFO spread during overlapping notes.
+
+Preset render validation is expected to fail if the preset file is missing, the preset JSON is invalid, the MIDI fixture is missing, the fixture is not a valid MIDI file, or the fixture has no note events.
 
 ## Validation Profiles
 

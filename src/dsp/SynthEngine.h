@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SynthParameters.h"
 #include "../voice/VoiceAllocator.h"
 
 #include <cstddef>
@@ -22,8 +23,10 @@ public:
 
     void noteOn(int midiNote, float velocity) noexcept;
     void noteOff(int midiNote) noexcept;
+    void setSustainPedal(bool down) noexcept;
     void allNotesOff() noexcept;
     void panic() noexcept;
+    void setParameters(const SynthParameters& newParameters) noexcept;
 
     RenderStats process(float* left, float* right, int numSamples) noexcept;
 
@@ -35,6 +38,7 @@ public:
 private:
     double sampleRate = 44100.0;
     int maxBlockSize = 512;
+    SynthParameters parameters;
     VoiceAllocator voices { 32 };
 };
 } // namespace synth

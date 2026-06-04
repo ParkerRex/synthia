@@ -49,8 +49,9 @@ bool testAllocator()
 {
     synth::VoiceAllocator allocator(4);
     allocator.prepare(48000.0);
-    const auto first = allocator.noteOn(60, 1.0f);
-    const auto second = allocator.noteOn(64, 0.5f);
+    synth::SynthParameters parameters;
+    const auto first = allocator.noteOn(60, 1.0f, parameters);
+    const auto second = allocator.noteOn(64, 0.5f, parameters);
 
     if (first == second || allocator.activeVoiceCount() != 2)
         return false;
@@ -62,6 +63,29 @@ bool testAllocator()
         return false;
 
     allocator.panic();
+    return allocator.activeVoiceCount() == 0;
+}
+
+bool testUnisonAndSustain()
+{
+    synth::VoiceAllocator allocator(8);
+    allocator.prepare(48000.0);
+    synth::SynthParameters parameters;
+    parameters.unisonCount = 2;
+    parameters.polyphony = 2;
+
+    allocator.noteOn(60, 1.0f, parameters);
+    if (allocator.activeVoiceCount() != 2)
+        return false;
+
+    allocator.setSustainPedal(true);
+    allocator.noteOff(60);
+    allocator.process(48000);
+    if (allocator.activeVoiceCount() != 2)
+        return false;
+
+    allocator.setSustainPedal(false);
+    allocator.process(48000);
     return allocator.activeVoiceCount() == 0;
 }
 
@@ -103,6 +127,12 @@ int main()
     if (!testAllocator())
     {
         std::cerr << "Voice allocator test failed.\n";
+        return 1;
+    }
+
+    if (!testUnisonAndSustain())
+    {
+        std::cerr << "Unison/sustain test failed.\n";
         return 1;
     }
 

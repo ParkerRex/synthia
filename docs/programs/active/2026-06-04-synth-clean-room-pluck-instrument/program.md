@@ -50,9 +50,9 @@ Project truth surfaces:
 
 ## Current State
 
-The repository currently contains specification, context, clean-room policy, architecture guidance, validation strategy, preset schema guidance, and a source map. It does not yet contain plugin code, build files, tests, presets, fixtures, or packaging scripts.
+The repository currently contains a JUCE/CMake AU, VST3, and standalone plugin scaffold with APVTS state, clean-room factory presets, voice allocation, envelopes, LFO, oscillator stack, nonlinear filter, amp/stereo dry-core rendering, tests, and validation reports.
 
-The current planning brief is `planning-brief-1.md`. The next required slice is the JUCE/CMake plugin foundation because all DSP, state, UI, validation, and host work need a buildable project to attach to.
+The current planning brief is `planning-brief-1.md`. The next required slice is full modulation matrix, ramp, and glide because the dry core now produces sound using direct routes, but the eight TransMod-style slots and glide/ramp behavior are not implemented yet.
 
 ## Progress
 
@@ -64,10 +64,10 @@ The current planning brief is `planning-brief-1.md`. The next required slice is 
 - [x] 2026-06-04 EDT: Executed the scaffold foundation slice. The repo now builds AU, VST3, Standalone, `SynthRender`, and `SynthSmokeTest`; CTest and smoke render pass.
 - [x] 2026-06-04 EDT: Executed the parameter/state/preset slice. The repo now has 102 registered parameters, APVTS host state, factory preset JSON, preset validation, and contract tests.
 - [x] 2026-06-04 EDT: Executed the voice/MIDI/envelope/LFO slice. The repo now has envelope, LFO, voice allocation, engine MIDI handling, and voice-core validation while audio output remains silent.
-- [ ] Execute the oscillator/mixer slice.
-- [ ] Execute the nonlinear filter slice.
+- [x] 2026-06-04 EDT: Executed the oscillator/mixer slice. The repo now renders tuned polyBLEP saw/pulse, deterministic noise, sub waveforms, stack detune, sync, and oscillator metrics.
+- [x] 2026-06-04 EDT: Executed the nonlinear filter slice. The repo now has semitone cutoff mapping, L2/L4/B2/B4/H2/H4 nonlinear filter modes, drive/resonance compensation, oversampling-factor processing, and filter metrics.
 - [ ] Execute the full modulation slice.
-- [ ] Execute the amp/stereo/factory pluck slice.
+- [x] 2026-06-04 EDT: Executed the amp/stereo/factory pluck slice. The repo now renders `Pluck Core 01` dry to WAV/report with amp drive, pan spread, analog variation, and macro influence.
 - [ ] Execute the validation harness slice.
 - [ ] Execute the UI/preset workflow slice.
 - [ ] Execute the FX/quality slice.
@@ -90,13 +90,13 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-04-scaffold-juce-cmake-plugin-foundation.md`
 - `docs/exec-plans/completed/2026-06-04-build-parameter-state-and-preset-contract.md`
 - `docs/exec-plans/completed/2026-06-04-build-voice-midi-envelope-lfo-core.md`
+- `docs/exec-plans/completed/2026-06-04-build-oscillator-stack-and-mixer.md`
+- `docs/exec-plans/completed/2026-06-04-build-nonlinear-filter-drive-and-oversampling.md`
+- `docs/exec-plans/completed/2026-06-04-build-amp-stereo-analog-and-factory-pluck.md`
 
 Initial active child ExecPlans:
 
-- `docs/exec-plans/active/2026-06-04-build-oscillator-stack-and-mixer.md`
-- `docs/exec-plans/active/2026-06-04-build-nonlinear-filter-drive-and-oversampling.md`
 - `docs/exec-plans/active/2026-06-04-build-modulation-matrix-ramp-and-glide.md`
-- `docs/exec-plans/active/2026-06-04-build-amp-stereo-analog-and-factory-pluck.md`
 - `docs/exec-plans/active/2026-06-04-build-render-validation-harness-and-metrics.md`
 - `docs/exec-plans/active/2026-06-04-build-editor-ui-and-preset-workflow.md`
 - `docs/exec-plans/active/2026-06-04-build-onboard-fx-and-quality-modes.md`
@@ -105,9 +105,9 @@ Initial active child ExecPlans:
 
 ## Next Slice
 
-The next slice is `docs/exec-plans/active/2026-06-04-build-oscillator-stack-and-mixer.md`.
+The next slice is `docs/exec-plans/active/2026-06-04-build-modulation-matrix-ramp-and-glide.md`.
 
-It is next because the engine can now track notes and modulators, but it still produces silence. The next required behavior is pitch-producing oscillator and mixer output that later filter, modulation, amp, and factory-preset slices can shape.
+It is next because the engine now has pitch, filter, direct envelope/LFO routes, amp, stereo, and a dry factory render, but it does not yet have the full TransMod-style slot evaluator, ramp generator, or glide/velocity-glide behavior.
 
 ## Risks and Watchpoints
 

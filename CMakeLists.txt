@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.24)
 
+if(APPLE AND (NOT DEFINED CMAKE_OSX_ARCHITECTURES OR CMAKE_OSX_ARCHITECTURES STREQUAL ""))
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures" FORCE)
+endif()
+
 project(Synth
     VERSION 0.1.0
     DESCRIPTION "Clean-room pluck instrument"
@@ -29,10 +33,15 @@ endif()
 set(SYNTH_COMMON_SOURCES
     src/dsp/Envelope.cpp
     src/dsp/Envelope.h
+    src/dsp/Filter.cpp
+    src/dsp/Filter.h
     src/dsp/Lfo.cpp
     src/dsp/Lfo.h
+    src/dsp/OscillatorStack.cpp
+    src/dsp/OscillatorStack.h
     src/dsp/SynthEngine.cpp
     src/dsp/SynthEngine.h
+    src/dsp/SynthParameters.h
     src/plugin/ParameterRegistry.cpp
     src/plugin/ParameterRegistry.h
     src/presets/PresetValidator.cpp
@@ -164,4 +173,25 @@ if(SYNTH_ENABLE_TESTS)
 
     add_test(NAME SynthVoiceCoreTest COMMAND SynthVoiceCoreTest)
     set_tests_properties(SynthVoiceCoreTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+    add_executable(SynthDspCoreTest
+        ${SYNTH_COMMON_SOURCES}
+        tests/smoke/SynthDspCoreTest.cpp)
+
+    target_link_libraries(SynthDspCoreTest
+        PRIVATE
+            juce::juce_core
+            juce::juce_audio_basics
+            juce::juce_audio_processors
+            juce::juce_dsp
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags)
+
+    target_compile_definitions(SynthDspCoreTest
+        PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME SynthDspCoreTest COMMAND SynthDspCoreTest)
+    set_tests_properties(SynthDspCoreTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()

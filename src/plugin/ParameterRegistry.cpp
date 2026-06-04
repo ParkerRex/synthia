@@ -88,7 +88,8 @@ std::vector<ParameterSpec> buildSpecs()
         choiceParam("osc.phase_reset", "Phase Reset", "osc", {"Off", "Note", "Voice", "Random"}, 0),
 
         boolParam("filter.enabled", "Filter Enabled", "filter", true),
-        choiceParam("filter.mode", "Filter Mode", "filter", {"L2", "L4", "B2", "B4", "H2", "H4"}, 1),
+        choiceParam("filter.mode", "Filter Mode", "filter",
+                    {"L2", "L4", "B2", "B4", "H2", "H4", "Peak2", "Notch2", "Notch4"}, 1),
         floatParam("filter.cutoff_semitones", "Filter Cutoff", "filter", "semitones", 0.0f, 136.0f, 96.0f, 0.01f, 1.0f, 10.0f),
         floatParam("filter.resonance", "Resonance", "filter", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f, 1.0f, 10.0f),
         floatParam("filter.drive", "Filter Drive", "filter", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f, 1.0f, 10.0f),
@@ -260,4 +261,3 @@ const char* toString(ParameterKind kind) noexcept
     return "unknown";
 }
 } // namespace synth
-

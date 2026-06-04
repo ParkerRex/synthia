@@ -16,7 +16,7 @@ The core target is not an exact clone of any third-party plugin. The goal is the
 
 ## Current State
 
-This repository has the initial JUCE/CMake scaffold.
+This repository has a working JUCE/CMake synth scaffold with the first dry-core DSP path.
 
 Existing docs:
 
@@ -31,26 +31,30 @@ Existing docs:
 - `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/program.md`: end-to-end build Program.
 - `docs/exec-plans/active/`: child implementation plans.
 
-Implemented scaffold:
+Implemented:
 
 - `CMakeLists.txt`
 - `src/plugin/PluginProcessor.*`
 - `src/plugin/PluginEditor.*`
 - `src/plugin/ParameterRegistry.*`
 - `src/dsp/Envelope.*`
+- `src/dsp/Filter.*`
 - `src/dsp/Lfo.*`
+- `src/dsp/OscillatorStack.*`
 - `src/dsp/SynthEngine.*`
+- `src/dsp/SynthParameters.h`
 - `src/presets/PresetValidator.*`
 - `src/voice/Voice.*`
 - `src/voice/VoiceAllocator.*`
 - `src/validation/SynthRender.cpp`
 - `tests/smoke/SynthSmokeTest.cpp`
 - `tests/smoke/SynthContractTest.cpp`
+- `tests/smoke/SynthDspCoreTest.cpp`
 - `tests/smoke/SynthVoiceCoreTest.cpp`
 - `presets/factory/init.json`
 - `presets/factory/pluck-core-01.json`
 
-Current audio behavior is intentionally silent. The parameter/preset contract and voice/MIDI/envelope/LFO core exist; oscillator and filter DSP come in the next ExecPlans.
+Current audio behavior renders the dry core: oscillator stack, nonlinear filter, direct envelope/LFO cutoff and pitch routes, amp drive, pan spread, analog variation, and the `Pluck Core 01` factory preset. Full TransMod slots, ramp, glide, UI workflow, FX, Ableton validation, and packaging remain active slices.
 
 ## Build Direction
 
@@ -65,7 +69,7 @@ The expected first implementation path is JUCE with CMake:
 
 Continue implementation with:
 
-- `docs/exec-plans/active/2026-06-04-build-oscillator-stack-and-mixer.md`
+- `docs/exec-plans/active/2026-06-04-build-modulation-matrix-ramp-and-glide.md`
 
 ## Build
 
@@ -109,6 +113,19 @@ Run voice-core validation:
 
 ```bash
 ./build/SynthRender --voice-test --output build/reports/voice-core.json
+```
+
+Run oscillator and filter validation:
+
+```bash
+./build/SynthRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
+./build/SynthRender --filter-test --output build/reports/filter.json
+```
+
+Render the factory dry-core pluck:
+
+```bash
+./build/SynthRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
 ```
 
 Current build artifacts:

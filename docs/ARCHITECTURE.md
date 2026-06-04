@@ -150,18 +150,21 @@ Current voice-core status:
 
 - `SynthEngine` consumes note-on, note-off, all-notes-off, and all-sound-off from the plugin processor.
 - `VoiceAllocator` supports basic poly allocation, note release, panic, and deterministic random-on-note values.
-- `Envelope` and `Lfo` provide deterministic primitives for later oscillator/filter modulation.
-- Audio output remains silent until the oscillator slice.
+- `Envelope` and `Lfo` provide deterministic per-voice modulation primitives.
+- `OscillatorStack` renders clean-room polyBLEP saw/pulse, deterministic noise, sub waveforms, stack detune, and hard sync.
+- `Filter` renders semitone-domain L2/L4/B2/B4/H2/H4/Peak2/Notch2/Notch4 nonlinear responses with drive/resonance compensation and interpolated oversampling sub-steps.
+- `Voice` applies direct pitch/cutoff routes, synced or Hz LFO rates, per-voice/mono LFO behavior, amp envelope, amp drive, level, pan spread, unison spread, analog variation, and macro influence.
+- `SynthRender` can write oscillator, filter, voice, preset validation, and dry-core factory pluck reports using the requested preset and MIDI fixture.
 
 ## DSP Priorities
 
 Highest priority:
 
-- per-voice LFO/envelope behavior,
-- semitone cutoff modulation,
-- nonlinear filter drive/resonance,
-- voice/unison spread,
-- deterministic render tests.
+- full TransMod slot routing,
+- ramp, glide, and velocity glide,
+- richer deterministic render tests,
+- UI/preset workflow,
+- Ableton AU/VST3 proof.
 
 Lower priority:
 
