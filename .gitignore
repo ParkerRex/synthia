@@ -1,0 +1,11 @@
+build*/
+cmake-build-*/
+.DS_Store
+*.jucer
+*.log
+*.tmp
+*.wav
+*.aiff
+*.component
+*.vst3
+
