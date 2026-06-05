@@ -1,6 +1,6 @@
 ---
 title: Build Release Hardening And Documentation Closeout
-status: active
+status: superseded
 created_at: 2026-06-04
 completed_at: null
 summary: Close the program with performance validation, clean-room review, final docs, release checklist, and Program retrospective.
@@ -16,6 +16,8 @@ planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrumen
 # Build Release Hardening And Documentation Closeout
 
 This document is a living execution plan for final hardening and Program closeout.
+
+This plan is superseded by the Sylenth Lab Rebuild Program. Reuse release-hardening details after Phase 1 reaches feature and host-validation completeness.
 
 This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 

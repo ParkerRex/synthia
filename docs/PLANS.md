@@ -13,9 +13,8 @@ Use `docs/programs/` for durable multi-slice initiatives that sit above several 
 
 ## Current Program
 
-- `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/program.md`
+- `docs/programs/active/2026-06-05-sylenth-lab-rebuild/program.md`
 
 ## Current ExecPlans
 
 See `docs/exec-plans/active/index.md`.
-

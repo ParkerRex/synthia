@@ -1,7 +1,7 @@
 ---
 program_id: synth-clean-room-pluck-instrument
 title: Synth Clean-Room Pluck Instrument
-status: active
+status: superseded
 created_at: 2026-06-04
 completed_at: null
 summary: Coordinate the end-to-end build of a clean-room JUCE/CMake AU/VST3 pluck instrument from spec through release readiness.
@@ -15,7 +15,7 @@ read_when:
 
 # Synth Clean-Room Pluck Instrument
 
-This Program is a living initiative document for building Synth end to end from the current documentation-first workspace into a validated clean-room AU/VST3 software instrument.
+This Program is a historical initiative document for the earlier pluck-core scaffold. It is superseded by `docs/programs/active/2026-06-05-sylenth-lab-rebuild/program.md`.
 
 This Program must be maintained in accordance with `docs/programs/PROGRAMS.md`.
 
@@ -125,6 +125,8 @@ Host-validation follow-up: run full automation and bounce checks in `docs/exec-p
 ## Outcomes & Retrospective
 
 The Program is active. Core scaffold, parameter/preset state, voice/MIDI/envelope/LFO, oscillator/mixer, nonlinear filter, amp/stereo/factory pluck, full modulation, render validation harness, UI/preset workflow, and FX/quality slices have landed.
+
+Superseded on 2026-06-05 by the Sylenth Lab Rebuild Program. Remaining Ableton/release-hardening ideas should be reintroduced under that Program when Phase 1 reaches host-validation readiness.
 
 The retrospective should be filled only after all required child ExecPlans are complete and the release-readiness slice has produced final validation evidence.
 

@@ -1,6 +1,6 @@
 ---
 title: Build Ableton Host Integration And Packaging
-status: active
+status: superseded
 created_at: 2026-06-04
 completed_at: null
 summary: Prove AU/VST3 loading in Ableton, host state restore, universal binary output, install layout, and packaging/signing preparation.
@@ -16,6 +16,8 @@ planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrumen
 # Build Ableton Host Integration And Packaging
 
 This document is a living execution plan for host validation and macOS packaging.
+
+This plan is superseded by the Sylenth Lab Rebuild Program. Reuse host-validation details when the Phase 1 Sylenth build reaches Ableton validation readiness.
 
 This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
