@@ -33,8 +33,10 @@ Synth is not useful until it loads and restores correctly in Ableton. After this
 - [x] Add local development install scripts.
 - [x] Add architecture/signing checks.
 - [x] Run early Ableton AU and VST3 scan/load/play/reopen smoke validation.
+- [x] 2026-06-05 EDT: Added `scripts/uninstall-local-plugins.sh`, local install troubleshooting docs, and default ad-hoc signing of installed AU/VST3 bundles for local host scanning.
+- [x] 2026-06-05 EDT: Revalidated Release build, CTest, core suite, bundle checks, install signing, uninstall dry-run, and AU validation for the current FX/quality build.
 - [ ] Run full Ableton automation and bounce validation against the current UI/preset/FX build.
-- [ ] Document install, uninstall, and host troubleshooting.
+- [x] Document install, uninstall, and host troubleshooting.
 
 ## Surprises & Discoveries
 
@@ -43,6 +45,10 @@ Synth is not useful until it loads and restores correctly in Ableton. After this
 2026-06-05: A `build-release` single-config CMake build writes plugin bundles under `build-release/SynthPlugin_artefacts/Release/`, while the first helper script versions assumed bundles lived directly under `SynthPlugin_artefacts/`. The scripts now resolve root and config-scoped layouts before checking or installing.
 
 2026-06-05: Early Ableton Live 11 Suite smoke passed on macOS 26.5: VST3 appeared under `Plug-Ins > VST3 > ParkerX > Synth`, AU appeared after enabling Audio Units, both loaded on MIDI tracks, both produced audible output from MIDI notes, and both loaded again after Ableton quit/reopen of the saved set. Automation, bounce, preset recreation, and full behavior exercise remain for the UI/preset and later host-validation passes.
+
+2026-06-05: The install script now ad-hoc signs the installed per-user AU and VST3 bundles by default. This is local-development signing only and does not replace distribution signing, hardened runtime, notarization, or clean-machine verification.
+
+2026-06-05: `auval -v aumu Syn1 PkRx` passed against the installed AU after the FX/quality build. `auval` emitted a non-fatal warning for `Delay Feedback` maximum-value retention but ended with `AU VALIDATION SUCCEEDED`.
 
 Record Ableton scan, plugin cache, code signing, architecture, and state-restore issues here.
 
@@ -104,6 +110,9 @@ Run command checks:
     ctest --test-dir build-release --output-on-failure
     ./build-release/SynthRender --suite core --output-dir build-release/reports/core
     scripts/check-plugin-bundles.sh build-release
+    scripts/install-local-plugins.sh build-release
+    scripts/uninstall-local-plugins.sh --dry-run
+    auval -v aumu Syn1 PkRx
 
 Then perform the Ableton manual smoke checklist in `docs/host-validation/ableton-smoke.md`.
 
@@ -120,6 +129,8 @@ Acceptance requires AU and VST3 bundles produced, architecture checks passing, p
     ./build-release/SynthRender --suite core --output-dir build-release/reports/core
     scripts/check-plugin-bundles.sh build-release
     scripts/install-local-plugins.sh build-release
+    scripts/uninstall-local-plugins.sh --dry-run
+    auval -v aumu Syn1 PkRx
 
 Manual verification: run the Ableton AU and VST3 smoke checklist and record results in `docs/host-validation/ableton-smoke.md` or a dated sibling note under `docs/host-validation/`.
 
@@ -134,7 +145,7 @@ Expected proof artifacts:
 - plugin bundle check report
 - Ableton smoke notes
 - release build core validation reports
-- install/uninstall docs
+- install/uninstall docs: `docs/host-validation/local-install-troubleshooting.md`
 
 ## Interfaces and Dependencies
 

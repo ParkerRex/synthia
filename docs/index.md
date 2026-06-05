@@ -17,6 +17,7 @@ This directory holds implementation-facing documentation for Synth. `../SPEC.md`
 - `CLEAN_ROOM.md`: legal/evidence/naming rules.
 - `PLANS.md`: routing for Programs and ExecPlans.
 - `host-validation/`: Ableton and other host validation notes/templates.
+  - `host-validation/local-install-troubleshooting.md`: local AU/VST3 install, uninstall, ad-hoc signing, AU validation, and Ableton rescan troubleshooting.
 - `programs/`: active multi-slice initiative packets.
 - `exec-plans/`: active and completed implementation-slice plans.
 
