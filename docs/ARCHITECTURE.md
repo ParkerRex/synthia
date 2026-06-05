@@ -16,7 +16,7 @@ Current scaffold:
 - `SynthPlugin` builds shared plugin code plus AU, VST3, and Standalone formats.
 - `SynthRender` is the command-line validation executable.
 - `SynthSmokeTest` is the first CTest target.
-- `SynthContractTest` validates parameter registry, preset files, and APVTS state round-trip.
+- `SynthContractTest` validates parameter registry, layer/oscillator-slot defaults, preset files, and APVTS state round-trip.
 - `SynthVoiceCoreTest` validates envelope, LFO reset, voice allocation, and engine note release.
 - `SynthDspCoreTest` validates oscillator, filter, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, and FX bypass, delay/tail, panic-clear, and reverb-state safety.
 - `SynthRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`, including dry and wet factory pluck reports.
@@ -164,16 +164,25 @@ Each parameter needs:
 
 Current registry status:
 
-- 156 parameter IDs.
-- Voice, oscillator, filter, amp, envelopes, LFO, ramp, direct modulation, FX, realtime/offline quality modes, macros, and eight TransMod-style slots with physical destination depths are represented.
+- 218 parameter IDs.
+- Voice, A/B layer state, four oscillator-slot state, legacy oscillator, filter, amp, envelopes, LFO, ramp, direct modulation, FX, realtime/offline quality modes, macros, and eight TransMod-style slots with physical destination depths are represented.
 - Host state uses `AudioProcessorValueTreeState` with schema metadata.
 
 Current editor and preset status:
 
-- `PluginEditor` is a dark control surface with a preset header, diagnostics, panic, and a scrollable set of sections for Voice, Oscillator, Filter, Envelopes, LFO, Ramp, Direct Mod, Amp/Stereo, Macros, FX, Quality, and all eight TransMod slots.
+- `PluginEditor` is a compact, fixed-shell control surface modeled on the Sylenth workflow: a header (preset prev/next/load/save/duplicate, output meter, active voices, derived patch-load estimate, panic, and an always-visible SR/block/peak/MIDI/invalid/architecture diagnostics footer), a persistent Layer A/B selector exposing the `layer.*` mix state, and a `Sound` / `Modulation` / `Effects` tabbed workspace. The `Sound` tab keeps the live core controls visible without scrolling at the default window size (oscillator slots, core oscillator, filter, amp/mod envelopes, LFO, ramp, voice, amp/stereo, macros); `Modulation` holds the destination-grouped direct routes plus the eight TransMod slots; `Effects` is a per-module FX rack with master/quality. Controls are drawn with an original rotary/switch/combo look and grid-packed into stable cells with formatted value readouts. Render-boundary honesty is encoded in the UI: the legacy flat `osc.*` path that currently produces sound is badged `LIVE`, while the `layer.*` / `layer.N.osc.M.*` slot state is badged `STATE` and Layer B reads `STAGED - not yet rendered`, so editing staged state never implies it is audible.
 - Editor controls are constructed against `ParameterRegistry` IDs and use APVTS attachments for sliders, combo boxes, and toggles so UI edits reach the same host-automatable parameters as presets and host state.
 - `PresetManager` scans bundled factory presets with a source-directory development fallback, scans user presets from `~/Music/ParkerX/Synth/Presets`, validates preset JSON before load, prepares defaults-plus-overrides APVTS state for one-shot replacement, maps canonical `mod_slots` objects into flat TransMod parameters, and writes schema-valid user preset JSON.
 - Processor diagnostics expose sample rate, block size, active voices, MIDI event count, invalid sample count, peak, current preset, and binary architecture to the editor without filesystem or UI work on the audio thread.
+
+Current layer and oscillator-slot status:
+
+- `SynthParameters` has two `LayerParameters` records and two `LayerOscillatorParameters` records per layer: A1, A2, B1, and B2.
+- Layer A defaults are enabled; Layer B defaults are disabled.
+- Layer A oscillator 1 defaults to the primary enabled slot with one saw voice at full level. The other three slots default disabled with zero voices.
+- `PluginProcessor` caches the namespaced `layer.*` atomics and publishes them into the realtime parameter snapshot.
+- `SynthEngine::setParameters` clamps the layer and slot state at the audio boundary.
+- Current audio rendering still uses the legacy flat `osc.*`, filter, envelope, modulation, amp, and FX path. The namespaced layer and slot state is the host/preset/UI contract for the next Layer B and four-slot rendering slice.
 
 Current voice-core status:
 
@@ -191,7 +200,7 @@ Current voice-core status:
 Highest priority:
 
 - Phase 1 Sylenth rebuild roadmap and Ableton AU/VST3 proof.
-- Layer/A-B architecture and oscillator-slot plan.
+- Layer B rendering, four oscillator-slot DSP, and layer mixer/master plan on top of the delivered layer/slot state contract.
 - Preset browser, arpeggiator, effects, and modulation UX that support the Sylenth-level workflow.
 
 Lower priority:
