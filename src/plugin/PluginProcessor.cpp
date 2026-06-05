@@ -7,6 +7,24 @@
 
 namespace
 {
+class ScopedParameterStateUpdate final
+{
+public:
+    explicit ScopedParameterStateUpdate(std::atomic<std::uint64_t>& sequenceToUpdate) noexcept
+        : sequence(sequenceToUpdate)
+    {
+        sequence.fetch_add(1, std::memory_order_acq_rel);
+    }
+
+    ~ScopedParameterStateUpdate()
+    {
+        sequence.fetch_add(1, std::memory_order_release);
+    }
+
+private:
+    std::atomic<std::uint64_t>& sequence;
+};
+
 juce::String binaryArchitecture()
 {
 #if defined(__arm64__) || defined(__aarch64__)
@@ -49,16 +67,40 @@ bool SynthAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) con
 void SynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
+    const auto totalSamples = buffer.getNumSamples();
+
+    auto clearForStateUpdate = [this, &buffer, &midiMessages, totalSamples] {
+        buffer.clear();
+        midiMessages.clear();
+        diagnosticPeak.store(0.0f, std::memory_order_relaxed);
+        diagnosticActiveVoices.store(0, std::memory_order_relaxed);
+        diagnosticBlockSize.store(totalSamples, std::memory_order_relaxed);
+    };
+
+    const auto sequenceBeforeRead = parameterStateSequence.load(std::memory_order_acquire);
+    if ((sequenceBeforeRead & 1u) != 0u)
+    {
+        clearForStateUpdate();
+        return;
+    }
+
+    auto parameterSnapshot = readParameters(currentTempoBpm());
+    const auto sequenceAfterRead = parameterStateSequence.load(std::memory_order_acquire);
+    if (sequenceBeforeRead != sequenceAfterRead || (sequenceAfterRead & 1u) != 0u)
+    {
+        clearForStateUpdate();
+        return;
+    }
+
     if (panicRequested.exchange(false, std::memory_order_acq_rel))
         engine.panic();
 
-    engine.setParameters(readParameters(currentTempoBpm()));
+    engine.setParameters(parameterSnapshot);
 
     for (int channel = 2; channel < buffer.getNumChannels(); ++channel)
         buffer.clear(channel, 0, buffer.getNumSamples());
 
     auto renderedUntil = 0;
-    const auto totalSamples = buffer.getNumSamples();
     auto blockPeak = 0.0f;
     auto blockInvalidSamples = 0;
     auto blockActiveVoices = 0;
@@ -366,11 +408,7 @@ std::vector<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetL
         }
     };
 
-#if defined(SYNTH_FACTORY_PRESET_DIR)
-    append(synth::scanPresetDirectory(SYNTH_FACTORY_PRESET_DIR, true));
-#else
-    append(synth::scanPresetDirectory("presets/factory", true));
-#endif
+    append(synth::scanPresetDirectory(synth::factoryPresetDirectory(), true));
     append(synth::scanPresetDirectory(synth::defaultUserPresetDirectory(), false));
     return items;
 }
@@ -382,12 +420,25 @@ juce::File SynthAudioProcessor::getUserPresetDirectory() const
 
 bool SynthAudioProcessor::loadPresetFile(const juce::File& file, juce::String& message)
 {
-    const auto result = synth::loadPresetIntoState(parameters, file.getFullPathName().toStdString());
+    const auto result = synth::preparePresetState(parameters, file.getFullPathName().toStdString());
     message = result.message;
-    lastPresetStatus = message;
     if (result.loaded)
-        currentPresetName = result.displayName.empty() ? file.getFileNameWithoutExtension()
-                                                       : juce::String(result.displayName);
+    {
+        {
+            ScopedParameterStateUpdate update(parameterStateSequence);
+            parameters.replaceState(result.state);
+        }
+
+        const auto presetName = result.displayName.empty() ? file.getFileNameWithoutExtension()
+                                                           : juce::String(result.displayName);
+        setPresetMetadata(presetName, message);
+        panicRequested.store(true, std::memory_order_release);
+    }
+    else
+    {
+        setPresetMetadata(getCurrentPresetName(), message);
+    }
+
     return result.loaded;
 }
 
@@ -400,20 +451,20 @@ bool SynthAudioProcessor::savePresetFile(const juce::File& file,
                                                  displayName.toStdString(), error);
     if (saved)
     {
-        currentPresetName = displayName.isNotEmpty() ? displayName : file.getFileNameWithoutExtension();
-        message = "Saved preset: " + currentPresetName;
-        lastPresetStatus = message;
-        parameters.state.setProperty("current_preset", currentPresetName, nullptr);
+        const auto presetName = displayName.isNotEmpty() ? displayName : file.getFileNameWithoutExtension();
+        message = "Saved preset: " + presetName;
+        setPresetMetadata(presetName, message);
         return true;
     }
 
     message = "Preset save failed: " + juce::String(error);
-    lastPresetStatus = message;
+    setPresetMetadata(getCurrentPresetName(), message);
     return false;
 }
 
 juce::String SynthAudioProcessor::getCurrentPresetName() const
 {
+    const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
     return currentPresetName;
 }
 
@@ -427,6 +478,7 @@ SynthAudioProcessor::DiagnosticsSnapshot SynthAudioProcessor::getDiagnosticsSnap
     snapshot.invalidSamples = diagnosticInvalidSamples.load(std::memory_order_relaxed);
     snapshot.peak = diagnosticPeak.load(std::memory_order_relaxed);
     snapshot.architecture = binaryArchitecture();
+    const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
     snapshot.currentPreset = currentPresetName;
     snapshot.lastPresetStatus = lastPresetStatus;
     return snapshot;
@@ -437,12 +489,19 @@ void SynthAudioProcessor::requestPanic() noexcept
     panicRequested.store(true, std::memory_order_release);
 }
 
+void SynthAudioProcessor::setPresetMetadata(const juce::String& presetName, const juce::String& status)
+{
+    const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
+    currentPresetName = presetName;
+    lastPresetStatus = status;
+}
+
 void SynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = parameters.copyState();
     state.setProperty("schema_version", 1, nullptr);
     state.setProperty("plugin_version", ProjectInfo::versionString, nullptr);
-    state.setProperty("current_preset", currentPresetName, nullptr);
+    state.setProperty("current_preset", getCurrentPresetName(), nullptr);
 
     if (auto xml = state.createXml())
         copyXmlToBinary(*xml, destData);
@@ -457,9 +516,13 @@ void SynthAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
             auto state = juce::ValueTree::fromXml(*xml);
             if (state.isValid())
             {
-                currentPresetName = state.getProperty("current_preset", "Restored State").toString();
-                lastPresetStatus = "Host state restored";
-                parameters.replaceState(state);
+                const auto presetName = state.getProperty("current_preset", "Restored State").toString();
+                {
+                    ScopedParameterStateUpdate update(parameterStateSequence);
+                    parameters.replaceState(state);
+                }
+                setPresetMetadata(presetName, "Host state restored");
+                panicRequested.store(true, std::memory_order_release);
             }
         }
     }

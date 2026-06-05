@@ -25,6 +25,28 @@ scripts/check-plugin-bundles.sh build-release
 scripts/install-local-plugins.sh build-release
 ```
 
+## Command Revalidation - 2026-06-05
+
+Review-fix validation was run from a Release build on top of `9c27c07` with local working-tree fixes applied.
+
+```bash
+/opt/homebrew/bin/cmake --build build-release --config Release
+/opt/homebrew/bin/ctest --test-dir build-release --output-on-failure
+./build-release/SynthRender --validate-presets presets/factory --output build-release/reports/presets-review.json
+./build-release/SynthRender --suite core --output-dir build-release/reports/core
+scripts/check-plugin-bundles.sh build-release
+scripts/install-local-plugins.sh build-release Release
+auval -v aumu Syn1 PkRx
+```
+
+Results:
+
+- Release build, CTest, factory preset validation, and core suite passed.
+- Bundle check passed and verified `Contents/Resources/factory/init.json` and `pluck-core-01.json` in Standalone, AU, and VST3 bundles.
+- Installed AU and VST3 bundles under `~/Library/Audio/Plug-Ins`.
+- `auval -v aumu Syn1 PkRx` passed against the installed AU with AU Validation Tool `1.10.0`.
+- No `vst3validator` or `pluginval` executable was available on this machine; VST3 scan/load/play, automation, state restore, and bounce still require the Ableton manual checklist below.
+
 ## Ableton Setup
 
 - [x] Enable Audio Units.

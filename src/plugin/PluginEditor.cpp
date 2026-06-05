@@ -50,6 +50,14 @@ juce::String fileSafeName(juce::String name)
     return safe.empty() ? "user-preset" : juce::String(safe);
 }
 
+juce::File presetJsonFile(juce::File file)
+{
+    if (file == juce::File() || file.getFileExtension().equalsIgnoreCase(".json"))
+        return file;
+
+    return file.withFileExtension(".json");
+}
+
 void styleButton(juce::Button& button, juce::Colour fill)
 {
     button.setColour(juce::TextButton::buttonColourId, fill);
@@ -571,19 +579,23 @@ void SynthAudioProcessorEditor::savePresetAs()
     fileChooser = std::make_unique<juce::FileChooser>("Save Synth preset",
                                                        suggestedFile,
                                                        "*.json");
+    juce::Component::SafePointer<SynthAudioProcessorEditor> safeEditor { this };
     fileChooser->launchAsync(juce::FileBrowserComponent::saveMode
                              | juce::FileBrowserComponent::canSelectFiles
                              | juce::FileBrowserComponent::warnAboutOverwriting,
-                             [this, presetName](const juce::FileChooser& chooser) {
-                                 const auto file = chooser.getResult();
+                             [safeEditor, presetName](const juce::FileChooser& chooser) {
+                                 if (safeEditor == nullptr)
+                                     return;
+
+                                 const auto file = presetJsonFile(chooser.getResult());
                                  if (file == juce::File())
                                      return;
 
                                  juce::String message;
-                                 if (audioProcessor.savePresetFile(file, presetName, message))
-                                     refreshPresetMenu();
+                                 if (safeEditor->audioProcessor.savePresetFile(file, presetName, message))
+                                     safeEditor->refreshPresetMenu();
 
-                                 updateStatus(message);
+                                 safeEditor->updateStatus(message);
                              });
 }
 

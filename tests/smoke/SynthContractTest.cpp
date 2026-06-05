@@ -64,6 +64,26 @@ bool checkStateRoundTrip()
 bool checkPresetManagerLoadAndSave()
 {
     StateRoundTripProcessor processor;
+    const auto* cutoffBeforePrepare = processor.parameters.getRawParameterValue("filter.cutoff_semitones");
+    if (cutoffBeforePrepare == nullptr || std::abs(cutoffBeforePrepare->load() - 96.0f) > 0.001f)
+    {
+        std::cerr << "Unexpected default filter cutoff before preset prepare.\n";
+        return false;
+    }
+
+    const auto prepared = synth::preparePresetState(processor.parameters, "presets/factory/pluck-core-01.json");
+    if (!prepared.loaded || !prepared.state.isValid())
+    {
+        std::cerr << prepared.message << "\n";
+        return false;
+    }
+
+    if (std::abs(cutoffBeforePrepare->load() - 96.0f) > 0.001f)
+    {
+        std::cerr << "Preset prepare mutated live parameters before replaceState.\n";
+        return false;
+    }
+
     const auto load = synth::loadPresetIntoState(processor.parameters, "presets/factory/pluck-core-01.json");
     if (!load.loaded)
     {
@@ -75,6 +95,17 @@ bool checkPresetManagerLoadAndSave()
     if (cutoff == nullptr || std::abs(cutoff->load() - 58.0f) > 0.001f)
     {
         std::cerr << "Preset manager did not apply filter cutoff.\n";
+        return false;
+    }
+
+    const auto scanInputFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+        .getChildFile("synth-preset-scan-input");
+    scanInputFile.replaceWithText("not a directory");
+    const auto scannedFile = synth::scanPresetDirectory(scanInputFile.getFullPathName().toStdString(), false);
+    scanInputFile.deleteFile();
+    if (!scannedFile.empty())
+    {
+        std::cerr << "Preset directory scan should ignore non-directory paths.\n";
         return false;
     }
 
@@ -97,6 +128,27 @@ bool checkPresetManagerLoadAndSave()
         std::cerr << "Preset manager saved invalid preset.\n";
         for (const auto& validationError : validation.errors)
             std::cerr << "  " << validationError << "\n";
+        return false;
+    }
+
+    const auto extensionlessFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+        .getChildFile("synth-preset-manager-extension-test");
+    const auto extensionlessJsonFile = extensionlessFile.withFileExtension(".json");
+    extensionlessFile.deleteFile();
+    extensionlessJsonFile.deleteFile();
+    if (!synth::writeCurrentPreset(processor.parameters, extensionlessFile.getFullPathName().toStdString(),
+                                   "Preset Extension Test", error))
+    {
+        std::cerr << error << "\n";
+        return false;
+    }
+
+    const auto extensionValidation = synth::validatePresetFile(extensionlessJsonFile.getFullPathName().toStdString());
+    extensionlessFile.deleteFile();
+    extensionlessJsonFile.deleteFile();
+    if (!extensionValidation.passed())
+    {
+        std::cerr << "Preset manager did not normalize extensionless save path.\n";
         return false;
     }
 

@@ -9,6 +9,11 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <system_error>
+
+#if JUCE_MAC
+#include <dlfcn.h>
+#endif
 
 #ifndef SYNTH_PROJECT_VERSION
 #define SYNTH_PROJECT_VERSION "0.1.0"
@@ -74,30 +79,36 @@ juce::var valueForPreset(const ParameterSpec& spec, const juce::RangedAudioParam
     return physical;
 }
 
-bool setParameterValue(juce::AudioProcessorValueTreeState& parameters,
-                       const ParameterSpec& spec,
-                       float physicalValue)
+juce::ValueTree findOrCreateParameterTree(juce::ValueTree& state, const std::string& parameterId)
 {
-    auto* parameter = parameters.getParameter(juce::String(spec.id));
-    if (parameter == nullptr)
-        return false;
+    const auto id = juce::String(parameterId);
+    for (auto child : state)
+    {
+        if (child.hasType("PARAM") && child.getProperty("id").toString() == id)
+            return child;
+    }
 
-    const auto normalized = std::clamp(parameter->convertTo0to1(physicalValue), 0.0f, 1.0f);
-    parameter->beginChangeGesture();
-    parameter->setValueNotifyingHost(normalized);
-    parameter->endChangeGesture();
-    return true;
+    juce::ValueTree parameterTree { "PARAM" };
+    parameterTree.setProperty("id", id, nullptr);
+    state.appendChild(parameterTree, nullptr);
+    return parameterTree;
 }
 
-void resetStateToDefaults(juce::AudioProcessorValueTreeState& parameters)
+void setParameterValue(juce::ValueTree& state, const ParameterSpec& spec, float physicalValue)
+{
+    auto parameterTree = findOrCreateParameterTree(state, spec.id);
+    parameterTree.setProperty("value", physicalValue, nullptr);
+}
+
+void resetStateToDefaults(juce::ValueTree& state)
 {
     for (const auto& spec : getParameterSpecs())
-        setParameterValue(parameters, spec, spec.kind == ParameterKind::Choice
+        setParameterValue(state, spec, spec.kind == ParameterKind::Choice
             ? static_cast<float>(spec.defaultChoice)
             : spec.defaultValue);
 }
 
-void applyPresetParameter(juce::AudioProcessorValueTreeState& parameters,
+void applyPresetParameter(juce::ValueTree& state,
                           const std::string& id,
                           const juce::var& value)
 {
@@ -105,10 +116,10 @@ void applyPresetParameter(juce::AudioProcessorValueTreeState& parameters,
     if (spec == nullptr)
         return;
 
-    setParameterValue(parameters, *spec, physicalValueFromPresetValue(*spec, value));
+    setParameterValue(state, *spec, physicalValueFromPresetValue(*spec, value));
 }
 
-void applyModSlotDepth(juce::AudioProcessorValueTreeState& parameters,
+void applyModSlotDepth(juce::ValueTree& state,
                        int slotNumber,
                        const std::string& targetId,
                        float value,
@@ -145,10 +156,10 @@ void applyModSlotDepth(juce::AudioProcessorValueTreeState& parameters,
     }
 
     if (const auto* spec = findParameterSpec(parameterId))
-        setParameterValue(parameters, *spec, physicalValue);
+        setParameterValue(state, *spec, physicalValue);
 }
 
-void applyModSlotObject(juce::AudioProcessorValueTreeState& parameters, const juce::var& slotVar)
+void applyModSlotObject(juce::ValueTree& state, const juce::var& slotVar)
 {
     if (!slotVar.isObject())
         return;
@@ -166,11 +177,11 @@ void applyModSlotObject(juce::AudioProcessorValueTreeState& parameters, const ju
         return;
 
     const auto prefix = "transmod." + std::to_string(slotNumber) + ".";
-    applyPresetParameter(parameters, prefix + "enabled", slotObject->getProperty(juce::Identifier("enabled")));
-    applyPresetParameter(parameters, prefix + "source", slotObject->getProperty(juce::Identifier("source")));
+    applyPresetParameter(state, prefix + "enabled", slotObject->getProperty(juce::Identifier("enabled")));
+    applyPresetParameter(state, prefix + "source", slotObject->getProperty(juce::Identifier("source")));
 
     const auto scaler = slotObject->getProperty(juce::Identifier("scaler"));
-    applyPresetParameter(parameters, prefix + "scaler", scaler.isVoid() ? juce::var("None") : scaler);
+    applyPresetParameter(state, prefix + "scaler", scaler.isVoid() ? juce::var("None") : scaler);
 
     const auto depthDomain = slotObject->getProperty(juce::Identifier("depth_domain")).toString();
     const auto depths = slotObject->getProperty(juce::Identifier("depths"));
@@ -184,11 +195,42 @@ void applyModSlotObject(juce::AudioProcessorValueTreeState& parameters, const ju
             if (!isNumber(property.value))
                 continue;
 
-            applyModSlotDepth(parameters, slotNumber, property.name.toString().toStdString(),
+            applyModSlotDepth(state, slotNumber, property.name.toString().toStdString(),
                               static_cast<float>(static_cast<double>(property.value)),
                               depthDomain);
         }
     }
+}
+
+std::filesystem::path bundleFactoryPresetDirectory()
+{
+#if JUCE_MAC
+    Dl_info info {};
+    if (dladdr(reinterpret_cast<const void*>(&bundleFactoryPresetDirectory), &info) != 0
+        && info.dli_fname != nullptr)
+    {
+        const auto binary = std::filesystem::path { info.dli_fname };
+        const auto resources = binary.parent_path().parent_path() / "Resources" / "factory";
+        std::error_code error;
+        if (std::filesystem::exists(resources, error) && !error)
+            return resources;
+    }
+#endif
+
+    return {};
+}
+
+std::filesystem::path withJsonExtension(std::filesystem::path path)
+{
+    auto extension = path.extension().string();
+    std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char character) {
+        return static_cast<char>(std::tolower(character));
+    });
+
+    if (extension == ".json")
+        return path;
+
+    return path.replace_extension(".json");
 }
 
 std::unique_ptr<juce::DynamicObject> readPresetObject(const std::filesystem::path& path)
@@ -313,13 +355,30 @@ juce::var currentMacroArray(const juce::AudioProcessorValueTreeState& parameters
 std::vector<PresetSummary> scanPresetDirectory(const std::filesystem::path& directory, bool factory)
 {
     std::vector<PresetSummary> presets;
-    if (!std::filesystem::exists(directory))
+    std::error_code error;
+    if (!std::filesystem::exists(directory, error) || error)
         return presets;
 
-    for (const auto& entry : std::filesystem::directory_iterator(directory))
+    std::filesystem::directory_iterator iterator { directory,
+        std::filesystem::directory_options::skip_permission_denied,
+        error };
+    if (error)
+        return presets;
+
+    for (std::filesystem::directory_iterator end; iterator != end; iterator.increment(error))
     {
-        if (!entry.is_regular_file() || entry.path().extension() != ".json")
+        if (error)
+        {
+            error.clear();
             continue;
+        }
+
+        const auto& entry = *iterator;
+        if (!entry.is_regular_file(error) || error || entry.path().extension() != ".json")
+        {
+            error.clear();
+            continue;
+        }
 
         const auto validation = validatePresetFile(entry.path());
         if (!validation.passed())
@@ -346,6 +405,15 @@ std::vector<PresetSummary> scanPresetDirectory(const std::filesystem::path& dire
     });
 
     return presets;
+}
+
+std::filesystem::path factoryPresetDirectory()
+{
+    const auto bundled = bundleFactoryPresetDirectory();
+    if (!bundled.empty())
+        return bundled;
+
+    return "presets/factory";
 }
 
 std::filesystem::path defaultUserPresetDirectory()
@@ -378,8 +446,8 @@ std::string presetIdFromDisplayName(const std::string& displayName)
     return id.empty() ? "user-preset" : id;
 }
 
-PresetLoadResult loadPresetIntoState(juce::AudioProcessorValueTreeState& parameters,
-                                     const std::filesystem::path& path)
+PresetLoadResult preparePresetState(juce::AudioProcessorValueTreeState& parameters,
+                                    const std::filesystem::path& path)
 {
     PresetLoadResult result;
     const auto validation = validatePresetFile(path);
@@ -398,7 +466,8 @@ PresetLoadResult loadPresetIntoState(juce::AudioProcessorValueTreeState& paramet
         return result;
     }
 
-    resetStateToDefaults(parameters);
+    auto state = parameters.copyState();
+    resetStateToDefaults(state);
 
     const auto parameterVar = object->getProperty(juce::Identifier("parameters"));
     if (parameterVar.isObject())
@@ -406,7 +475,7 @@ PresetLoadResult loadPresetIntoState(juce::AudioProcessorValueTreeState& paramet
         if (const auto* parameterObject = parameterVar.getDynamicObject())
         {
             for (const auto& property : parameterObject->getProperties())
-                applyPresetParameter(parameters, property.name.toString().toStdString(), property.value);
+                applyPresetParameter(state, property.name.toString().toStdString(), property.value);
         }
     }
 
@@ -416,16 +485,27 @@ PresetLoadResult loadPresetIntoState(juce::AudioProcessorValueTreeState& paramet
         if (const auto* slots = modSlots.getArray())
         {
             for (const auto& slot : *slots)
-                applyModSlotObject(parameters, slot);
+                applyModSlotObject(state, slot);
         }
     }
 
     result.loaded = true;
     result.displayName = propertyString(*object, "display_name");
     result.message = "Loaded preset: " + result.displayName;
-    parameters.state.setProperty("schema_version", 1, nullptr);
-    parameters.state.setProperty("plugin_version", SYNTH_PROJECT_VERSION, nullptr);
-    parameters.state.setProperty("current_preset", juce::String(result.displayName), nullptr);
+    state.setProperty("schema_version", 1, nullptr);
+    state.setProperty("plugin_version", SYNTH_PROJECT_VERSION, nullptr);
+    state.setProperty("current_preset", juce::String(result.displayName), nullptr);
+    result.state = state;
+    return result;
+}
+
+PresetLoadResult loadPresetIntoState(juce::AudioProcessorValueTreeState& parameters,
+                                     const std::filesystem::path& path)
+{
+    auto result = preparePresetState(parameters, path);
+    if (result.loaded)
+        parameters.replaceState(result.state);
+
     return result;
 }
 
@@ -434,9 +514,11 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
                         const std::string& displayName,
                         std::string& error)
 {
+    const auto destination = withJsonExtension(path);
     const auto safeName = displayName.empty() ? std::string("User Preset") : displayName;
     std::error_code createError;
-    std::filesystem::create_directories(path.parent_path(), createError);
+    if (!destination.parent_path().empty())
+        std::filesystem::create_directories(destination.parent_path(), createError);
     if (createError)
     {
         error = "could not create preset directory: " + createError.message();
@@ -459,14 +541,14 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
     metadata->setProperty("clean_room", true);
     root->setProperty("metadata", juce::var(metadata.release()));
 
-    const auto file = juce::File(juce::String(path.string()));
+    const auto file = juce::File(juce::String(destination.string()));
     if (!file.replaceWithText(juce::JSON::toString(juce::var(root.release()), true), false, false, "\n"))
     {
-        error = "could not write preset file: " + path.string();
+        error = "could not write preset file: " + destination.string();
         return false;
     }
 
-    const auto validation = validatePresetFile(path);
+    const auto validation = validatePresetFile(destination);
     if (!validation.passed())
     {
         error = "saved preset did not validate";

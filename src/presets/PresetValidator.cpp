@@ -6,6 +6,7 @@
 #include <juce_core/juce_core.h>
 
 #include <algorithm>
+#include <system_error>
 
 namespace synth
 {
@@ -275,7 +276,8 @@ std::vector<PresetValidationResult> validatePresetDirectory(const std::filesyste
 {
     std::vector<PresetValidationResult> results;
 
-    if (!std::filesystem::exists(directory))
+    std::error_code error;
+    if (!std::filesystem::exists(directory, error) || error)
     {
         PresetValidationResult result;
         result.path = directory;
@@ -284,10 +286,31 @@ std::vector<PresetValidationResult> validatePresetDirectory(const std::filesyste
         return results;
     }
 
-    for (const auto& entry : std::filesystem::directory_iterator(directory))
+    std::filesystem::directory_iterator iterator { directory,
+        std::filesystem::directory_options::skip_permission_denied,
+        error };
+    if (error)
     {
-        if (entry.is_regular_file() && entry.path().extension() == ".json")
+        PresetValidationResult result;
+        result.path = directory;
+        result.errors.push_back("preset directory unavailable: " + error.message());
+        results.push_back(result);
+        return results;
+    }
+
+    for (std::filesystem::directory_iterator end; iterator != end; iterator.increment(error))
+    {
+        if (error)
+        {
+            error.clear();
+            continue;
+        }
+
+        const auto& entry = *iterator;
+        if (entry.is_regular_file(error) && !error && entry.path().extension() == ".json")
             results.push_back(validatePresetFile(entry.path()));
+
+        error.clear();
     }
 
     if (results.empty())

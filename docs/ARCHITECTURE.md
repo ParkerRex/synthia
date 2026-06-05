@@ -156,7 +156,7 @@ Current editor and preset status:
 
 - `PluginEditor` is a clean-room dark control surface with a preset header, diagnostics, panic, and a scrollable set of sections for Voice, Oscillator, Filter, Envelopes, LFO, Ramp, Direct Mod, Amp/Stereo, Macros, FX placeholder parameters, and all eight TransMod slots.
 - Editor controls are constructed against `ParameterRegistry` IDs and use APVTS attachments for sliders, combo boxes, and toggles so UI edits reach the same host-automatable parameters as presets and host state.
-- `PresetManager` scans factory presets from the configured source preset directory, scans user presets from `~/Music/ParkerX/Synth/Presets`, validates preset JSON before load, applies presets to APVTS from defaults plus overrides, maps canonical `mod_slots` objects into flat TransMod parameters, and writes schema-valid user preset JSON.
+- `PresetManager` scans bundled factory presets with a source-directory development fallback, scans user presets from `~/Music/ParkerX/Synth/Presets`, validates preset JSON before load, prepares defaults-plus-overrides APVTS state for one-shot replacement, maps canonical `mod_slots` objects into flat TransMod parameters, and writes schema-valid user preset JSON.
 - Processor diagnostics expose sample rate, block size, active voices, MIDI event count, invalid sample count, peak, current preset, and binary architecture to the editor without filesystem or UI work on the audio thread.
 
 Current voice-core status:

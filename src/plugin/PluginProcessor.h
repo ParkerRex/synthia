@@ -7,6 +7,7 @@
 
 #include <array>
 #include <atomic>
+#include <cstdint>
 #include <vector>
 
 class SynthAudioProcessor final : public juce::AudioProcessor
@@ -160,6 +161,7 @@ private:
     float currentTempoBpm() const noexcept;
     void handleMidiMessage(const juce::MidiMessage& message) noexcept;
     synth::RenderStats renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept;
+    void setPresetMetadata(const juce::String& presetName, const juce::String& status);
 
     juce::AudioProcessorValueTreeState parameters;
     synth::SynthEngine engine;
@@ -174,6 +176,8 @@ private:
     std::atomic<int> diagnosticInvalidSamples { 0 };
     std::atomic<float> diagnosticPeak { 0.0f };
     std::atomic<bool> panicRequested { false };
+    std::atomic<std::uint64_t> parameterStateSequence { 0 };
+    mutable juce::CriticalSection presetMetadataLock;
     juce::String currentPresetName { "Init" };
     juce::String lastPresetStatus { "Init state" };
 

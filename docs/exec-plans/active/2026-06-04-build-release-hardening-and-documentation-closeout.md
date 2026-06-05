@@ -84,7 +84,7 @@ Milestone 4 completes Program and ExecPlan closeout.
 
 Work from the repo root:
 
-    cd /Users/bazelrex/Developer/synth
+    cd /Users/parkerrex/Developer/synth
 
 Run full validation:
 
@@ -102,7 +102,7 @@ Acceptance requires full validation reports, performance report, Ableton smoke p
 
 ### Test Commands
 
-    cd /Users/bazelrex/Developer/synth
+    cd /Users/parkerrex/Developer/synth
     cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTH_ENABLE_TESTS=ON
     cmake --build build-release --config Release
     ctest --test-dir build-release --output-on-failure

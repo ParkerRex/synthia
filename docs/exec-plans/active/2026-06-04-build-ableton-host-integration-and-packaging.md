@@ -92,7 +92,7 @@ Milestone 4 documents packaging and troubleshooting.
 
 Work from the repo root:
 
-    cd /Users/bazelrex/Developer/synth
+    cd /Users/parkerrex/Developer/synth
 
 Build release-like artifacts:
 
@@ -113,7 +113,7 @@ Acceptance requires AU and VST3 bundles produced, architecture checks passing, p
 
 ### Test Commands
 
-    cd /Users/bazelrex/Developer/synth
+    cd /Users/parkerrex/Developer/synth
     cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTH_ENABLE_TESTS=ON
     cmake --build build-release --config Release
     ctest --test-dir build-release --output-on-failure

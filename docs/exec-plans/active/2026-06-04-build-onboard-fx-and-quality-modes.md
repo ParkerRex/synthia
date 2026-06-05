@@ -80,7 +80,7 @@ Milestone 4 validates dry versus wet renders and CPU impact.
 
 Work from the repo root:
 
-    cd /Users/bazelrex/Developer/synth
+    cd /Users/parkerrex/Developer/synth
 
 Implement FX and quality settings. Run:
 
@@ -95,7 +95,7 @@ Acceptance requires FX bypass null-equivalent behavior within tolerance, no inva
 
 ### Test Commands
 
-    cd /Users/bazelrex/Developer/synth
+    cd /Users/parkerrex/Developer/synth
     cmake --build build --config Debug
     ctest --test-dir build --output-on-failure
     ./build/SynthRender --suite core --output-dir build/reports/core
@@ -116,4 +116,3 @@ Expected proof artifacts:
 ## Interfaces and Dependencies
 
 This slice creates FX and quality-mode interfaces consumed by UI, Ableton host validation, packaging, and release readiness.
-

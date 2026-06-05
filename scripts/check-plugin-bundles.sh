@@ -61,6 +61,10 @@ check_bundle() {
   if [[ -f "$plist" ]] && command -v plutil >/dev/null 2>&1; then
     plutil -p "$plist" | grep -E 'CFBundleIdentifier|CFBundleName|CFBundleShortVersionString|CFBundleVersion' || true
   fi
+
+  local preset_dir="$bundle/Contents/Resources/factory"
+  [[ -f "$preset_dir/init.json" ]] || fail "$label factory preset missing: $preset_dir/init.json"
+  [[ -f "$preset_dir/pluck-core-01.json" ]] || fail "$label factory preset missing: $preset_dir/pluck-core-01.json"
 }
 
 check_bundle "Standalone" \

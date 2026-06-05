@@ -21,7 +21,7 @@ Current user preset location:
 
 - `~/Music/ParkerX/Synth/Presets`
 
-The editor scans factory presets from the configured factory preset directory and user presets from the user preset location. Factory presets are treated as read-only; editor Save As and Duplicate write schema-valid user JSON presets.
+The editor scans factory presets from bundled plugin resources when running from an installed AU, VST3, or Standalone bundle, falling back to the source `presets/factory` directory for development tools. User presets are scanned from the user preset location. Factory presets are treated as read-only; editor Save As and Duplicate write schema-valid user JSON presets.
 
 Current validation command:
 

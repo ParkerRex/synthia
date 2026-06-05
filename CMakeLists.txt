@@ -77,13 +77,16 @@ target_sources(SynthPlugin
         src/plugin/PluginProcessor.cpp
         src/plugin/PluginProcessor.h)
 
+foreach(SYNTH_PLUGIN_FORMAT_TARGET IN ITEMS SynthPlugin_AU SynthPlugin_VST3 SynthPlugin_Standalone)
+    juce_add_bundle_resources_directory(${SYNTH_PLUGIN_FORMAT_TARGET} "${CMAKE_CURRENT_SOURCE_DIR}/presets/factory")
+endforeach()
+
 target_compile_definitions(SynthPlugin
     PUBLIC
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
-        SYNTH_PROJECT_VERSION="${PROJECT_VERSION}"
-        SYNTH_FACTORY_PRESET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/presets/factory")
+        SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
 target_link_libraries(SynthPlugin
     PRIVATE
