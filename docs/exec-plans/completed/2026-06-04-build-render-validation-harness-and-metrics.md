@@ -1,10 +1,10 @@
 ---
 title: Build Render Validation Harness And Metrics
-status: active
+status: completed
 created_at: 2026-06-04
-completed_at: null
+completed_at: 2026-06-04
 summary: Promote deterministic render fixtures, audio metrics, reports, and regression artifacts into a first-class validation harness.
-post_build_recap: null
+post_build_recap: Added `SynthRender --suite core`, per-fixture JSON reports, dry WAV artifacts, mono/per-voice LFO ablation, deterministic repeat comparison, CTest coverage, and validation docs.
 read_when:
   - Adding validation fixtures or render metrics.
   - Debugging audio regressions.
@@ -26,15 +26,16 @@ Synth needs evidence, not just compile success. After this slice, the repo shoul
 ## Progress
 
 - [x] 2026-06-04 EDT: Created this Program-linked ExecPlan from `planning-brief-1.md`.
-- [ ] Consolidate `SynthRender` commands and report format.
-- [ ] Add core MIDI fixtures and preset fixtures.
-- [ ] Add FFT, timing, tuning, loudness, stereo, and invalid-sample metrics.
-- [ ] Add golden tolerance reports.
-- [ ] Update validation docs.
+- [x] 2026-06-04 EDT: Consolidated the core validation command as `SynthRender --suite core --output-dir build/reports/core`.
+- [x] 2026-06-04 EDT: Added core-suite use of the overlap MIDI fixture, factory pluck preset, default dry render, per-voice LFO render, and mono-LFO ablation render.
+- [x] 2026-06-04 EDT: Added richer render metrics: invalid samples, peak/RMS, RMS dBFS, crest, DC offset, spectral centroid, stereo correlation, tuning, timing, modulation trace, and note-local LFO spread.
+- [x] 2026-06-04 EDT: Added deterministic repeat/tolerance report and retained failure WAV paths for repeatability failures.
+- [x] 2026-06-04 EDT: Added `SynthRenderCoreSuite` to CTest and updated validation docs.
 
 ## Surprises & Discoveries
 
-None yet. Record numerical library choices, tolerance tradeoffs, and deterministic rendering issues here.
+- Spectral centroid is implemented with a bounded in-process DFT window rather than a new FFT dependency. This keeps the validation tool dependency-light and deterministic while still catching large spectral regressions.
+- Golden comparison is currently a deterministic repeat/tolerance report rather than a checked-in golden WAV. That is intentional for pre-release DSP churn; checked-in goldens can be added once the sound is deliberately frozen.
 
 ## Decision Log
 
@@ -42,9 +43,29 @@ Decision: Render validation is a first-class slice even though earlier slices ad
 Rationale: End-to-end audio behavior needs coherent reports and fixtures across DSP modules.
 Date: 2026-06-04.
 
+Decision: Use standalone core-suite validation in place of Ableton for this slice.
+Rationale: Ableton is unavailable in this environment, and the user explicitly asked to defer that path. Host validation remains in the host-integration ExecPlan.
+Date: 2026-06-04.
+
+Decision: Use deterministic repeat tolerance before checked-in golden WAVs.
+Rationale: The dry-core sound is still changing; repeatability is useful now, while long-lived golden artifacts should wait until the target profile is stable.
+Date: 2026-06-04.
+
 ## Outcomes & Retrospective
 
-Pending implementation.
+Completed on 2026-06-04 EDT.
+
+The core suite writes `summary.json`, focused DSP reports, dry pluck report, WAV artifacts, LFO ablation report, and determinism tolerance report under the requested output directory.
+
+Validation evidence:
+
+    cmake --build build --config Debug
+    ctest --test-dir build --output-on-failure
+    ./build/SynthRender --suite core --output-dir build/reports/core
+
+Observed proof from `build/reports/core/summary.json`: 10 reports, 10 passed, 0 failed. The LFO ablation report showed per-voice LFO spread `1.60032`, mono spread `0`, and RMS diff `0.0384441`. The determinism report showed `max_abs_diff`, `rms_diff`, and `peak_delta` all `0` within tolerance.
+
+Residual risk: this is still standalone validation, not DAW validation. AU/VST3 host behavior remains in the Ableton/host-integration ExecPlan.
 
 ## Context and Orientation
 
@@ -116,4 +137,3 @@ Expected proof artifacts:
 ## Interfaces and Dependencies
 
 This slice creates the validation interface used by UI, FX, host integration, release hardening, and future DSP regression work.
-

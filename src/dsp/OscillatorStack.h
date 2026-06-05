@@ -12,7 +12,7 @@ public:
     void prepare(double newSampleRate) noexcept;
     void reset(float randomOnNote) noexcept;
 
-    float renderSample(int midiNote, const SynthParameters& parameters,
+    float renderSample(float midiNote, const SynthParameters& parameters,
                        float pitchModSemitones, float pulseWidthMod) noexcept;
 
     static float detuneOffsetCents(int index, int count, float detune) noexcept;

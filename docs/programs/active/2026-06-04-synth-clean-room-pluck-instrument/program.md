@@ -50,9 +50,9 @@ Project truth surfaces:
 
 ## Current State
 
-The repository currently contains a JUCE/CMake AU, VST3, and standalone plugin scaffold with APVTS state, clean-room factory presets, voice allocation, envelopes, LFO, oscillator stack, nonlinear filter, amp/stereo dry-core rendering, tests, and validation reports.
+The repository currently contains a JUCE/CMake AU, VST3, and standalone plugin scaffold with APVTS state, clean-room factory presets, voice allocation, envelopes, LFO, ramp, glide, velocity glide, TransMod-style routing, oscillator stack, nonlinear filter, amp/stereo dry-core rendering, tests, and validation reports.
 
-The current planning brief is `planning-brief-1.md`. The next required slice is full modulation matrix, ramp, and glide because the dry core now produces sound using direct routes, but the eight TransMod-style slots and glide/ramp behavior are not implemented yet.
+The current planning brief is `planning-brief-1.md`. The next required slice is the editor UI and preset workflow because the dry core now has deterministic standalone validation and needs a usable clean-room control surface.
 
 ## Progress
 
@@ -66,9 +66,9 @@ The current planning brief is `planning-brief-1.md`. The next required slice is 
 - [x] 2026-06-04 EDT: Executed the voice/MIDI/envelope/LFO slice. The repo now has envelope, LFO, voice allocation, engine MIDI handling, and voice-core validation while audio output remains silent.
 - [x] 2026-06-04 EDT: Executed the oscillator/mixer slice. The repo now renders tuned polyBLEP saw/pulse, deterministic noise, sub waveforms, stack detune, sync, and oscillator metrics.
 - [x] 2026-06-04 EDT: Executed the nonlinear filter slice. The repo now has semitone cutoff mapping, L2/L4/B2/B4/H2/H4 nonlinear filter modes, drive/resonance compensation, oversampling-factor processing, and filter metrics.
-- [ ] Execute the full modulation slice.
+- [x] 2026-06-04 EDT: Executed the full modulation slice. The repo now has ramp, glide, velocity glide, direct keytrack/LFO/envelope routes, eight TransMod-style slots with scalers and physical destination depths, performance MIDI sources, preset slot validation, and `SynthRender --modulation-test`.
 - [x] 2026-06-04 EDT: Executed the amp/stereo/factory pluck slice. The repo now renders `Pluck Core 01` dry to WAV/report with amp drive, pan spread, analog variation, and macro influence.
-- [ ] Execute the validation harness slice.
+- [x] 2026-06-04 EDT: Executed the validation harness slice. The repo now has `SynthRender --suite core`, core-suite CTest coverage, per-fixture JSON reports, WAV artifacts, LFO ablation, deterministic repeat/tolerance comparison, and documented metrics.
 - [ ] Execute the UI/preset workflow slice.
 - [ ] Execute the FX/quality slice.
 - [ ] Execute the Ableton/packaging slice.
@@ -93,11 +93,11 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-04-build-oscillator-stack-and-mixer.md`
 - `docs/exec-plans/completed/2026-06-04-build-nonlinear-filter-drive-and-oversampling.md`
 - `docs/exec-plans/completed/2026-06-04-build-amp-stereo-analog-and-factory-pluck.md`
+- `docs/exec-plans/completed/2026-06-04-build-modulation-matrix-ramp-and-glide.md`
+- `docs/exec-plans/completed/2026-06-04-build-render-validation-harness-and-metrics.md`
 
 Initial active child ExecPlans:
 
-- `docs/exec-plans/active/2026-06-04-build-modulation-matrix-ramp-and-glide.md`
-- `docs/exec-plans/active/2026-06-04-build-render-validation-harness-and-metrics.md`
 - `docs/exec-plans/active/2026-06-04-build-editor-ui-and-preset-workflow.md`
 - `docs/exec-plans/active/2026-06-04-build-onboard-fx-and-quality-modes.md`
 - `docs/exec-plans/active/2026-06-04-build-ableton-host-integration-and-packaging.md`
@@ -105,9 +105,9 @@ Initial active child ExecPlans:
 
 ## Next Slice
 
-The next slice is `docs/exec-plans/active/2026-06-04-build-modulation-matrix-ramp-and-glide.md`.
+The next slice is `docs/exec-plans/active/2026-06-04-build-editor-ui-and-preset-workflow.md`.
 
-It is next because the engine now has pitch, filter, direct envelope/LFO routes, amp, stereo, and a dry factory render, but it does not yet have the full TransMod-style slot evaluator, ramp generator, or glide/velocity-glide behavior.
+It is next because the standalone engine, presets, dry render, modulation, and render harness now have command-line proof, but the plugin still lacks a usable editor and preset workflow.
 
 ## Risks and Watchpoints
 
@@ -120,7 +120,7 @@ It is next because the engine now has pitch, filter, direct envelope/LFO routes,
 
 ## Outcomes & Retrospective
 
-The Program is active. No implementation slices have landed yet.
+The Program is active. Core scaffold, parameter/preset state, voice/MIDI/envelope/LFO, oscillator/mixer, nonlinear filter, amp/stereo/factory pluck, full modulation, and render validation harness slices have landed.
 
 The retrospective should be filled only after all required child ExecPlans are complete and the release-readiness slice has produced final validation evidence.
 

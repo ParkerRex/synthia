@@ -130,8 +130,10 @@ std::vector<ParameterSpec> buildSpecs()
         floatParam("direct.filter_keytrack", "Filter Keytrack Direct", "direct", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f),
         floatParam("direct.filter_lfo_semitones", "Filter LFO Direct", "direct", "semitones", -72.0f, 72.0f, 0.0f, 0.01f),
         floatParam("direct.filter_mod_env_semitones", "Filter Env Direct", "direct", "semitones", -72.0f, 72.0f, 0.0f, 0.01f),
+        floatParam("direct.osc_keytrack_semitones", "Osc Keytrack Direct", "direct", "semitones", -48.0f, 48.0f, 0.0f, 0.01f),
         floatParam("direct.osc_lfo_semitones", "Osc LFO Direct", "direct", "semitones", -48.0f, 48.0f, 0.0f, 0.01f),
         floatParam("direct.osc_mod_env_semitones", "Osc Env Direct", "direct", "semitones", -48.0f, 48.0f, 0.0f, 0.01f),
+        floatParam("direct.pulse_keytrack", "Pulse Keytrack Direct", "direct", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f),
         floatParam("direct.pulse_lfo", "Pulse LFO Direct", "direct", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f),
         floatParam("direct.pulse_mod_env", "Pulse Env Direct", "direct", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f),
 
@@ -154,7 +156,12 @@ std::vector<ParameterSpec> buildSpecs()
         specs.push_back(boolParam(prefix + "enabled", "TransMod " + std::to_string(slot) + " Enabled", "transmod", false));
         specs.push_back(choiceParam(prefix + "source", "TransMod " + std::to_string(slot) + " Source", "transmod", sources, 0));
         specs.push_back(choiceParam(prefix + "scaler", "TransMod " + std::to_string(slot) + " Scaler", "transmod", sources, 0));
-        specs.push_back(floatParam(prefix + "depth", "TransMod " + std::to_string(slot) + " Depth", "transmod", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f));
+        specs.push_back(floatParam(prefix + "depth", "TransMod " + std::to_string(slot) + " Legacy Cutoff Depth", "transmod", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f));
+        specs.push_back(floatParam(prefix + "osc_pitch_semitones", "TransMod " + std::to_string(slot) + " Osc Pitch", "transmod", "semitones", -48.0f, 48.0f, 0.0f, 0.01f));
+        specs.push_back(floatParam(prefix + "pulse_width", "TransMod " + std::to_string(slot) + " Pulse Width", "transmod", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f));
+        specs.push_back(floatParam(prefix + "filter_cutoff_semitones", "TransMod " + std::to_string(slot) + " Filter Cutoff", "transmod", "semitones", -72.0f, 72.0f, 0.0f, 0.01f));
+        specs.push_back(floatParam(prefix + "amp_level_db", "TransMod " + std::to_string(slot) + " Amp Level", "transmod", "dB", -24.0f, 24.0f, 0.0f, 0.01f));
+        specs.push_back(floatParam(prefix + "pan", "TransMod " + std::to_string(slot) + " Pan", "transmod", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f));
     }
 
     return specs;

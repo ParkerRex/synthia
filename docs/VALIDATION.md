@@ -14,18 +14,21 @@ ctest --test-dir build --output-on-failure
 ./build/SynthRender --voice-test --output build/reports/voice-core.json
 ./build/SynthRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
 ./build/SynthRender --filter-test --output build/reports/filter.json
+./build/SynthRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
 ./build/SynthRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
+./build/SynthRender --suite core --output-dir build/reports/core
 ```
 
 The current smoke render is intentionally note-less and proves initialization, finite output, report writing, and command shape.
 
 The current contract validation proves:
 
-- 102 unique parameter IDs,
+- 144 unique parameter IDs,
 - valid defaults and ranges,
 - APVTS state round-trip,
 - two clean-room factory preset JSON files,
-- no unknown preset parameter IDs.
+- no unknown preset parameter IDs,
+- TransMod slot objects use valid slot IDs, source/scaler choices, depth domains, and destination IDs.
 
 The current voice-core validation proves:
 
@@ -47,6 +50,10 @@ The current DSP validation proves:
 - finite resonant impulse behavior,
 - drive changes filter response,
 - `Pluck Core 01` dry render loads the requested preset and MIDI fixture, writes a finite non-clipping WAV/report, and records note-local LFO spread during overlapping notes.
+- ramp timing, glide, velocity glide, direct keytrack/LFO/envelope routes, TransMod scaler multiplication to many physical destinations, performance MIDI sources, voice/unison/random source spread, and fixture trace ranges.
+- top-level `mod_slots` preset schema objects are applied by render loading, including schema-only modulation fixtures that omit flat APVTS-style `transmod.*` parameters.
+- `SynthRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, dry pluck, LFO ablation, and determinism reports in one command.
+- `SynthRenderCoreSuite` runs the core suite under CTest.
 
 Preset render validation is expected to fail if the preset file is missing, the preset JSON is invalid, the MIDI fixture is missing, the fixture is not a valid MIDI file, or the fixture has no note events.
 
@@ -83,6 +90,15 @@ Required checks:
 - mono LFO produces a measurably different movement profile,
 - output is deterministic within tolerance,
 - factory pluck does not clip at default level.
+
+Current standalone core-suite artifacts:
+
+- `summary.json`: aggregate pass/fail for all core reports.
+- `pluck-core-01-dry.json`: dry factory pluck metrics plus WAV artifact path.
+- `lfo-ablation.json`: compares per-voice LFO and mono LFO renders using note-local LFO spread and audio difference.
+- `determinism.json`: renders the dry pluck twice and compares `max_abs_diff`, `rms_diff`, and `peak_delta` against fixed tolerances.
+- `artifacts/*.wav`: retained dry/per-voice/mono render WAVs.
+- `failures/*.wav`: written only when deterministic repeat comparison fails.
 
 ### Host Integration
 
@@ -128,6 +144,20 @@ Recommended targets:
 - no NaN or infinity in any render,
 - no denormal CPU spike on silence tails.
 
+Implemented standalone metrics:
+
+- `invalid_samples`: finite-output guard; must be `0`.
+- `peak`: maximum absolute sample; dry pluck must remain below `1.0`.
+- `rms`: linear RMS of stereo audio.
+- `rms_dbfs`: `20 * log10(rms)`, used as a lightweight loudness proxy until LUFS exists.
+- `crest_db`: peak-to-RMS relationship.
+- `dc_offset`: average mono offset.
+- `spectral_centroid_hz`: bounded-window DFT centroid for coarse spectral regression.
+- `stereo_correlation`: left/right correlation, useful for spread regressions.
+- `note_local_lfo_spread`: spread of per-voice LFO values while notes overlap.
+- `mod_slot_schema_passed`: modulation harness check that canonical preset `mod_slots` objects are loaded into runtime TransMod slots.
+- `max_abs_diff`, `rms_diff`, `peak_delta`: deterministic repeat comparison metrics.
+
 ## Render Artifact Contract
 
 Each validation render should record:
@@ -143,6 +173,8 @@ Each validation render should record:
 - format or standalone runner,
 - metric results,
 - pass/fail summary.
+
+Current report schema uses `schema_version: 1` and a per-report `suite` field. Core-suite reports live under the supplied output directory and are disposable build artifacts.
 
 Failed renders should keep audio artifacts and JSON reports for inspection.
 

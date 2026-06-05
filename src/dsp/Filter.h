@@ -11,7 +11,7 @@ class Filter
 public:
     void prepare(double newSampleRate) noexcept;
     void reset() noexcept;
-    float process(float input, int midiNote, const SynthParameters& parameters,
+    float process(float input, float midiNote, const SynthParameters& parameters,
                   float cutoffModSemitones) noexcept;
 
     static float cutoffSemitonesToHz(float semitones) noexcept;

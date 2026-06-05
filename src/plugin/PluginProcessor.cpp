@@ -60,8 +60,16 @@ void SynthAudioProcessor::handleMidiMessage(const juce::MidiMessage& message) no
         engine.panic();
     else if (message.isAllNotesOff())
         engine.allNotesOff();
+    else if (message.isPitchWheel())
+        engine.setPitchBend((static_cast<float>(message.getPitchWheelValue()) - 8192.0f) / 8192.0f);
     else if (message.isControllerOfType(64))
         engine.setSustainPedal(message.getControllerValue() >= 64);
+    else if (message.isControllerOfType(1))
+        engine.setModWheel(static_cast<float>(message.getControllerValue()) / 127.0f);
+    else if (message.isAftertouch())
+        engine.setAftertouch(static_cast<float>(message.getAfterTouchValue()) / 127.0f);
+    else if (message.isChannelPressure())
+        engine.setAftertouch(static_cast<float>(message.getChannelPressureValue()) / 127.0f);
 }
 
 void SynthAudioProcessor::renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept
@@ -105,6 +113,7 @@ void SynthAudioProcessor::cacheParameterPointers()
         return parameters.getRawParameterValue(id);
     };
 
+    raw.voiceMode = get("voice.mode");
     raw.voicePolyphony = get("voice.polyphony");
     raw.voiceUnisonCount = get("voice.unison_count");
     raw.voiceRetrigger = get("voice.retrigger");
@@ -153,13 +162,34 @@ void SynthAudioProcessor::cacheParameterPointers()
     raw.lfoGateMode = get("lfo.gate_mode");
     raw.lfoMono = get("lfo.mono");
     raw.lfoSwing = get("lfo.swing");
+    raw.rampEnabled = get("ramp.enabled");
+    raw.rampMode = get("ramp.mode");
+    raw.rampDelayMs = get("ramp.delay_ms");
+    raw.rampRiseMs = get("ramp.rise_ms");
+    raw.rampCurve = get("ramp.curve");
     raw.directFilterKeytrack = get("direct.filter_keytrack");
     raw.directFilterLfoSemitones = get("direct.filter_lfo_semitones");
     raw.directFilterModEnvSemitones = get("direct.filter_mod_env_semitones");
+    raw.directOscKeytrackSemitones = get("direct.osc_keytrack_semitones");
     raw.directOscLfoSemitones = get("direct.osc_lfo_semitones");
     raw.directOscModEnvSemitones = get("direct.osc_mod_env_semitones");
+    raw.directPulseKeytrack = get("direct.pulse_keytrack");
     raw.directPulseLfo = get("direct.pulse_lfo");
     raw.directPulseModEnv = get("direct.pulse_mod_env");
+    for (int slot = 0; slot < synth::transModSlotCount; ++slot)
+    {
+        const auto prefix = "transmod." + std::to_string(slot + 1) + ".";
+        auto& rawSlot = raw.transMod[static_cast<std::size_t>(slot)];
+        rawSlot.enabled = get((prefix + "enabled").c_str());
+        rawSlot.source = get((prefix + "source").c_str());
+        rawSlot.scaler = get((prefix + "scaler").c_str());
+        rawSlot.depth = get((prefix + "depth").c_str());
+        rawSlot.oscPitchSemitones = get((prefix + "osc_pitch_semitones").c_str());
+        rawSlot.pulseWidth = get((prefix + "pulse_width").c_str());
+        rawSlot.filterCutoffSemitones = get((prefix + "filter_cutoff_semitones").c_str());
+        rawSlot.ampLevelDb = get((prefix + "amp_level_db").c_str());
+        rawSlot.pan = get((prefix + "pan").c_str());
+    }
     raw.macroMotion = get("macro.motion");
     raw.macroWidth = get("macro.width");
     raw.macroDrive = get("macro.drive");
@@ -169,10 +199,12 @@ void SynthAudioProcessor::cacheParameterPointers()
 synth::SynthParameters SynthAudioProcessor::readParameters(float tempoBpm) const noexcept
 {
     auto value = [](const std::atomic<float>* parameter, float fallback) noexcept {
-        return parameter != nullptr ? parameter->load(std::memory_order_relaxed) : fallback;
+        const auto loaded = parameter != nullptr ? parameter->load(std::memory_order_relaxed) : fallback;
+        return std::isfinite(loaded) ? loaded : fallback;
     };
 
     synth::SynthParameters snapshot;
+    snapshot.voiceMode = static_cast<synth::VoiceMode>(static_cast<int>(std::round(value(raw.voiceMode, 2.0f))));
     snapshot.polyphony = static_cast<int>(std::round(value(raw.voicePolyphony, 8.0f)));
     snapshot.unisonCount = static_cast<int>(std::round(value(raw.voiceUnisonCount, 1.0f)));
     snapshot.retrigger = value(raw.voiceRetrigger, 1.0f) >= 0.5f;
@@ -217,13 +249,34 @@ synth::SynthParameters SynthAudioProcessor::readParameters(float tempoBpm) const
     snapshot.lfo.gateMode = static_cast<synth::LfoGateMode>(static_cast<int>(std::round(value(raw.lfoGateMode, 1.0f))));
     snapshot.lfo.mono = value(raw.lfoMono, 0.0f) >= 0.5f;
     snapshot.lfo.swing = value(raw.lfoSwing, 0.0f);
+    snapshot.ramp.enabled = value(raw.rampEnabled, 0.0f) >= 0.5f;
+    snapshot.ramp.mode = static_cast<synth::RampMode>(static_cast<int>(std::round(value(raw.rampMode, 0.0f))));
+    snapshot.ramp.delayMs = value(raw.rampDelayMs, 0.0f);
+    snapshot.ramp.riseMs = value(raw.rampRiseMs, 1000.0f);
+    snapshot.ramp.curve = static_cast<synth::RampCurve>(static_cast<int>(std::round(value(raw.rampCurve, 0.0f))));
     snapshot.direct.filterKeytrack = value(raw.directFilterKeytrack, 0.0f);
     snapshot.direct.filterLfoSemitones = value(raw.directFilterLfoSemitones, 0.0f);
     snapshot.direct.filterModEnvSemitones = value(raw.directFilterModEnvSemitones, 0.0f);
+    snapshot.direct.oscKeytrackSemitones = value(raw.directOscKeytrackSemitones, 0.0f);
     snapshot.direct.oscLfoSemitones = value(raw.directOscLfoSemitones, 0.0f);
     snapshot.direct.oscModEnvSemitones = value(raw.directOscModEnvSemitones, 0.0f);
+    snapshot.direct.pulseKeytrack = value(raw.directPulseKeytrack, 0.0f);
     snapshot.direct.pulseLfo = value(raw.directPulseLfo, 0.0f);
     snapshot.direct.pulseModEnv = value(raw.directPulseModEnv, 0.0f);
+    for (int slot = 0; slot < synth::transModSlotCount; ++slot)
+    {
+        const auto& rawSlot = raw.transMod[static_cast<std::size_t>(slot)];
+        auto& slotSnapshot = snapshot.transMod.slots[static_cast<std::size_t>(slot)];
+        slotSnapshot.enabled = value(rawSlot.enabled, 0.0f) >= 0.5f;
+        slotSnapshot.source = static_cast<synth::ModSource>(static_cast<int>(std::round(value(rawSlot.source, 0.0f))));
+        slotSnapshot.scaler = static_cast<synth::ModSource>(static_cast<int>(std::round(value(rawSlot.scaler, 0.0f))));
+        slotSnapshot.depth = value(rawSlot.depth, 0.0f);
+        slotSnapshot.oscPitchSemitones = value(rawSlot.oscPitchSemitones, 0.0f);
+        slotSnapshot.pulseWidth = value(rawSlot.pulseWidth, 0.0f);
+        slotSnapshot.filterCutoffSemitones = value(rawSlot.filterCutoffSemitones, 0.0f);
+        slotSnapshot.ampLevelDb = value(rawSlot.ampLevelDb, 0.0f);
+        slotSnapshot.pan = value(rawSlot.pan, 0.0f);
+    }
     snapshot.macro.motion = value(raw.macroMotion, 0.5f);
     snapshot.macro.width = value(raw.macroWidth, 0.0f);
     snapshot.macro.drive = value(raw.macroDrive, 0.0f);

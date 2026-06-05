@@ -1,9 +1,11 @@
 #include "../../src/dsp/Filter.h"
 #include "../../src/dsp/OscillatorStack.h"
+#include "../../src/dsp/Ramp.h"
 #include "../../src/dsp/SynthEngine.h"
 
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 namespace
@@ -204,6 +206,574 @@ bool testEngineProducesAudio()
     const auto stats = engine.process(left.data(), right.data(), static_cast<int>(left.size()));
     return stats.activeVoices == 1 && stats.invalidSamples == 0 && stats.peak > 0.001f;
 }
+
+synth::VoiceSnapshot firstActiveSnapshot(const synth::SynthEngine& engine)
+{
+    for (int i = 0; i < 32; ++i)
+    {
+        const auto* voice = engine.getVoice(i);
+        if (voice == nullptr)
+            continue;
+
+        const auto snapshot = voice->snapshot();
+        if (snapshot.state != synth::VoiceState::Idle)
+            return snapshot;
+    }
+
+    return {};
+}
+
+int activeSnapshotCount(const synth::SynthEngine& engine)
+{
+    auto count = 0;
+    for (int i = 0; i < 32; ++i)
+    {
+        const auto* voice = engine.getVoice(i);
+        if (voice == nullptr)
+            continue;
+
+        if (voice->snapshot().state != synth::VoiceState::Idle)
+            ++count;
+    }
+
+    return count;
+}
+
+void processSamples(synth::SynthEngine& engine, int sampleCount)
+{
+    float left = 0.0f;
+    float right = 0.0f;
+    for (int i = 0; i < sampleCount; ++i)
+        engine.process(&left, &right, 1);
+}
+
+bool testRampGlideAndVelocityGlide()
+{
+    synth::SynthParameters parameters;
+    parameters.voiceMode = synth::VoiceMode::MonoLegato;
+    parameters.polyphony = 1;
+    parameters.unisonCount = 1;
+    parameters.glideMs = 100.0f;
+    parameters.velocityGlideMs = 100.0f;
+    parameters.ramp.enabled = true;
+    parameters.ramp.riseMs = 100.0f;
+    parameters.ramp.curve = synth::RampCurve::Linear;
+    parameters.osc.sawLevel = 1.0f;
+    parameters.filter.enabled = false;
+
+    synth::SynthEngine engine;
+    engine.prepare(48000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.25f);
+    processSamples(engine, 2400);
+
+    const auto halfwayRamp = firstActiveSnapshot(engine).ramp;
+    if (halfwayRamp < 0.45f || halfwayRamp > 0.55f)
+        return false;
+
+    engine.noteOn(72, 1.0f);
+    processSamples(engine, 16);
+    const auto startGlide = firstActiveSnapshot(engine);
+    if (startGlide.effectiveMidiNote <= 60.0f || startGlide.effectiveMidiNote >= 61.0f)
+        return false;
+
+    if (startGlide.velocityGlide <= 0.25f || startGlide.velocityGlide >= 0.35f)
+        return false;
+
+    processSamples(engine, 4800);
+    const auto endGlide = firstActiveSnapshot(engine);
+    return std::abs(endGlide.effectiveMidiNote - 72.0f) < 0.05f
+        && std::abs(endGlide.velocityGlide - 1.0f) < 0.01f
+        && endGlide.ramp > 0.98f;
+}
+
+bool testRampOneShotBoundary()
+{
+    synth::Ramp ramp;
+    ramp.prepare(1000.0);
+    ramp.noteOn();
+
+    synth::RampParameters parameters;
+    parameters.enabled = true;
+    parameters.riseMs = 4.0f;
+    parameters.curve = synth::RampCurve::Linear;
+
+    const auto first = ramp.process(parameters, 120.0f);
+    const auto second = ramp.process(parameters, 120.0f);
+    const auto third = ramp.process(parameters, 120.0f);
+    const auto fourth = ramp.process(parameters, 120.0f);
+
+    return std::abs(first - 0.0f) < 0.0001f
+        && std::abs(second - (1.0f / 3.0f)) < 0.0001f
+        && std::abs(third - (2.0f / 3.0f)) < 0.0001f
+        && std::abs(fourth - 1.0f) < 0.0001f;
+}
+
+bool testGlideOneSampleBoundary()
+{
+    synth::SynthParameters parameters;
+    parameters.voiceMode = synth::VoiceMode::MonoLegato;
+    parameters.glideMs = 1.0f;
+    parameters.velocityGlideMs = 1.0f;
+    parameters.filter.enabled = false;
+
+    synth::SynthEngine engine;
+    engine.prepare(1000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.25f);
+    processSamples(engine, 1);
+    engine.noteOn(72, 1.0f);
+    processSamples(engine, 1);
+
+    const auto snapshot = firstActiveSnapshot(engine);
+    return std::abs(snapshot.effectiveMidiNote - 72.0f) < 0.0001f
+        && std::abs(snapshot.velocityGlide - 1.0f) < 0.0001f;
+}
+
+bool testMonoModeDoesNotLegatoGlide()
+{
+    synth::SynthParameters parameters;
+    parameters.voiceMode = synth::VoiceMode::Mono;
+    parameters.glideMs = 100.0f;
+    parameters.filter.enabled = false;
+
+    synth::SynthEngine engine;
+    engine.prepare(48000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.5f);
+    processSamples(engine, 8);
+    engine.noteOn(72, 1.0f);
+    processSamples(engine, 1);
+
+    const auto snapshot = firstActiveSnapshot(engine);
+    return snapshot.midiNote == 72
+        && std::abs(snapshot.effectiveMidiNote - 72.0f) < 0.0001f;
+}
+
+bool testMonoLegatoRetriggerPolicy()
+{
+    synth::SynthParameters parameters;
+    parameters.voiceMode = synth::VoiceMode::MonoLegato;
+    parameters.retrigger = false;
+    parameters.glideMs = 100.0f;
+    parameters.ramp.enabled = true;
+    parameters.ramp.riseMs = 100.0f;
+    parameters.ramp.curve = synth::RampCurve::Linear;
+    parameters.filter.enabled = false;
+
+    synth::SynthEngine engine;
+    engine.prepare(48000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.5f);
+    processSamples(engine, 2400);
+    const auto beforeLegato = firstActiveSnapshot(engine).ramp;
+
+    engine.noteOn(64, 1.0f);
+    processSamples(engine, 1);
+    const auto afterLegato = firstActiveSnapshot(engine).ramp;
+
+    return beforeLegato > 0.49f
+        && beforeLegato < 0.51f
+        && afterLegato > 0.49f;
+}
+
+bool testMonoLegatoReleaseResumesHeldNote()
+{
+    auto makeParameters = [] {
+        synth::SynthParameters parameters;
+        parameters.voiceMode = synth::VoiceMode::MonoLegato;
+        parameters.retrigger = false;
+        parameters.glideMs = 0.0f;
+        parameters.filter.enabled = false;
+        parameters.ampEnv.releaseMs = 1.0f;
+        return parameters;
+    };
+
+    {
+        auto parameters = makeParameters();
+        synth::SynthEngine engine;
+        engine.prepare(48000.0, 1);
+        engine.setParameters(parameters);
+        engine.noteOn(60, 0.4f);
+        processSamples(engine, 8);
+        engine.noteOn(64, 1.0f);
+        processSamples(engine, 8);
+        if (firstActiveSnapshot(engine).midiNote != 64)
+            return false;
+
+        engine.noteOff(64);
+        processSamples(engine, 8);
+        const auto resumed = firstActiveSnapshot(engine);
+        if (resumed.state != synth::VoiceState::Held
+            || resumed.midiNote != 60
+            || activeSnapshotCount(engine) != 1)
+        {
+            return false;
+        }
+    }
+
+    {
+        auto parameters = makeParameters();
+        synth::SynthEngine engine;
+        engine.prepare(48000.0, 1);
+        engine.setParameters(parameters);
+        engine.noteOn(60, 0.4f);
+        processSamples(engine, 8);
+        engine.noteOn(64, 1.0f);
+        processSamples(engine, 8);
+        engine.setSustainPedal(true);
+        engine.noteOff(64);
+        processSamples(engine, 8);
+        const auto sustainedResume = firstActiveSnapshot(engine);
+        if (sustainedResume.state != synth::VoiceState::Held
+            || sustainedResume.midiNote != 60
+            || activeSnapshotCount(engine) != 1)
+        {
+            return false;
+        }
+
+        engine.setSustainPedal(false);
+        processSamples(engine, 8);
+        const auto afterPedalUp = firstActiveSnapshot(engine);
+        if (afterPedalUp.state != synth::VoiceState::Held
+            || afterPedalUp.midiNote != 60
+            || activeSnapshotCount(engine) != 1)
+        {
+            return false;
+        }
+    }
+
+    {
+        auto parameters = makeParameters();
+        synth::SynthEngine engine;
+        engine.prepare(48000.0, 1);
+        engine.setParameters(parameters);
+        engine.noteOn(60, 0.4f);
+        processSamples(engine, 8);
+        engine.noteOn(64, 1.0f);
+        processSamples(engine, 8);
+        engine.setSustainPedal(true);
+        engine.noteOff(60);
+        processSamples(engine, 8);
+        engine.noteOff(64);
+        processSamples(engine, 8);
+        const auto sustainedOnlyResume = firstActiveSnapshot(engine);
+        if (sustainedOnlyResume.state != synth::VoiceState::Held
+            || sustainedOnlyResume.midiNote != 60
+            || activeSnapshotCount(engine) != 1)
+        {
+            return false;
+        }
+
+        engine.setSustainPedal(false);
+        processSamples(engine, 128);
+        return activeSnapshotCount(engine) == 0;
+    }
+}
+
+bool testVoiceModeCapChangeReleasesSurplusVoices()
+{
+    {
+        synth::SynthParameters parameters;
+        parameters.voiceMode = synth::VoiceMode::Poly;
+        parameters.polyphony = 4;
+        parameters.unisonCount = 1;
+        parameters.filter.enabled = false;
+
+        synth::SynthEngine engine;
+        engine.prepare(48000.0, 1);
+        engine.setParameters(parameters);
+        engine.noteOn(60, 1.0f);
+        engine.noteOn(64, 1.0f);
+        engine.noteOn(67, 1.0f);
+        processSamples(engine, 8);
+        if (activeSnapshotCount(engine) != 3)
+            return false;
+
+        parameters.voiceMode = synth::VoiceMode::Mono;
+        parameters.unisonCount = 4;
+        engine.setParameters(parameters);
+        processSamples(engine, 1);
+
+        const auto remaining = firstActiveSnapshot(engine);
+        if (activeSnapshotCount(engine) != 1
+            || remaining.state != synth::VoiceState::Held
+            || remaining.midiNote != 67
+            || std::abs(remaining.voiceBi) >= 0.0001f
+            || std::abs(remaining.unisonBi) >= 0.0001f)
+        {
+            return false;
+        }
+    }
+
+    {
+        synth::SynthParameters parameters;
+        parameters.voiceMode = synth::VoiceMode::Poly;
+        parameters.polyphony = 8;
+        parameters.unisonCount = 1;
+        parameters.filter.enabled = false;
+
+        synth::SynthEngine engine;
+        engine.prepare(48000.0, 1);
+        engine.setParameters(parameters);
+        engine.noteOn(60, 1.0f);
+        engine.noteOn(64, 1.0f);
+        processSamples(engine, 8);
+
+        parameters.polyphony = 2;
+        engine.setParameters(parameters);
+        processSamples(engine, 1);
+
+        auto minVoiceBi = 1.0f;
+        auto maxVoiceBi = -1.0f;
+        for (int i = 0; i < 32; ++i)
+        {
+            const auto* voice = engine.getVoice(i);
+            if (voice == nullptr)
+                continue;
+
+            const auto snapshot = voice->snapshot();
+            if (snapshot.state == synth::VoiceState::Idle)
+                continue;
+
+            minVoiceBi = std::min(minVoiceBi, snapshot.voiceBi);
+            maxVoiceBi = std::max(maxVoiceBi, snapshot.voiceBi);
+        }
+
+        return activeSnapshotCount(engine) == 2
+            && minVoiceBi < -0.9f
+            && maxVoiceBi > 0.9f;
+    }
+}
+
+bool testPolyCapReductionKeepsMostRecentHeldNotes()
+{
+    synth::SynthParameters parameters;
+    parameters.voiceMode = synth::VoiceMode::Poly;
+    parameters.polyphony = 4;
+    parameters.unisonCount = 1;
+    parameters.filter.enabled = false;
+
+    synth::SynthEngine engine;
+    engine.prepare(48000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 1.0f);
+    engine.noteOn(64, 1.0f);
+    engine.noteOn(67, 1.0f);
+    processSamples(engine, 8);
+
+    parameters.polyphony = 2;
+    engine.setParameters(parameters);
+    processSamples(engine, 1);
+
+    auto has60 = false;
+    auto has64 = false;
+    auto has67 = false;
+    for (int i = 0; i < 32; ++i)
+    {
+        const auto* voice = engine.getVoice(i);
+        if (voice == nullptr)
+            continue;
+
+        const auto snapshot = voice->snapshot();
+        if (snapshot.state == synth::VoiceState::Idle)
+            continue;
+
+        has60 = has60 || snapshot.midiNote == 60;
+        has64 = has64 || snapshot.midiNote == 64;
+        has67 = has67 || snapshot.midiNote == 67;
+    }
+
+    return activeSnapshotCount(engine) == 2
+        && !has60
+        && has64
+        && has67;
+}
+
+bool testUnisonModeCollapsesHeldPolyChord()
+{
+    synth::SynthParameters parameters;
+    parameters.voiceMode = synth::VoiceMode::Poly;
+    parameters.polyphony = 4;
+    parameters.unisonCount = 1;
+    parameters.filter.enabled = false;
+
+    synth::SynthEngine engine;
+    engine.prepare(48000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 1.0f);
+    engine.noteOn(64, 1.0f);
+    engine.noteOn(67, 1.0f);
+    processSamples(engine, 8);
+    if (activeSnapshotCount(engine) != 3)
+        return false;
+
+    parameters.voiceMode = synth::VoiceMode::Unison;
+    parameters.unisonCount = 4;
+    engine.setParameters(parameters);
+    processSamples(engine, 1);
+
+    const auto remaining = firstActiveSnapshot(engine);
+    return activeSnapshotCount(engine) == 1
+        && remaining.state == synth::VoiceState::Held
+        && remaining.midiNote == 67
+        && std::abs(remaining.voiceBi) < 0.0001f
+        && std::abs(remaining.unisonBi) < 0.0001f;
+}
+
+bool testDirectAndTransModRoutes()
+{
+    synth::SynthParameters parameters;
+    parameters.polyphony = 1;
+    parameters.unisonCount = 1;
+    parameters.ramp.enabled = true;
+    parameters.ramp.riseMs = 1.0f;
+    parameters.direct.oscKeytrackSemitones = 12.0f;
+    parameters.direct.pulseKeytrack = 0.25f;
+    parameters.direct.filterKeytrack = 0.5f;
+    parameters.macro.motion = 0.5f;
+    parameters.filter.enabled = false;
+    parameters.osc.sawLevel = 1.0f;
+
+    auto& slot = parameters.transMod.slots[0];
+    slot.enabled = true;
+    slot.source = synth::ModSource::Ramp;
+    slot.scaler = synth::ModSource::Macro1;
+    slot.oscPitchSemitones = 12.0f;
+    slot.pulseWidth = 0.2f;
+    slot.filterCutoffSemitones = 24.0f;
+    slot.ampLevelDb = 6.0f;
+    slot.pan = 0.4f;
+
+    synth::SynthEngine engine;
+    engine.prepare(48000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(72, 1.0f);
+    processSamples(engine, 128);
+
+    const auto snapshot = firstActiveSnapshot(engine);
+    return std::abs(snapshot.directOscPitchSemitones - 12.0f) < 0.05f
+        && std::abs(snapshot.directPulseWidth - 0.25f) < 0.01f
+        && std::abs(snapshot.directFilterCutoffSemitones - 6.0f) < 0.05f
+        && std::abs(snapshot.transModOscPitchSemitones - 6.0f) < 0.05f
+        && std::abs(snapshot.transModPulseWidth - 0.1f) < 0.01f
+        && std::abs(snapshot.transModFilterCutoffSemitones - 12.0f) < 0.05f
+        && std::abs(snapshot.transModAmpLevelDb - 3.0f) < 0.05f
+        && std::abs(snapshot.transModPan - 0.2f) < 0.01f;
+}
+
+bool testVoiceUnisonRandomAndPerformanceSources()
+{
+    synth::SynthParameters parameters;
+    parameters.polyphony = 2;
+    parameters.unisonCount = 2;
+    parameters.filter.enabled = false;
+    parameters.osc.sawLevel = 1.0f;
+
+    parameters.transMod.slots[0].enabled = true;
+    parameters.transMod.slots[0].source = synth::ModSource::PitchBend;
+    parameters.transMod.slots[0].oscPitchSemitones = 12.0f;
+    parameters.transMod.slots[1].enabled = true;
+    parameters.transMod.slots[1].source = synth::ModSource::ModWheel;
+    parameters.transMod.slots[1].filterCutoffSemitones = 24.0f;
+    parameters.transMod.slots[2].enabled = true;
+    parameters.transMod.slots[2].source = synth::ModSource::Aftertouch;
+    parameters.transMod.slots[2].ampLevelDb = 6.0f;
+
+    synth::SynthEngine engine;
+    engine.prepare(48000.0, 1);
+    engine.setParameters(parameters);
+    engine.setPitchBend(0.5f);
+    engine.setModWheel(0.25f);
+    engine.setAftertouch(0.5f);
+    engine.noteOn(60, 0.7f);
+    processSamples(engine, 64);
+
+    auto active = 0;
+    auto minUnisonBi = 1.0f;
+    auto maxUnisonBi = -1.0f;
+    auto minRandom = 1.0f;
+    auto maxRandom = -1.0f;
+    for (int i = 0; i < 32; ++i)
+    {
+        const auto* voice = engine.getVoice(i);
+        if (voice == nullptr)
+            continue;
+
+        const auto snapshot = voice->snapshot();
+        if (snapshot.state == synth::VoiceState::Idle)
+            continue;
+
+        ++active;
+        minUnisonBi = std::min(minUnisonBi, snapshot.unisonBi);
+        maxUnisonBi = std::max(maxUnisonBi, snapshot.unisonBi);
+        minRandom = std::min(minRandom, snapshot.randomOnNote);
+        maxRandom = std::max(maxRandom, snapshot.randomOnNote);
+
+        if (std::abs(snapshot.transModOscPitchSemitones - 6.0f) > 0.05f)
+            return false;
+        if (std::abs(snapshot.transModFilterCutoffSemitones - 6.0f) > 0.05f)
+            return false;
+        if (std::abs(snapshot.transModAmpLevelDb - 3.0f) > 0.05f)
+            return false;
+    }
+
+    return active == 2
+        && minUnisonBi < -0.9f
+        && maxUnisonBi > 0.9f
+        && std::abs(maxRandom - minRandom) > 0.001f;
+}
+
+bool testVoiceModesAndOutputSafety()
+{
+    {
+        synth::VoiceAllocator allocator(8);
+        allocator.prepare(48000.0);
+        synth::SynthParameters parameters;
+        parameters.voiceMode = synth::VoiceMode::Mono;
+        parameters.polyphony = 8;
+        parameters.unisonCount = 4;
+        allocator.noteOn(60, 1.0f, parameters);
+        allocator.noteOn(64, 1.0f, parameters);
+        if (allocator.activeVoiceCount() != 1)
+            return false;
+    }
+
+    {
+        synth::VoiceAllocator allocator(8);
+        allocator.prepare(48000.0);
+        synth::SynthParameters parameters;
+        parameters.voiceMode = synth::VoiceMode::Unison;
+        parameters.polyphony = 8;
+        parameters.unisonCount = 3;
+        allocator.noteOn(60, 1.0f, parameters);
+        allocator.noteOn(64, 1.0f, parameters);
+        if (allocator.activeVoiceCount() != 3)
+            return false;
+    }
+
+    synth::SynthParameters parameters;
+    parameters.amp.levelDb = std::numeric_limits<float>::quiet_NaN();
+    parameters.filter.cutoffSemitones = std::numeric_limits<float>::infinity();
+    parameters.filter.enabled = true;
+    parameters.osc.sawLevel = 1.0f;
+    for (auto& slot : parameters.transMod.slots)
+    {
+        slot.enabled = true;
+        slot.source = synth::ModSource::Velocity;
+        slot.ampLevelDb = 48.0f;
+    }
+
+    synth::SynthEngine engine;
+    engine.prepare(48000.0, 128);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 1.0f);
+
+    std::vector<float> left(4096);
+    std::vector<float> right(4096);
+    const auto stats = engine.process(left.data(), right.data(), static_cast<int>(left.size()));
+    return stats.invalidSamples == 0 && stats.peak <= 1.0f;
+}
 } // namespace
 
 int main()
@@ -241,6 +811,78 @@ int main()
     if (!testEngineProducesAudio())
     {
         std::cerr << "Engine audio test failed.\n";
+        return 1;
+    }
+
+    if (!testRampGlideAndVelocityGlide())
+    {
+        std::cerr << "Ramp/glide/velocity glide test failed.\n";
+        return 1;
+    }
+
+    if (!testRampOneShotBoundary())
+    {
+        std::cerr << "Ramp one-shot boundary test failed.\n";
+        return 1;
+    }
+
+    if (!testGlideOneSampleBoundary())
+    {
+        std::cerr << "Glide one-sample boundary test failed.\n";
+        return 1;
+    }
+
+    if (!testMonoModeDoesNotLegatoGlide())
+    {
+        std::cerr << "Mono mode no-glide test failed.\n";
+        return 1;
+    }
+
+    if (!testMonoLegatoRetriggerPolicy())
+    {
+        std::cerr << "Mono legato retrigger test failed.\n";
+        return 1;
+    }
+
+    if (!testMonoLegatoReleaseResumesHeldNote())
+    {
+        std::cerr << "Mono legato release resume test failed.\n";
+        return 1;
+    }
+
+    if (!testVoiceModeCapChangeReleasesSurplusVoices())
+    {
+        std::cerr << "Voice mode cap change test failed.\n";
+        return 1;
+    }
+
+    if (!testPolyCapReductionKeepsMostRecentHeldNotes())
+    {
+        std::cerr << "Poly cap recency test failed.\n";
+        return 1;
+    }
+
+    if (!testUnisonModeCollapsesHeldPolyChord())
+    {
+        std::cerr << "Unison mode chord collapse test failed.\n";
+        return 1;
+    }
+
+    if (!testDirectAndTransModRoutes())
+    {
+        std::cerr << "Direct/TransMod route test failed.\n";
+        return 1;
+    }
+
+    if (!testVoiceUnisonRandomAndPerformanceSources())
+    {
+        std::cerr << "Voice/unison/random/performance source test failed.\n";
+        return 1;
+    }
+
+    if (!testVoiceModesAndOutputSafety())
+    {
+        std::cerr << "Voice mode/output safety test failed.\n";
         return 1;
     }
 

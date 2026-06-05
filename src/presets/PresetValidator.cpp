@@ -1,5 +1,6 @@
 #include "PresetValidator.h"
 
+#include "../dsp/SynthParameters.h"
 #include "../plugin/ParameterRegistry.h"
 
 #include <juce_core/juce_core.h>
@@ -23,6 +24,43 @@ const juce::var getProperty(const juce::DynamicObject& object, const char* name)
 bool isNumber(const juce::var& value)
 {
     return value.isDouble() || value.isInt() || value.isInt64();
+}
+
+bool isAllowedChoice(const ParameterSpec& spec, const juce::var& value)
+{
+    if (!value.isString())
+        return false;
+
+    const auto selected = value.toString().toStdString();
+    return std::find(spec.choices.begin(), spec.choices.end(), selected) != spec.choices.end();
+}
+
+bool isAllowedModDestination(const std::string& targetId)
+{
+    return targetId == "osc.pitch_semitones"
+        || targetId == "osc.pulse_width"
+        || targetId == "filter.cutoff_semitones"
+        || targetId == "amp.level_db"
+        || targetId == "amp.pan";
+}
+
+bool isDepthInRange(const std::string& targetId, const std::string& depthDomain, float value)
+{
+    if (depthDomain == "Normalized")
+        return value >= -1.0f && value <= 1.0f;
+
+    if (targetId == "osc.pitch_semitones")
+        return value >= -48.0f && value <= 48.0f;
+    if (targetId == "osc.pulse_width")
+        return value >= -1.0f && value <= 1.0f;
+    if (targetId == "filter.cutoff_semitones")
+        return value >= -72.0f && value <= 72.0f;
+    if (targetId == "amp.level_db")
+        return value >= -24.0f && value <= 24.0f;
+    if (targetId == "amp.pan")
+        return value >= -1.0f && value <= 1.0f;
+
+    return false;
 }
 
 void validateParameterValue(PresetValidationResult& result, const ParameterSpec& spec, const juce::var& value)
@@ -55,6 +93,97 @@ void validateParameterValue(PresetValidationResult& result, const ParameterSpec&
         const auto selected = value.toString().toStdString();
         if (std::find(spec.choices.begin(), spec.choices.end(), selected) == spec.choices.end())
             result.errors.push_back(spec.id + " has unknown choice '" + selected + "'");
+    }
+}
+
+void validateModSlots(PresetValidationResult& result, const juce::var& modSlots)
+{
+    if (!modSlots.isArray())
+        return;
+
+    const auto* sourceSpec = findParameterSpec("transmod.1.source");
+    if (sourceSpec == nullptr)
+    {
+        result.errors.push_back("transmod source parameter spec missing");
+        return;
+    }
+
+    const auto* slots = modSlots.getArray();
+    if (slots == nullptr)
+        return;
+
+    for (const auto& slotVar : *slots)
+    {
+        if (!slotVar.isObject())
+        {
+            result.errors.push_back("mod_slots entries must be objects");
+            continue;
+        }
+
+        const auto* slot = slotVar.getDynamicObject();
+        if (slot == nullptr)
+        {
+            result.errors.push_back("mod_slots entry object unavailable");
+            continue;
+        }
+
+        const auto slotId = slot->getProperty(juce::Identifier("slot_id"));
+        if (!slotId.isInt() || static_cast<int>(slotId) < 1 || static_cast<int>(slotId) > transModSlotCount)
+            result.errors.push_back("mod_slots slot_id must be an integer from 1 through 8");
+
+        const auto enabled = slot->getProperty(juce::Identifier("enabled"));
+        const auto enabledValid = enabled.isBool();
+        const auto isEnabled = enabledValid && static_cast<bool>(enabled);
+        if (!enabledValid)
+            result.errors.push_back("mod_slots enabled must be boolean");
+
+        const auto source = slot->getProperty(juce::Identifier("source"));
+        if (isEnabled && (!isAllowedChoice(*sourceSpec, source) || source.toString() == "None"))
+            result.errors.push_back("mod_slots source must be a known non-None source");
+        else if (!source.isVoid() && !isAllowedChoice(*sourceSpec, source))
+            result.errors.push_back("mod_slots source must be None or a known source");
+
+        const auto scaler = slot->getProperty(juce::Identifier("scaler"));
+        if (!scaler.isVoid() && !isAllowedChoice(*sourceSpec, scaler))
+            result.errors.push_back("mod_slots scaler must be None or a known source");
+
+        const auto depthDomain = slot->getProperty(juce::Identifier("depth_domain"));
+        auto depthDomainString = std::string {};
+        if (!depthDomain.isString()
+            || (depthDomain.toString() != "Physical" && depthDomain.toString() != "Normalized"))
+        {
+            result.errors.push_back("mod_slots depth_domain must be Physical or Normalized");
+        }
+        else
+        {
+            depthDomainString = depthDomain.toString().toStdString();
+        }
+
+        const auto depths = slot->getProperty(juce::Identifier("depths"));
+        if (!depths.isObject())
+        {
+            result.errors.push_back("mod_slots depths must be an object");
+            continue;
+        }
+
+        if (const auto* depthObject = depths.getDynamicObject())
+        {
+            for (const auto& property : depthObject->getProperties())
+            {
+                const auto targetId = property.name.toString().toStdString();
+                if (!isAllowedModDestination(targetId))
+                    result.errors.push_back("mod_slots unknown depth target: " + targetId);
+                if (!isNumber(property.value))
+                {
+                    result.errors.push_back("mod_slots depth for " + targetId + " must be numeric");
+                    continue;
+                }
+
+                const auto depth = static_cast<float>(static_cast<double>(property.value));
+                if (!depthDomainString.empty() && !isDepthInRange(targetId, depthDomainString, depth))
+                    result.errors.push_back("mod_slots depth for " + targetId + " is outside allowed range");
+            }
+        }
     }
 }
 } // namespace
@@ -108,6 +237,8 @@ PresetValidationResult validatePresetFile(const std::filesystem::path& path)
 
     if (hasProperty(*object, "mod_slots") && !getProperty(*object, "mod_slots").isArray())
         result.errors.push_back("mod_slots must be an array");
+    else if (hasProperty(*object, "mod_slots"))
+        validateModSlots(result, getProperty(*object, "mod_slots"));
 
     if (hasProperty(*object, "macros") && !getProperty(*object, "macros").isArray())
         result.errors.push_back("macros must be an array");
@@ -174,4 +305,3 @@ std::vector<PresetValidationResult> validatePresetDirectory(const std::filesyste
     return results;
 }
 } // namespace synth
-

@@ -4,7 +4,7 @@
   "id": "pluck-core-01",
   "display_name": "Pluck Core 01",
   "author": "Factory",
-  "description": "Clean-room pluck-core starting point. The current scaffold stores values before DSP implementation.",
+  "description": "Clean-room pluck-core starting point using oscillator stack, nonlinear filter, direct modulation, ramp, and TransMod motion.",
   "tags": ["pluck", "analog", "poly", "wide"],
   "parameters": {
     "voice.mode": "Poly",
@@ -41,6 +41,17 @@
     "lfo.phase_degrees": 0.0,
     "lfo.mono": false,
     "lfo.gate_mode": "PolyOn",
+    "ramp.enabled": true,
+    "ramp.mode": "OneShot",
+    "ramp.rise_ms": 180.0,
+    "ramp.curve": "Snappy",
+    "transmod.1.enabled": true,
+    "transmod.1.source": "Ramp",
+    "transmod.1.scaler": "Velocity",
+    "transmod.1.filter_cutoff_semitones": 8.0,
+    "transmod.2.enabled": true,
+    "transmod.2.source": "RandomOnNote",
+    "transmod.2.pan": 0.12,
     "amp.drive": 0.12,
     "amp.level_db": -6.0,
     "amp.pan_spread": 0.65,
@@ -53,7 +64,28 @@
     "macro.drive": 0.32,
     "macro.space": 0.12
   },
-  "mod_slots": [],
+  "mod_slots": [
+    {
+      "slot_id": 1,
+      "enabled": true,
+      "source": "Ramp",
+      "scaler": "Velocity",
+      "depths": {
+        "filter.cutoff_semitones": 8.0
+      },
+      "depth_domain": "Physical"
+    },
+    {
+      "slot_id": 2,
+      "enabled": true,
+      "source": "RandomOnNote",
+      "scaler": "None",
+      "depths": {
+        "amp.pan": 0.12
+      },
+      "depth_domain": "Normalized"
+    }
+  ],
   "macros": [
     {
       "id": "motion",
@@ -82,6 +114,6 @@
   ],
   "metadata": {
     "clean_room": true,
-    "implementation_note": "Values are stored before oscillator/filter/modulation DSP exists."
+    "implementation_note": "Values are original and exercise implemented dry-core modulation routes."
   }
 }

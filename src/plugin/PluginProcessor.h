@@ -43,6 +43,20 @@ public:
 private:
     struct RawParameterPointers
     {
+        struct RawTransModSlot
+        {
+            std::atomic<float>* enabled = nullptr;
+            std::atomic<float>* source = nullptr;
+            std::atomic<float>* scaler = nullptr;
+            std::atomic<float>* depth = nullptr;
+            std::atomic<float>* oscPitchSemitones = nullptr;
+            std::atomic<float>* pulseWidth = nullptr;
+            std::atomic<float>* filterCutoffSemitones = nullptr;
+            std::atomic<float>* ampLevelDb = nullptr;
+            std::atomic<float>* pan = nullptr;
+        };
+
+        std::atomic<float>* voiceMode = nullptr;
         std::atomic<float>* voicePolyphony = nullptr;
         std::atomic<float>* voiceUnisonCount = nullptr;
         std::atomic<float>* voiceRetrigger = nullptr;
@@ -91,13 +105,21 @@ private:
         std::atomic<float>* lfoGateMode = nullptr;
         std::atomic<float>* lfoMono = nullptr;
         std::atomic<float>* lfoSwing = nullptr;
+        std::atomic<float>* rampEnabled = nullptr;
+        std::atomic<float>* rampMode = nullptr;
+        std::atomic<float>* rampDelayMs = nullptr;
+        std::atomic<float>* rampRiseMs = nullptr;
+        std::atomic<float>* rampCurve = nullptr;
         std::atomic<float>* directFilterKeytrack = nullptr;
         std::atomic<float>* directFilterLfoSemitones = nullptr;
         std::atomic<float>* directFilterModEnvSemitones = nullptr;
+        std::atomic<float>* directOscKeytrackSemitones = nullptr;
         std::atomic<float>* directOscLfoSemitones = nullptr;
         std::atomic<float>* directOscModEnvSemitones = nullptr;
+        std::atomic<float>* directPulseKeytrack = nullptr;
         std::atomic<float>* directPulseLfo = nullptr;
         std::atomic<float>* directPulseModEnv = nullptr;
+        std::array<RawTransModSlot, synth::transModSlotCount> transMod {};
         std::atomic<float>* macroMotion = nullptr;
         std::atomic<float>* macroWidth = nullptr;
         std::atomic<float>* macroDrive = nullptr;

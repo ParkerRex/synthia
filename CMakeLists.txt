@@ -39,6 +39,8 @@ set(SYNTH_COMMON_SOURCES
     src/dsp/Lfo.h
     src/dsp/OscillatorStack.cpp
     src/dsp/OscillatorStack.h
+    src/dsp/Ramp.cpp
+    src/dsp/Ramp.h
     src/dsp/SynthEngine.cpp
     src/dsp/SynthEngine.h
     src/dsp/SynthParameters.h
@@ -194,4 +196,8 @@ if(SYNTH_ENABLE_TESTS)
 
     add_test(NAME SynthDspCoreTest COMMAND SynthDspCoreTest)
     set_tests_properties(SynthDspCoreTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+    add_test(NAME SynthRenderCoreSuite
+        COMMAND SynthRender --suite core --output-dir build/reports/ctest-core)
+    set_tests_properties(SynthRenderCoreSuite PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()

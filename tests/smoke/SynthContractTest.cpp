@@ -3,6 +3,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <cmath>
 #include <iostream>
 #include <set>
 
@@ -85,6 +86,15 @@ int main()
         return 1;
     }
 
+    const auto* transModAmp = synth::findParameterSpec("transmod.1.amp_level_db");
+    if (transModAmp == nullptr
+        || std::abs(transModAmp->minimum + 24.0f) > 0.0001f
+        || std::abs(transModAmp->maximum - 24.0f) > 0.0001f)
+    {
+        std::cerr << "TransMod amp-level range mismatch.\n";
+        return 1;
+    }
+
     if (!checkStateRoundTrip())
     {
         std::cerr << "APVTS state round-trip failed.\n";
@@ -101,6 +111,13 @@ int main()
                 std::cerr << "  " << error << "\n";
             return 1;
         }
+    }
+
+    const auto invalidModDepth = synth::validatePresetFile("fixtures/presets/invalid-mod-slot-depth.json");
+    if (invalidModDepth.passed())
+    {
+        std::cerr << "Invalid mod slot depth fixture passed validation.\n";
+        return 1;
     }
 
     return 0;

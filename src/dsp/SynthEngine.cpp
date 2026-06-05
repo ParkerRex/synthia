@@ -5,6 +5,14 @@
 
 namespace synth
 {
+namespace
+{
+float finiteOr(float value, float fallback) noexcept
+{
+    return std::isfinite(value) ? value : fallback;
+}
+} // namespace
+
 void SynthEngine::prepare(double newSampleRate, int newMaxBlockSize)
 {
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
@@ -15,6 +23,8 @@ void SynthEngine::prepare(double newSampleRate, int newMaxBlockSize)
 
 void SynthEngine::reset() noexcept
 {
+    performance = {};
+    parameters.performance = performance;
     voices.panic();
 }
 
@@ -25,12 +35,30 @@ void SynthEngine::noteOn(int midiNote, float velocity) noexcept
 
 void SynthEngine::noteOff(int midiNote) noexcept
 {
-    voices.noteOff(midiNote);
+    voices.noteOff(midiNote, parameters);
 }
 
 void SynthEngine::setSustainPedal(bool down) noexcept
 {
     voices.setSustainPedal(down);
+}
+
+void SynthEngine::setPitchBend(float normalizedBipolar) noexcept
+{
+    performance.pitchBend = std::clamp(finiteOr(normalizedBipolar, 0.0f), -1.0f, 1.0f);
+    parameters.performance = performance;
+}
+
+void SynthEngine::setModWheel(float normalized) noexcept
+{
+    performance.modWheel = std::clamp(finiteOr(normalized, 0.0f), 0.0f, 1.0f);
+    parameters.performance = performance;
+}
+
+void SynthEngine::setAftertouch(float normalized) noexcept
+{
+    performance.aftertouch = std::clamp(finiteOr(normalized, 0.0f), 0.0f, 1.0f);
+    parameters.performance = performance;
 }
 
 void SynthEngine::allNotesOff() noexcept
@@ -45,26 +73,84 @@ void SynthEngine::panic() noexcept
 
 void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
 {
+    const SynthParameters defaults;
     parameters = newParameters;
+    parameters.performance = performance;
+    parameters.voiceMode = static_cast<VoiceMode>(std::clamp(static_cast<int>(parameters.voiceMode), 0, 3));
     parameters.polyphony = std::clamp(parameters.polyphony, 1, 32);
     parameters.unisonCount = std::clamp(parameters.unisonCount, 1, 8);
+    parameters.glideMs = std::clamp(finiteOr(parameters.glideMs, defaults.glideMs), 0.0f, 2000.0f);
+    parameters.velocityGlideMs = std::clamp(finiteOr(parameters.velocityGlideMs, defaults.velocityGlideMs), 0.0f, 2000.0f);
+    parameters.osc.pitchSemitones = std::clamp(finiteOr(parameters.osc.pitchSemitones, defaults.osc.pitchSemitones), -48.0f, 48.0f);
+    parameters.osc.fineCents = std::clamp(finiteOr(parameters.osc.fineCents, defaults.osc.fineCents), -100.0f, 100.0f);
     parameters.osc.stackCount = std::clamp(parameters.osc.stackCount, 1, 5);
-    parameters.osc.stackDetune = std::clamp(parameters.osc.stackDetune, 0.0f, 1.0f);
-    parameters.osc.pulseWidth = std::clamp(parameters.osc.pulseWidth, 0.05f, 0.95f);
-    parameters.osc.subPulseWidth = std::clamp(parameters.osc.subPulseWidth, 0.05f, 0.95f);
+    parameters.osc.stackDetune = std::clamp(finiteOr(parameters.osc.stackDetune, defaults.osc.stackDetune), 0.0f, 1.0f);
+    parameters.osc.sawLevel = std::clamp(finiteOr(parameters.osc.sawLevel, defaults.osc.sawLevel), 0.0f, 1.0f);
+    parameters.osc.pulseLevel = std::clamp(finiteOr(parameters.osc.pulseLevel, defaults.osc.pulseLevel), 0.0f, 1.0f);
+    parameters.osc.noiseLevel = std::clamp(finiteOr(parameters.osc.noiseLevel, defaults.osc.noiseLevel), 0.0f, 1.0f);
+    parameters.osc.pulseWidth = std::clamp(finiteOr(parameters.osc.pulseWidth, defaults.osc.pulseWidth), 0.05f, 0.95f);
+    parameters.osc.subLevel = std::clamp(finiteOr(parameters.osc.subLevel, defaults.osc.subLevel), 0.0f, 1.0f);
+    parameters.osc.subPulseWidth = std::clamp(finiteOr(parameters.osc.subPulseWidth, defaults.osc.subPulseWidth), 0.05f, 0.95f);
+    parameters.osc.syncAmount = std::clamp(finiteOr(parameters.osc.syncAmount, defaults.osc.syncAmount), 0.0f, 1.0f);
+    parameters.osc.subWave = static_cast<SubWave>(std::clamp(static_cast<int>(parameters.osc.subWave), 0, 3));
     parameters.osc.subOctave = std::clamp(parameters.osc.subOctave, 1, 3);
-    parameters.filter.cutoffSemitones = std::clamp(parameters.filter.cutoffSemitones, 0.0f, 136.0f);
-    parameters.filter.resonance = std::clamp(parameters.filter.resonance, 0.0f, 1.0f);
-    parameters.filter.drive = std::clamp(parameters.filter.drive, 0.0f, 1.0f);
+    parameters.osc.phaseReset = std::clamp(parameters.osc.phaseReset, 0, 3);
+    parameters.filter.cutoffSemitones = std::clamp(finiteOr(parameters.filter.cutoffSemitones, defaults.filter.cutoffSemitones), 0.0f, 136.0f);
+    parameters.filter.resonance = std::clamp(finiteOr(parameters.filter.resonance, defaults.filter.resonance), 0.0f, 1.0f);
+    parameters.filter.drive = std::clamp(finiteOr(parameters.filter.drive, defaults.filter.drive), 0.0f, 1.0f);
+    parameters.filter.keytrack = std::clamp(finiteOr(parameters.filter.keytrack, defaults.filter.keytrack), -1.0f, 2.0f);
     parameters.filter.oversampling = std::clamp(parameters.filter.oversampling, 0, 3);
     parameters.filter.mode = static_cast<FilterMode>(std::clamp(static_cast<int>(parameters.filter.mode), 0, 8));
+    parameters.amp.drive = std::clamp(finiteOr(parameters.amp.drive, defaults.amp.drive), 0.0f, 1.0f);
+    parameters.amp.levelDb = std::clamp(finiteOr(parameters.amp.levelDb, defaults.amp.levelDb), -48.0f, 12.0f);
+    parameters.amp.pan = std::clamp(finiteOr(parameters.amp.pan, defaults.amp.pan), -1.0f, 1.0f);
+    parameters.amp.panSpread = std::clamp(finiteOr(parameters.amp.panSpread, defaults.amp.panSpread), 0.0f, 1.0f);
+    parameters.amp.unisonSpread = std::clamp(finiteOr(parameters.amp.unisonSpread, defaults.amp.unisonSpread), 0.0f, 1.0f);
+    parameters.amp.analog = std::clamp(finiteOr(parameters.amp.analog, defaults.amp.analog), 0.0f, 1.0f);
+    parameters.ampEnv.attackMs = std::clamp(finiteOr(parameters.ampEnv.attackMs, defaults.ampEnv.attackMs), 0.0f, 10000.0f);
+    parameters.ampEnv.decayMs = std::clamp(finiteOr(parameters.ampEnv.decayMs, defaults.ampEnv.decayMs), 1.0f, 10000.0f);
+    parameters.ampEnv.sustain = std::clamp(finiteOr(parameters.ampEnv.sustain, defaults.ampEnv.sustain), 0.0f, 1.0f);
+    parameters.ampEnv.releaseMs = std::clamp(finiteOr(parameters.ampEnv.releaseMs, defaults.ampEnv.releaseMs), 1.0f, 10000.0f);
+    parameters.modEnv.attackMs = std::clamp(finiteOr(parameters.modEnv.attackMs, defaults.modEnv.attackMs), 0.0f, 10000.0f);
+    parameters.modEnv.decayMs = std::clamp(finiteOr(parameters.modEnv.decayMs, defaults.modEnv.decayMs), 1.0f, 10000.0f);
+    parameters.modEnv.sustain = std::clamp(finiteOr(parameters.modEnv.sustain, defaults.modEnv.sustain), 0.0f, 1.0f);
+    parameters.modEnv.releaseMs = std::clamp(finiteOr(parameters.modEnv.releaseMs, defaults.modEnv.releaseMs), 1.0f, 10000.0f);
     parameters.lfo.shape = static_cast<LfoShapeChoice>(std::clamp(static_cast<int>(parameters.lfo.shape), 0, 6));
     parameters.lfo.rateMode = static_cast<LfoRateMode>(std::clamp(static_cast<int>(parameters.lfo.rateMode), 0, 1));
+    parameters.lfo.rateHz = std::clamp(finiteOr(parameters.lfo.rateHz, defaults.lfo.rateHz), 0.01f, 40.0f);
     parameters.lfo.syncDivision = std::clamp(parameters.lfo.syncDivision, 0, 5);
+    parameters.lfo.phaseDegrees = std::clamp(finiteOr(parameters.lfo.phaseDegrees, defaults.lfo.phaseDegrees), 0.0f, 360.0f);
     parameters.lfo.gateMode = static_cast<LfoGateMode>(std::clamp(static_cast<int>(parameters.lfo.gateMode), 0, 3));
-    parameters.lfo.swing = std::clamp(parameters.lfo.swing, 0.0f, 1.0f);
-    parameters.tempoBpm = std::clamp(parameters.tempoBpm, 20.0f, 300.0f);
-    parameters.amp.levelDb = std::clamp(parameters.amp.levelDb, -48.0f, 12.0f);
+    parameters.lfo.swing = std::clamp(finiteOr(parameters.lfo.swing, defaults.lfo.swing), 0.0f, 1.0f);
+    parameters.ramp.mode = static_cast<RampMode>(std::clamp(static_cast<int>(parameters.ramp.mode), 0, 2));
+    parameters.ramp.delayMs = std::clamp(finiteOr(parameters.ramp.delayMs, defaults.ramp.delayMs), 0.0f, 10000.0f);
+    parameters.ramp.riseMs = std::clamp(finiteOr(parameters.ramp.riseMs, defaults.ramp.riseMs), 1.0f, 10000.0f);
+    parameters.ramp.curve = static_cast<RampCurve>(std::clamp(static_cast<int>(parameters.ramp.curve), 0, 2));
+    parameters.direct.filterKeytrack = std::clamp(finiteOr(parameters.direct.filterKeytrack, defaults.direct.filterKeytrack), -1.0f, 1.0f);
+    parameters.direct.filterLfoSemitones = std::clamp(finiteOr(parameters.direct.filterLfoSemitones, defaults.direct.filterLfoSemitones), -72.0f, 72.0f);
+    parameters.direct.filterModEnvSemitones = std::clamp(finiteOr(parameters.direct.filterModEnvSemitones, defaults.direct.filterModEnvSemitones), -72.0f, 72.0f);
+    parameters.direct.oscKeytrackSemitones = std::clamp(finiteOr(parameters.direct.oscKeytrackSemitones, defaults.direct.oscKeytrackSemitones), -48.0f, 48.0f);
+    parameters.direct.oscLfoSemitones = std::clamp(finiteOr(parameters.direct.oscLfoSemitones, defaults.direct.oscLfoSemitones), -48.0f, 48.0f);
+    parameters.direct.oscModEnvSemitones = std::clamp(finiteOr(parameters.direct.oscModEnvSemitones, defaults.direct.oscModEnvSemitones), -48.0f, 48.0f);
+    parameters.direct.pulseKeytrack = std::clamp(finiteOr(parameters.direct.pulseKeytrack, defaults.direct.pulseKeytrack), -1.0f, 1.0f);
+    parameters.direct.pulseLfo = std::clamp(finiteOr(parameters.direct.pulseLfo, defaults.direct.pulseLfo), -1.0f, 1.0f);
+    parameters.direct.pulseModEnv = std::clamp(finiteOr(parameters.direct.pulseModEnv, defaults.direct.pulseModEnv), -1.0f, 1.0f);
+    for (auto& slot : parameters.transMod.slots)
+    {
+        slot.source = static_cast<ModSource>(std::clamp(static_cast<int>(slot.source), 0, 19));
+        slot.scaler = static_cast<ModSource>(std::clamp(static_cast<int>(slot.scaler), 0, 19));
+        slot.depth = std::clamp(finiteOr(slot.depth, 0.0f), -1.0f, 1.0f);
+        slot.oscPitchSemitones = std::clamp(finiteOr(slot.oscPitchSemitones, 0.0f), -48.0f, 48.0f);
+        slot.pulseWidth = std::clamp(finiteOr(slot.pulseWidth, 0.0f), -1.0f, 1.0f);
+        slot.filterCutoffSemitones = std::clamp(finiteOr(slot.filterCutoffSemitones, 0.0f), -72.0f, 72.0f);
+        slot.ampLevelDb = std::clamp(finiteOr(slot.ampLevelDb, 0.0f), -24.0f, 24.0f);
+        slot.pan = std::clamp(finiteOr(slot.pan, 0.0f), -1.0f, 1.0f);
+    }
+    parameters.macro.motion = std::clamp(finiteOr(parameters.macro.motion, defaults.macro.motion), 0.0f, 1.0f);
+    parameters.macro.width = std::clamp(finiteOr(parameters.macro.width, defaults.macro.width), 0.0f, 1.0f);
+    parameters.macro.drive = std::clamp(finiteOr(parameters.macro.drive, defaults.macro.drive), 0.0f, 1.0f);
+    parameters.macro.space = std::clamp(finiteOr(parameters.macro.space, defaults.macro.space), 0.0f, 1.0f);
+    parameters.tempoBpm = std::clamp(finiteOr(parameters.tempoBpm, defaults.tempoBpm), 20.0f, 300.0f);
 }
 
 RenderStats SynthEngine::process(float* left, float* right, int numSamples) noexcept
@@ -89,6 +175,9 @@ RenderStats SynthEngine::process(float* left, float* right, int numSamples) noex
             ++stats.invalidSamples;
             r = 0.0f;
         }
+
+        l = std::clamp(l, -1.0f, 1.0f);
+        r = std::clamp(r, -1.0f, 1.0f);
 
         if (left != nullptr)
             left[i] = l;

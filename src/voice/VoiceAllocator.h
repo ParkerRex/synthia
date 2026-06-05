@@ -3,6 +3,7 @@
 #include "Voice.h"
 
 #include <array>
+#include <cstdint>
 #include <vector>
 
 namespace synth
@@ -15,6 +16,7 @@ public:
     void prepare(double sampleRate);
     int noteOn(int midiNote, float velocity, const SynthParameters& parameters) noexcept;
     void noteOff(int midiNote) noexcept;
+    void noteOff(int midiNote, const SynthParameters& parameters) noexcept;
     void setSustainPedal(bool down) noexcept;
     void allNotesOff() noexcept;
     void panic() noexcept;
@@ -25,16 +27,32 @@ public:
     const Voice* getVoice(int index) const noexcept;
 
 private:
+    static constexpr int maxVoiceSlots = 32;
+
     float nextRandom() noexcept;
-    int findIdleVoice() const noexcept;
-    int findVoiceToSteal(int maxActiveVoices) const noexcept;
+    int findIdleVoice(const std::array<bool, maxVoiceSlots>& excluded) const noexcept;
+    int findVoiceToSteal(int maxActiveVoices, const std::array<bool, maxVoiceSlots>& excluded) const noexcept;
     void releaseSustainedNotes() noexcept;
+    void enforceVoiceLimit(const SynthParameters& parameters) noexcept;
+    bool anyHeldNote() const noexcept;
+    int mostRecentHeldNote() const noexcept;
+    int mostRecentResumeNote(bool includeSustained, int excludedNote = -1) const noexcept;
+    bool retargetActiveNote(int fromNote, int toNote, float velocity, const SynthParameters& parameters) noexcept;
+    bool allocationShapeChanged(const SynthParameters& parameters) const noexcept;
+    void rememberAllocationShape(const SynthParameters& parameters) noexcept;
 
     std::vector<Voice> voices;
     Lfo monoLfo;
     bool sustainPedalDown = false;
     std::array<bool, 128> heldNotes {};
     std::array<bool, 128> sustainedNotes {};
+    std::array<float, 128> heldVelocities {};
+    std::array<std::uint64_t, 128> heldOrder {};
+    std::uint64_t noteOrderCounter = 0;
+    VoiceMode allocationVoiceMode = VoiceMode::Poly;
+    int allocationPolyphony = 8;
+    int allocationUnisonCount = 1;
+    bool allocationShapeInitialized = false;
     unsigned int randomState = 0xdecafbadu;
 };
 } // namespace synth

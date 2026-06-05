@@ -33,12 +33,12 @@ void OscillatorStack::reset(float randomOnNote) noexcept
     noiseState = 0x76543210u ^ static_cast<unsigned int>((basePhase * 16777215.0f) + 1.0f);
 }
 
-float OscillatorStack::renderSample(int midiNote, const SynthParameters& parameters,
+float OscillatorStack::renderSample(float midiNote, const SynthParameters& parameters,
                                     float pitchModSemitones, float pulseWidthMod) noexcept
 {
     const auto& osc = parameters.osc;
     const auto stackCount = std::clamp(osc.stackCount, 1, maxStackCount);
-    const auto basePitch = static_cast<float>(midiNote)
+    const auto basePitch = midiNote
         + osc.pitchSemitones
         + osc.fineCents / 100.0f
         + pitchModSemitones;

@@ -10,6 +10,8 @@ Current scaffold:
 - `SynthSmokeTest` is the first CTest target.
 - `SynthContractTest` validates parameter registry, preset files, and APVTS state round-trip.
 - `SynthVoiceCoreTest` validates envelope, LFO reset, voice allocation, and engine note release.
+- `SynthDspCoreTest` validates oscillator, filter, ramp, glide, velocity glide, direct routes, TransMod scalers, and voice/unison/random/performance modulation sources.
+- `SynthRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`.
 
 ## Component Stack
 
@@ -103,6 +105,8 @@ Existing scaffold files:
 - `src/dsp/Envelope.cpp`
 - `src/dsp/Lfo.h`
 - `src/dsp/Lfo.cpp`
+- `src/dsp/Ramp.h`
+- `src/dsp/Ramp.cpp`
 - `src/dsp/SynthEngine.h`
 - `src/dsp/SynthEngine.cpp`
 - `src/presets/PresetValidator.h`
@@ -142,8 +146,8 @@ Each parameter needs:
 
 Current registry status:
 
-- 102 parameter IDs.
-- Voice, oscillator, filter, amp, envelopes, LFO, ramp, direct modulation, FX, macros, and eight TransMod-style slots are represented.
+- 144 parameter IDs.
+- Voice, oscillator, filter, amp, envelopes, LFO, ramp, direct modulation, FX, macros, and eight TransMod-style slots with physical destination depths are represented.
 - Host state uses `AudioProcessorValueTreeState` with schema metadata.
 
 Current voice-core status:
@@ -153,16 +157,13 @@ Current voice-core status:
 - `Envelope` and `Lfo` provide deterministic per-voice modulation primitives.
 - `OscillatorStack` renders clean-room polyBLEP saw/pulse, deterministic noise, sub waveforms, stack detune, and hard sync.
 - `Filter` renders semitone-domain L2/L4/B2/B4/H2/H4/Peak2/Notch2/Notch4 nonlinear responses with drive/resonance compensation and interpolated oversampling sub-steps.
-- `Voice` applies direct pitch/cutoff routes, synced or Hz LFO rates, per-voice/mono LFO behavior, amp envelope, amp drive, level, pan spread, unison spread, analog variation, and macro influence.
-- `SynthRender` can write oscillator, filter, voice, preset validation, and dry-core factory pluck reports using the requested preset and MIDI fixture.
+- `Voice` applies direct pitch/pulse/cutoff routes, ramp, glide, velocity glide, TransMod scalers, synced or Hz LFO rates, per-voice/mono LFO behavior, amp envelope, amp drive, level, pan spread, unison spread, analog variation, performance MIDI sources, and macro influence.
+- `SynthRender` can write oscillator, filter, modulation, voice, preset validation, dry-core factory pluck, LFO ablation, determinism, and core-suite summary reports using the requested preset and MIDI fixture.
 
 ## DSP Priorities
 
 Highest priority:
 
-- full TransMod slot routing,
-- ramp, glide, and velocity glide,
-- richer deterministic render tests,
 - UI/preset workflow,
 - Ableton AU/VST3 proof.
 

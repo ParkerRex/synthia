@@ -30,6 +30,22 @@ float effectiveLfoRateHz(const SynthParameters& parameters) noexcept
         / (60.0f * std::max(0.01f, syncDivisionBeats(parameters.lfo.syncDivision)));
 }
 
+int effectiveUnisonCount(const SynthParameters& parameters) noexcept
+{
+    if (parameters.voiceMode == VoiceMode::Mono || parameters.voiceMode == VoiceMode::MonoLegato)
+        return 1;
+
+    return std::clamp(parameters.unisonCount, 1, 8);
+}
+
+int effectiveVoiceLimit(const SynthParameters& parameters, int availableVoices) noexcept
+{
+    const auto logicalPolyphony = parameters.voiceMode == VoiceMode::Poly
+        ? std::max(1, parameters.polyphony)
+        : 1;
+    return std::clamp(logicalPolyphony * effectiveUnisonCount(parameters), 1, std::max(1, availableVoices));
+}
+
 LfoShape toLfoShape(LfoShapeChoice choice) noexcept
 {
     switch (choice)
@@ -72,33 +88,58 @@ int VoiceAllocator::noteOn(int midiNote, float velocity, const SynthParameters& 
     if (midiNote < 0 || midiNote >= static_cast<int>(heldNotes.size()))
         return -1;
 
+    const auto alreadyHeld = anyHeldNote();
+    const auto safeVelocity = std::clamp(velocity, 0.0f, 1.0f);
     heldNotes[static_cast<std::size_t>(midiNote)] = true;
+    heldVelocities[static_cast<std::size_t>(midiNote)] = safeVelocity;
+    heldOrder[static_cast<std::size_t>(midiNote)] = ++noteOrderCounter;
     sustainedNotes[static_cast<std::size_t>(midiNote)] = false;
 
-    const auto unisonCount = std::clamp(parameters.unisonCount, 1, 8);
-    const auto maxActiveVoices = std::min(static_cast<int>(voices.size()),
-                                          std::max(1, parameters.polyphony) * unisonCount);
+    enforceVoiceLimit(parameters);
+
+    const auto monoMode = parameters.voiceMode == VoiceMode::Mono || parameters.voiceMode == VoiceMode::MonoLegato;
+    const auto unisonCount = effectiveUnisonCount(parameters);
+    const auto maxActiveVoices = effectiveVoiceLimit(parameters, static_cast<int>(voices.size()));
+    const auto allowGlide = parameters.voiceMode == VoiceMode::MonoLegato && alreadyHeld;
+    const auto retriggerModulators = !allowGlide
+        || parameters.voiceMode == VoiceMode::Mono
+        || parameters.retrigger;
     auto firstVoiceIndex = -1;
+    std::array<bool, maxVoiceSlots> usedThisNote {};
 
     for (int unison = 0; unison < unisonCount; ++unison)
     {
-        auto voiceIndex = activeVoiceCount() < maxActiveVoices ? findIdleVoice() : -1;
+        auto voiceIndex = activeVoiceCount() < maxActiveVoices ? findIdleVoice(usedThisNote) : -1;
         if (voiceIndex < 0)
-            voiceIndex = findVoiceToSteal(maxActiveVoices);
+            voiceIndex = findVoiceToSteal(maxActiveVoices, usedThisNote);
 
         if (voiceIndex < 0)
             continue;
 
-        voices[static_cast<std::size_t>(voiceIndex)].noteOn(midiNote, std::clamp(velocity, 0.0f, 1.0f),
-                                                            nextRandom(), unison, unisonCount, parameters);
+        auto& voice = voices[static_cast<std::size_t>(voiceIndex)];
+        voice.setAllocationIndices(voiceIndex, maxActiveVoices, unison, unisonCount);
+        voice.noteOn(midiNote, safeVelocity,
+                     nextRandom(), unison, unisonCount, parameters,
+                     allowGlide, retriggerModulators);
+        if (voiceIndex < static_cast<int>(usedThisNote.size()))
+            usedThisNote[static_cast<std::size_t>(voiceIndex)] = true;
         if (firstVoiceIndex < 0)
             firstVoiceIndex = voiceIndex;
+
+        if (monoMode)
+            break;
     }
 
     return firstVoiceIndex;
 }
 
 void VoiceAllocator::noteOff(int midiNote) noexcept
+{
+    SynthParameters parameters;
+    noteOff(midiNote, parameters);
+}
+
+void VoiceAllocator::noteOff(int midiNote, const SynthParameters& parameters) noexcept
 {
     if (midiNote < 0 || midiNote >= static_cast<int>(heldNotes.size()))
         return;
@@ -107,8 +148,26 @@ void VoiceAllocator::noteOff(int midiNote) noexcept
     if (sustainPedalDown)
     {
         sustainedNotes[static_cast<std::size_t>(midiNote)] = true;
-        return;
     }
+    else
+    {
+        heldVelocities[static_cast<std::size_t>(midiNote)] = 0.0f;
+        heldOrder[static_cast<std::size_t>(midiNote)] = 0;
+    }
+
+    if (parameters.voiceMode == VoiceMode::Mono
+        || parameters.voiceMode == VoiceMode::MonoLegato
+        || parameters.voiceMode == VoiceMode::Unison)
+    {
+        const auto resumeNote = mostRecentResumeNote(sustainPedalDown, midiNote);
+        if (resumeNote >= 0
+            && retargetActiveNote(midiNote, resumeNote,
+                                  heldVelocities[static_cast<std::size_t>(resumeNote)], parameters))
+            return;
+    }
+
+    if (sustainPedalDown)
+        return;
 
     for (auto& voice : voices)
     {
@@ -140,6 +199,8 @@ void VoiceAllocator::allNotesOff() noexcept
         return;
     }
 
+    heldVelocities.fill(0.0f);
+    heldOrder.fill(0);
     for (auto& voice : voices)
     {
         if (voice.isActive())
@@ -152,6 +213,8 @@ void VoiceAllocator::panic() noexcept
     sustainPedalDown = false;
     heldNotes.fill(false);
     sustainedNotes.fill(false);
+    heldVelocities.fill(0.0f);
+    heldOrder.fill(0);
     for (auto& voice : voices)
         voice.reset();
 }
@@ -167,6 +230,8 @@ void VoiceAllocator::process(int numSamples) noexcept
 
 StereoFrame VoiceAllocator::renderSample(const SynthParameters& parameters) noexcept
 {
+    enforceVoiceLimit(parameters);
+
     const auto useMonoLfo = parameters.lfo.mono
         || parameters.lfo.gateMode == LfoGateMode::Mono
         || parameters.lfo.gateMode == LfoGateMode::Song;
@@ -223,10 +288,13 @@ float VoiceAllocator::nextRandom() noexcept
     return (static_cast<float>((randomState >> 8) & 0x00ffffffu) / 8388607.5f) - 1.0f;
 }
 
-int VoiceAllocator::findIdleVoice() const noexcept
+int VoiceAllocator::findIdleVoice(const std::array<bool, maxVoiceSlots>& excluded) const noexcept
 {
     for (int i = 0; i < static_cast<int>(voices.size()); ++i)
     {
+        if (i < static_cast<int>(excluded.size()) && excluded[static_cast<std::size_t>(i)])
+            continue;
+
         if (!voices[static_cast<std::size_t>(i)].isActive())
             return i;
     }
@@ -234,19 +302,31 @@ int VoiceAllocator::findIdleVoice() const noexcept
     return -1;
 }
 
-int VoiceAllocator::findVoiceToSteal(int maxActiveVoices) const noexcept
+int VoiceAllocator::findVoiceToSteal(int maxActiveVoices, const std::array<bool, maxVoiceSlots>& excluded) const noexcept
 {
     for (int i = 0; i < static_cast<int>(voices.size()) && i < maxActiveVoices; ++i)
     {
+        if (i < static_cast<int>(excluded.size()) && excluded[static_cast<std::size_t>(i)])
+            continue;
+
         if (voices[static_cast<std::size_t>(i)].isActive() && !voices[static_cast<std::size_t>(i)].isHeld())
             return i;
     }
 
-    return maxActiveVoices > 0 ? 0 : -1;
+    for (int i = 0; i < static_cast<int>(voices.size()) && i < maxActiveVoices; ++i)
+    {
+        if (i < static_cast<int>(excluded.size()) && excluded[static_cast<std::size_t>(i)])
+            continue;
+
+        return i;
+    }
+
+    return -1;
 }
 
 void VoiceAllocator::releaseSustainedNotes() noexcept
 {
+    const auto wasSustained = sustainedNotes;
     for (auto& voice : voices)
     {
         const auto note = voice.getMidiNote();
@@ -260,6 +340,262 @@ void VoiceAllocator::releaseSustainedNotes() noexcept
         }
     }
 
+    for (int note = 0; note < static_cast<int>(wasSustained.size()); ++note)
+    {
+        if (wasSustained[static_cast<std::size_t>(note)] && !heldNotes[static_cast<std::size_t>(note)])
+        {
+            heldVelocities[static_cast<std::size_t>(note)] = 0.0f;
+            heldOrder[static_cast<std::size_t>(note)] = 0;
+        }
+    }
+
     sustainedNotes.fill(false);
+}
+
+void VoiceAllocator::enforceVoiceLimit(const SynthParameters& parameters) noexcept
+{
+    const auto maxActiveVoices = effectiveVoiceLimit(parameters, static_cast<int>(voices.size()));
+    const auto activeVoices = activeVoiceCount();
+    const auto shapeChanged = allocationShapeChanged(parameters);
+    if (activeVoices <= 0)
+    {
+        rememberAllocationShape(parameters);
+        return;
+    }
+
+    if (!shapeChanged && activeVoices <= maxActiveVoices)
+        return;
+
+    std::array<bool, maxVoiceSlots> keep {};
+    auto kept = 0;
+    const auto preferredNote = mostRecentResumeNote(sustainPedalDown);
+    const auto singlePitchMode = parameters.voiceMode != VoiceMode::Poly && preferredNote >= 0;
+    if (singlePitchMode || activeVoices > maxActiveVoices)
+    {
+        if (singlePitchMode && preferredNote >= 0)
+        {
+            for (int i = 0; i < static_cast<int>(voices.size()) && kept < maxActiveVoices; ++i)
+            {
+                if (i >= static_cast<int>(keep.size()))
+                    break;
+
+                const auto& voice = voices[static_cast<std::size_t>(i)];
+                if (voice.isActive() && voice.getMidiNote() == preferredNote)
+                {
+                    keep[static_cast<std::size_t>(i)] = true;
+                    ++kept;
+                }
+            }
+        }
+        else if (!singlePitchMode)
+        {
+            std::array<bool, 128> selectedNotes {};
+            while (kept < maxActiveVoices)
+            {
+                auto bestNote = -1;
+                std::uint64_t bestOrder = 0;
+                for (int note = 0; note < static_cast<int>(heldNotes.size()); ++note)
+                {
+                    const auto index = static_cast<std::size_t>(note);
+                    if (heldNotes[index] && !selectedNotes[index] && heldOrder[index] > bestOrder)
+                    {
+                        bestOrder = heldOrder[index];
+                        bestNote = note;
+                    }
+                }
+
+                if (bestNote < 0)
+                    break;
+
+                selectedNotes[static_cast<std::size_t>(bestNote)] = true;
+                for (int i = 0; i < static_cast<int>(voices.size()) && kept < maxActiveVoices; ++i)
+                {
+                    if (i >= static_cast<int>(keep.size()))
+                        break;
+
+                    const auto& voice = voices[static_cast<std::size_t>(i)];
+                    if (voice.isActive()
+                        && voice.getMidiNote() == bestNote
+                        && !keep[static_cast<std::size_t>(i)])
+                    {
+                        keep[static_cast<std::size_t>(i)] = true;
+                        ++kept;
+                    }
+                }
+            }
+        }
+
+        if (kept == 0 || (!singlePitchMode && kept < maxActiveVoices))
+        {
+            for (int i = 0; i < static_cast<int>(voices.size()) && kept < maxActiveVoices; ++i)
+            {
+                if (i >= static_cast<int>(keep.size()))
+                    break;
+
+                const auto& voice = voices[static_cast<std::size_t>(i)];
+                if (voice.isActive() && !keep[static_cast<std::size_t>(i)])
+                {
+                    keep[static_cast<std::size_t>(i)] = true;
+                    ++kept;
+                }
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < static_cast<int>(voices.size()) && i < static_cast<int>(keep.size()); ++i)
+        {
+            const auto& voice = voices[static_cast<std::size_t>(i)];
+            if (voice.isActive())
+            {
+                keep[static_cast<std::size_t>(i)] = true;
+                ++kept;
+            }
+        }
+    }
+
+    for (int i = 0; i < static_cast<int>(voices.size()); ++i)
+    {
+        if (i >= static_cast<int>(keep.size()))
+        {
+            voices[static_cast<std::size_t>(i)].reset();
+            continue;
+        }
+
+        auto& voice = voices[static_cast<std::size_t>(i)];
+        if (voice.isActive() && !keep[static_cast<std::size_t>(i)])
+            voice.reset();
+    }
+
+    auto allocationIndex = 0;
+    for (int i = 0; i < static_cast<int>(voices.size()) && i < static_cast<int>(keep.size()); ++i)
+    {
+        if (!keep[static_cast<std::size_t>(i)])
+            continue;
+
+        auto& voice = voices[static_cast<std::size_t>(i)];
+        if (!voice.isActive())
+            continue;
+
+        auto noteUnisonIndex = 0;
+        auto noteUnisonCount = 0;
+        const auto note = voice.getMidiNote();
+        for (int j = 0; j < static_cast<int>(voices.size()) && j < static_cast<int>(keep.size()); ++j)
+        {
+            if (!keep[static_cast<std::size_t>(j)])
+                continue;
+
+            const auto& peer = voices[static_cast<std::size_t>(j)];
+            if (peer.isActive() && peer.getMidiNote() == note)
+            {
+                if (j < i)
+                    ++noteUnisonIndex;
+                ++noteUnisonCount;
+            }
+        }
+
+        const auto allocationTotal = singlePitchMode ? std::max(1, kept) : maxActiveVoices;
+        const auto unisonCount = singlePitchMode
+            ? std::max(1, kept)
+            : std::max(1, noteUnisonCount);
+        const auto unisonIndex = std::min(noteUnisonIndex, unisonCount - 1);
+        voice.setAllocationIndices(allocationIndex, allocationTotal, unisonIndex, unisonCount);
+        ++allocationIndex;
+    }
+
+    rememberAllocationShape(parameters);
+}
+
+bool VoiceAllocator::anyHeldNote() const noexcept
+{
+    return std::any_of(heldNotes.begin(), heldNotes.end(), [](bool held) {
+        return held;
+    });
+}
+
+int VoiceAllocator::mostRecentHeldNote() const noexcept
+{
+    auto bestNote = -1;
+    std::uint64_t bestOrder = 0;
+    for (int note = 0; note < static_cast<int>(heldNotes.size()); ++note)
+    {
+        if (heldNotes[static_cast<std::size_t>(note)]
+            && heldOrder[static_cast<std::size_t>(note)] > bestOrder)
+        {
+            bestOrder = heldOrder[static_cast<std::size_t>(note)];
+            bestNote = note;
+        }
+    }
+
+    return bestNote;
+}
+
+int VoiceAllocator::mostRecentResumeNote(bool includeSustained, int excludedNote) const noexcept
+{
+    auto bestNote = -1;
+    std::uint64_t bestOrder = 0;
+    for (int note = 0; note < static_cast<int>(heldNotes.size()); ++note)
+    {
+        if (note == excludedNote)
+            continue;
+
+        const auto index = static_cast<std::size_t>(note);
+        if ((heldNotes[index] || (includeSustained && sustainedNotes[index]))
+            && heldOrder[index] > bestOrder)
+        {
+            bestOrder = heldOrder[index];
+            bestNote = note;
+        }
+    }
+
+    return bestNote;
+}
+
+bool VoiceAllocator::retargetActiveNote(int fromNote, int toNote, float velocity, const SynthParameters& parameters) noexcept
+{
+    const auto matchingCount = static_cast<int>(std::count_if(voices.begin(), voices.end(), [fromNote](const auto& voice) {
+        return voice.isActive() && voice.getMidiNote() == fromNote;
+    }));
+    if (matchingCount <= 0)
+        return false;
+
+    const auto unisonCount = parameters.voiceMode == VoiceMode::Unison
+        ? std::min(matchingCount, effectiveUnisonCount(parameters))
+        : 1;
+    const auto allocationTotal = parameters.voiceMode == VoiceMode::Unison ? unisonCount : 1;
+    const auto allowGlide = parameters.voiceMode == VoiceMode::MonoLegato;
+    const auto retriggerModulators = parameters.voiceMode == VoiceMode::Mono || parameters.retrigger;
+    auto unison = 0;
+    for (auto& voice : voices)
+    {
+        if (!voice.isActive() || voice.getMidiNote() != fromNote)
+            continue;
+
+        voice.setAllocationIndices(unison, allocationTotal, unison, unisonCount);
+        voice.noteOn(toNote, std::clamp(velocity, 0.0f, 1.0f),
+                     nextRandom(), unison, unisonCount, parameters,
+                     allowGlide, retriggerModulators);
+        ++unison;
+        if (unison >= unisonCount)
+            break;
+    }
+
+    return unison > 0;
+}
+
+bool VoiceAllocator::allocationShapeChanged(const SynthParameters& parameters) const noexcept
+{
+    return !allocationShapeInitialized
+        || allocationVoiceMode != parameters.voiceMode
+        || allocationPolyphony != std::clamp(parameters.polyphony, 1, 32)
+        || allocationUnisonCount != std::clamp(parameters.unisonCount, 1, 8);
+}
+
+void VoiceAllocator::rememberAllocationShape(const SynthParameters& parameters) noexcept
+{
+    allocationVoiceMode = parameters.voiceMode;
+    allocationPolyphony = std::clamp(parameters.polyphony, 1, 32);
+    allocationUnisonCount = std::clamp(parameters.unisonCount, 1, 8);
+    allocationShapeInitialized = true;
 }
 } // namespace synth

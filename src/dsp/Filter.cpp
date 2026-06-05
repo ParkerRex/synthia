@@ -32,15 +32,15 @@ void Filter::reset() noexcept
     previousInput = 0.0f;
 }
 
-float Filter::process(float input, int midiNote, const SynthParameters& parameters,
+float Filter::process(float input, float midiNote, const SynthParameters& parameters,
                       float cutoffModSemitones) noexcept
 {
     const auto& filter = parameters.filter;
     if (!filter.enabled)
         return input;
 
-    const auto keytrack = std::clamp(filter.keytrack + parameters.direct.filterKeytrack, -1.0f, 2.0f);
-    const auto keytrackSemitones = (static_cast<float>(midiNote) - 60.0f) * keytrack;
+    const auto keytrack = std::clamp(filter.keytrack, -1.0f, 2.0f);
+    const auto keytrackSemitones = (midiNote - 60.0f) * keytrack;
     const auto cutoffSemitones = std::clamp(filter.cutoffSemitones + keytrackSemitones + cutoffModSemitones,
                                            0.0f, 136.0f);
     const auto oversampling = oversamplingFactor(filter.oversampling);

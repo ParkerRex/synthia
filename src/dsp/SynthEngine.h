@@ -24,6 +24,9 @@ public:
     void noteOn(int midiNote, float velocity) noexcept;
     void noteOff(int midiNote) noexcept;
     void setSustainPedal(bool down) noexcept;
+    void setPitchBend(float normalizedBipolar) noexcept;
+    void setModWheel(float normalized) noexcept;
+    void setAftertouch(float normalized) noexcept;
     void allNotesOff() noexcept;
     void panic() noexcept;
     void setParameters(const SynthParameters& newParameters) noexcept;
@@ -39,6 +42,7 @@ private:
     double sampleRate = 44100.0;
     int maxBlockSize = 512;
     SynthParameters parameters;
+    PerformanceState performance;
     VoiceAllocator voices { 32 };
 };
 } // namespace synth
