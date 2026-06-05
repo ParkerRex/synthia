@@ -8,6 +8,11 @@ namespace synth
 namespace
 {
 constexpr float twoPi = 6.28318530717958647692f;
+constexpr float defaultTempoBpm = 128.0f;
+constexpr float minTempoBpm = 20.0f;
+constexpr float maxTempoBpm = 300.0f;
+constexpr float maxTempoSyncedDelaySeconds = 6.0f;
+constexpr float delayTailFloor = 0.001f;
 
 float finiteOrZero(float value) noexcept
 {
@@ -52,19 +57,48 @@ float delayDivisionBeats(DelaySyncDivision division) noexcept
 
 int tempoSyncedDelaySamples(double sampleRate, float tempoBpm, DelaySyncDivision division) noexcept
 {
-    const auto safeTempo = std::clamp(std::isfinite(tempoBpm) ? tempoBpm : 128.0f, 20.0f, 300.0f);
-    const auto seconds = (60.0f / safeTempo) * delayDivisionBeats(division);
-    return secondsToSamples(sampleRate, seconds);
+    return secondsToSamples(sampleRate, tempoSyncedDelaySeconds(tempoBpm, division));
+}
+
+float tempoSyncedDelaySeconds(float tempoBpm, DelaySyncDivision division) noexcept
+{
+    const auto safeTempo = std::clamp(std::isfinite(tempoBpm) ? tempoBpm : defaultTempoBpm,
+                                      minTempoBpm, maxTempoBpm);
+    return (60.0f / safeTempo) * delayDivisionBeats(division);
 }
 
 float fxTailLengthSeconds(const FxParameters& parameters) noexcept
 {
-    if (!parameters.enabled)
+    SynthParameters fullParameters;
+    fullParameters.fx = parameters;
+    return fxTailLengthSeconds(fullParameters);
+}
+
+float fxTailLengthSeconds(const SynthParameters& parameters) noexcept
+{
+    if (!parameters.fx.enabled)
         return 0.0f;
 
-    const auto delayTail = parameters.delayEnabled && parameters.delayMix > 0.0f ? 1.5f : 0.0f;
-    const auto reverbTail = parameters.reverbEnabled && parameters.reverbMix > 0.0f
-        ? 0.7f + clampUnit(parameters.reverbDecay) * 1.8f
+    auto delayTail = 0.0f;
+    const auto delayMix = clampUnit(parameters.fx.delayMix + parameters.macro.space * 0.35f);
+    if (parameters.fx.delayEnabled && delayMix > 0.0f)
+    {
+        const auto delaySeconds = tempoSyncedDelaySeconds(parameters.tempoBpm, parameters.fx.delaySyncDivision);
+        const auto feedback = std::clamp(parameters.fx.delayFeedback, 0.0f, 0.86f);
+        if (feedback <= 0.0f)
+        {
+            delayTail = delaySeconds;
+        }
+        else
+        {
+            const auto repeatCount = std::max(1.0f, std::ceil(std::log(delayTailFloor) / std::log(feedback)));
+            delayTail = delaySeconds * repeatCount;
+        }
+    }
+
+    const auto reverbMix = clampUnit(parameters.fx.reverbMix + parameters.macro.space * 0.45f);
+    const auto reverbTail = parameters.fx.reverbEnabled && reverbMix > 0.0f
+        ? 0.7f + clampUnit(parameters.fx.reverbDecay) * 1.8f
         : 0.0f;
     return std::max(delayTail, reverbTail);
 }
@@ -73,17 +107,21 @@ void FxChain::DelayBuffer::prepare(int sampleCount)
 {
     samples.assign(static_cast<std::size_t>(std::max(2, sampleCount)), 0.0f);
     writeIndex = 0;
+    validSamples = 0;
 }
 
 void FxChain::DelayBuffer::reset() noexcept
 {
-    std::fill(samples.begin(), samples.end(), 0.0f);
     writeIndex = 0;
+    validSamples = 0;
 }
 
 float FxChain::DelayBuffer::readAtWriteHead() const noexcept
 {
     if (samples.empty())
+        return 0.0f;
+
+    if (validSamples < static_cast<int>(samples.size()))
         return 0.0f;
 
     return samples[static_cast<std::size_t>(writeIndex)];
@@ -96,6 +134,9 @@ float FxChain::DelayBuffer::read(int delaySamples) const noexcept
         return 0.0f;
 
     delaySamples = std::clamp(delaySamples, 1, size - 1);
+    if (delaySamples > validSamples)
+        return 0.0f;
+
     auto index = writeIndex - delaySamples;
     while (index < 0)
         index += size;
@@ -124,6 +165,7 @@ void FxChain::DelayBuffer::write(float value) noexcept
 
     samples[static_cast<std::size_t>(writeIndex)] = finiteOrZero(value);
     writeIndex = (writeIndex + 1) % static_cast<int>(samples.size());
+    validSamples = std::min(validSamples + 1, static_cast<int>(samples.size()));
 }
 
 void FxChain::prepare(double newSampleRate, int newMaxBlockSize)
@@ -131,7 +173,7 @@ void FxChain::prepare(double newSampleRate, int newMaxBlockSize)
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
     maxBlockSize = std::max(1, newMaxBlockSize);
 
-    const auto delaySamples = secondsToSamples(sampleRate, 2.1f);
+    const auto delaySamples = secondsToSamples(sampleRate, maxTempoSyncedDelaySeconds) + 1;
     delayLeft.prepare(delaySamples);
     delayRight.prepare(delaySamples);
 
@@ -160,6 +202,8 @@ void FxChain::reset() noexcept
         comb.reset();
     reverbDampingStates.fill(0.0f);
     chorusPhase = 0.0f;
+    reverbWasActive = false;
+    lastReverbCombCount = 0;
 }
 
 FxStereoFrame FxChain::process(FxStereoFrame input, const SynthParameters& parameters) noexcept
@@ -249,10 +293,11 @@ FxStereoFrame FxChain::processDelay(FxStereoFrame input, const SynthParameters& 
 
 FxStereoFrame FxChain::processReverb(FxStereoFrame input, const SynthParameters& parameters) noexcept
 {
-    if (!parameters.fx.reverbEnabled || parameters.fx.reverbMix <= 0.0f)
+    const auto reverbMix = clampUnit(parameters.fx.reverbMix + parameters.macro.space * 0.45f);
+    if (!parameters.fx.reverbEnabled || reverbMix <= 0.0f)
     {
-        for (int i = 0; i < reverbCombCount(parameters.quality.activeMode) * 2; ++i)
-            processComb(i, 0.0f, 0.0f, 0.0f);
+        if (reverbWasActive)
+            resetReverb();
         return input;
     }
 
@@ -260,6 +305,10 @@ FxStereoFrame FxChain::processReverb(FxStereoFrame input, const SynthParameters&
     const auto feedback = 0.52f + decay * 0.34f;
     const auto damping = parameters.quality.activeMode == QualityMode::High ? 0.34f : 0.48f;
     const auto combCount = reverbCombCount(parameters.quality.activeMode);
+    if (reverbWasActive && combCount != lastReverbCombCount)
+        resetReverb();
+    reverbWasActive = true;
+    lastReverbCombCount = combCount;
 
     auto wetLeft = 0.0f;
     auto wetRight = 0.0f;
@@ -274,11 +323,19 @@ FxStereoFrame FxChain::processReverb(FxStereoFrame input, const SynthParameters&
     wetLeft *= reverbGain;
     wetRight *= reverbGain;
 
-    const auto reverbMix = clampUnit(parameters.fx.reverbMix + parameters.macro.space * 0.45f);
     return {
         std::clamp(input.left + wetLeft * reverbMix, -1.0f, 1.0f),
         std::clamp(input.right + wetRight * reverbMix, -1.0f, 1.0f)
     };
+}
+
+void FxChain::resetReverb() noexcept
+{
+    for (auto& comb : reverbCombs)
+        comb.reset();
+    reverbDampingStates.fill(0.0f);
+    reverbWasActive = false;
+    lastReverbCombCount = 0;
 }
 
 float FxChain::processComb(int index, float input, float feedback, float damping) noexcept

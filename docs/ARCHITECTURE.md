@@ -10,7 +10,7 @@ Current scaffold:
 - `SynthSmokeTest` is the first CTest target.
 - `SynthContractTest` validates parameter registry, preset files, and APVTS state round-trip.
 - `SynthVoiceCoreTest` validates envelope, LFO reset, voice allocation, and engine note release.
-- `SynthDspCoreTest` validates oscillator, filter, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, and FX bypass/delay/tail safety.
+- `SynthDspCoreTest` validates oscillator, filter, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, and FX bypass, delay/tail, panic-clear, and reverb-state safety.
 - `SynthRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`, including dry and wet factory pluck reports.
 
 ## Component Stack

@@ -71,6 +71,7 @@ void SynthEngine::allNotesOff() noexcept
 void SynthEngine::panic() noexcept
 {
     voices.panic();
+    fx.reset();
 }
 
 void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept

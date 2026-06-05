@@ -128,6 +128,15 @@ Install the locally built AU and VST3 into the per-user macOS plug-in folders:
 scripts/install-local-plugins.sh build
 ```
 
+Preview or remove the local install:
+
+```bash
+scripts/uninstall-local-plugins.sh --dry-run
+scripts/uninstall-local-plugins.sh
+```
+
+Local install and Ableton scan troubleshooting live in `docs/host-validation/local-install-troubleshooting.md`.
+
 Open the Ableton smoke template and record the environment before testing:
 
 ```bash

@@ -2,6 +2,8 @@
 
 Use this file when validating Synth on a Mac with Ableton installed. Commit filled-in notes only when they are useful project evidence; otherwise keep local scratch notes under `build/`.
 
+Local install, uninstall, ad-hoc signing, AU validation, and Ableton rescan troubleshooting are documented in `docs/host-validation/local-install-troubleshooting.md`.
+
 ## Environment
 
 - date: 2026-06-05 EDT

@@ -5,6 +5,11 @@ build_dir="${1:-build}"
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 artifact_root="$root_dir/$build_dir/SynthPlugin_artefacts"
 
+fail() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
 resolve_artifact_dir() {
   local config_dir
   local config_dirs=(Release Debug RelWithDebInfo MinSizeRel "")
@@ -29,20 +34,44 @@ resolve_artifact_dir() {
 }
 
 artifact_dir="$(resolve_artifact_dir "$artifact_root" "${2:-}")"
+[[ -n "$artifact_dir" ]] || fail "could not resolve plugin artifact directory under $artifact_root"
 
 au_src="$artifact_dir/AU/Synth.component"
 vst3_src="$artifact_dir/VST3/Synth.vst3"
 au_dest="$HOME/Library/Audio/Plug-Ins/Components"
 vst3_dest="$HOME/Library/Audio/Plug-Ins/VST3"
 
-[[ -d "$au_src" ]] || { printf 'error: AU bundle missing: %s\n' "$au_src" >&2; exit 1; }
-[[ -d "$vst3_src" ]] || { printf 'error: VST3 bundle missing: %s\n' "$vst3_src" >&2; exit 1; }
+[[ -d "$au_src" ]] || fail "AU bundle missing: $au_src"
+[[ -d "$vst3_src" ]] || fail "VST3 bundle missing: $vst3_src"
 
 mkdir -p "$au_dest" "$vst3_dest"
 
 rsync -a --delete "$au_src" "$au_dest/"
 rsync -a --delete "$vst3_src" "$vst3_dest/"
 
+sign_installed_bundle() {
+  local label="$1"
+  local bundle="$2"
+
+  if [[ "${SYNTH_SKIP_ADHOC_SIGN:-0}" == "1" ]]; then
+    printf '%s codesign: skipped by SYNTH_SKIP_ADHOC_SIGN=1\n' "$label"
+    return
+  fi
+
+  if ! command -v codesign >/dev/null 2>&1; then
+    printf '%s codesign: skipped because codesign is unavailable\n' "$label"
+    return
+  fi
+
+  codesign --force --deep --sign - "$bundle" >/dev/null
+  codesign --verify --deep --strict "$bundle" >/dev/null
+  printf '%s codesign: ad-hoc signed for local host scanning\n' "$label"
+}
+
+sign_installed_bundle "AU" "$au_dest/Synth.component"
+sign_installed_bundle "VST3" "$vst3_dest/Synth.vst3"
+
 printf 'installed AU: %s/Synth.component\n' "$au_dest"
 printf 'installed VST3: %s/Synth.vst3\n' "$vst3_dest"
 printf 'rescan plug-ins in Ableton before validation.\n'
+printf 'AU validation command: auval -v aumu Syn1 PkRx\n'

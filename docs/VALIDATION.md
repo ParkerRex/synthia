@@ -53,7 +53,7 @@ The current DSP validation proves:
 - `Pluck Core 01` dry render loads the requested preset and MIDI fixture, writes a finite non-clipping WAV/report, and records note-local LFO spread during overlapping notes.
 - ramp timing, glide, velocity glide, direct keytrack/LFO/envelope routes, TransMod scaler multiplication to many physical destinations, performance MIDI sources, voice/unison/random source spread, and fixture trace ranges.
 - top-level `mod_slots` preset schema objects are applied by render loading, including schema-only modulation fixtures that omit flat APVTS-style `transmod.*` parameters.
-- FX bypass stays null-equivalent to dry rendering when globally bypassed, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported, and wet output remains finite and non-clipping.
+- FX bypass stays null-equivalent to dry rendering when globally bypassed, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
 - `SynthRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
 - `SynthRenderCoreSuite` runs the core suite under CTest.
 
@@ -97,7 +97,7 @@ Current standalone core-suite artifacts:
 
 - `summary.json`: aggregate pass/fail for all core reports.
 - `pluck-core-01-dry.json`: dry factory pluck metrics plus WAV artifact path.
-- `pluck-core-01-wet.json`: wet factory pluck metrics plus WAV artifact path, FX mode, delay division, tempo-synced delay samples, tail length, and active quality mode.
+- `pluck-core-01-wet.json`: wet factory pluck metrics plus WAV artifact path, FX mode, delay division, tempo-synced delay samples, tail length, post-event render length, active quality mode, and wet-versus-dry difference metrics.
 - `lfo-ablation.json`: compares per-voice LFO and mono LFO renders using note-local LFO spread and audio difference.
 - `determinism.json`: renders the dry pluck twice and compares `max_abs_diff`, `rms_diff`, and `peak_delta` against fixed tolerances.
 - `artifacts/*.wav`: retained dry/per-voice/mono render WAVs.
@@ -158,7 +158,7 @@ Implemented standalone metrics:
 - `spectral_centroid_hz`: bounded-window DFT centroid for coarse spectral regression.
 - `stereo_correlation`: left/right correlation, useful for spread regressions.
 - `note_local_lfo_spread`: spread of per-voice LFO values while notes overlap.
-- `fx_mode`, `delay_division_beats`, `tempo_synced_delay_samples`, `fx_tail_seconds`, and `quality_mode`: wet-render proof for the onboard FX path.
+- `fx_mode`, `delay_division_beats`, `tempo_synced_delay_samples`, `fx_tail_seconds`, `post_last_event_seconds`, `quality_mode`, `wet_dry_max_abs_diff`, `wet_dry_rms_diff`, and `wet_meaningful_passed`: wet-render proof for the onboard FX path.
 - `mod_slot_schema_passed`: modulation harness check that canonical preset `mod_slots` objects are loaded into runtime TransMod slots.
 - `max_abs_diff`, `rms_diff`, `peak_delta`: deterministic repeat comparison metrics.
 

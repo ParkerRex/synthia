@@ -84,7 +84,9 @@ void SynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
         return;
     }
 
-    auto parameterSnapshot = readParameters(currentTempoBpm(), isNonRealtime());
+    const auto tempoBpm = currentTempoBpm();
+    diagnosticTempoBpm.store(tempoBpm, std::memory_order_relaxed);
+    auto parameterSnapshot = readParameters(tempoBpm, isNonRealtime());
     const auto sequenceAfterRead = parameterStateSequence.load(std::memory_order_acquire);
     if (sequenceBeforeRead != sequenceAfterRead || (sequenceAfterRead & 1u) != 0u)
     {
@@ -127,6 +129,14 @@ void SynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     diagnosticActiveVoices.store(blockActiveVoices, std::memory_order_relaxed);
     diagnosticBlockSize.store(totalSamples, std::memory_order_relaxed);
     midiMessages.clear();
+}
+
+double SynthAudioProcessor::getTailLengthSeconds() const
+{
+    auto snapshot = readParameters(diagnosticTempoBpm.load(std::memory_order_relaxed), false);
+    const auto voiceTail = std::max(snapshot.ampEnv.releaseMs, snapshot.modEnv.releaseMs) * 0.001f;
+    return std::max(static_cast<double>(voiceTail),
+                    static_cast<double>(synth::fxTailLengthSeconds(snapshot)));
 }
 
 void SynthAudioProcessor::handleMidiMessage(const juce::MidiMessage& message) noexcept

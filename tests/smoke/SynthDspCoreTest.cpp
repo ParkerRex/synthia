@@ -836,20 +836,93 @@ bool testFxDelaySyncAndTail()
     if (delaySamples != 24000)
         return false;
 
+    parameters.fx.delaySyncDivision = synth::DelaySyncDivision::Half;
+    parameters.tempoBpm = 20.0f;
+    const auto maxDelaySamples = synth::tempoSyncedDelaySamples(48000.0, parameters.tempoBpm,
+                                                                parameters.fx.delaySyncDivision);
+    if (maxDelaySamples != 288000)
+        return false;
+
     auto delayedPeak = 0.0f;
-    for (int sample = 0; sample <= delaySamples + 8; ++sample)
+    for (int sample = 0; sample <= maxDelaySamples + 8; ++sample)
     {
         const auto input = sample == 0 ? synth::FxStereoFrame { 0.5f, 0.5f } : synth::FxStereoFrame {};
         const auto output = fx.process(input, parameters);
-        if (sample == delaySamples)
+        if (sample == maxDelaySamples)
             delayedPeak = std::max(std::abs(output.left), std::abs(output.right));
     }
 
     parameters.fx.reverbEnabled = true;
     parameters.fx.reverbMix = 0.25f;
     parameters.fx.reverbDecay = 0.75f;
-    const auto tail = synth::fxTailLengthSeconds(parameters.fx);
-    return delayedPeak > 0.49f && tail > 1.5f;
+    const auto tail = synth::fxTailLengthSeconds(parameters);
+    return delayedPeak > 0.49f && tail >= 6.0f;
+}
+
+bool testPanicClearsFxBuffers()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = false;
+    parameters.amp.levelDb = -12.0f;
+    parameters.ampEnv.releaseMs = 2000.0f;
+    parameters.fx.enabled = true;
+    parameters.fx.saturationEnabled = false;
+    parameters.fx.delayEnabled = true;
+    parameters.fx.delayMix = 1.0f;
+    parameters.fx.delayFeedback = 0.0f;
+    parameters.fx.delaySyncDivision = synth::DelaySyncDivision::Sixteenth;
+    parameters.fx.reverbEnabled = false;
+    parameters.fx.chorusEnabled = false;
+    parameters.tempoBpm = 120.0f;
+
+    synth::SynthEngine engine;
+    engine.prepare(48000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 1.0f);
+    processSamples(engine, 64);
+    engine.panic();
+
+    const auto delaySamples = synth::tempoSyncedDelaySamples(48000.0, parameters.tempoBpm,
+                                                             parameters.fx.delaySyncDivision);
+    std::vector<float> left(static_cast<std::size_t>(delaySamples + 64));
+    std::vector<float> right(left.size());
+    const auto stats = engine.process(left.data(), right.data(), static_cast<int>(left.size()));
+    return stats.invalidSamples == 0 && stats.activeVoices == 0 && stats.peak < 1.0e-6f;
+}
+
+bool testReverbBypassClearsRightCombState()
+{
+    synth::FxChain fx;
+    fx.prepare(48000.0, 1);
+
+    synth::SynthParameters parameters;
+    parameters.fx.enabled = true;
+    parameters.fx.saturationEnabled = false;
+    parameters.fx.delayEnabled = false;
+    parameters.fx.chorusEnabled = false;
+    parameters.fx.reverbEnabled = true;
+    parameters.fx.reverbMix = 1.0f;
+    parameters.fx.reverbDecay = 0.8f;
+    parameters.quality.activeMode = synth::QualityMode::Normal;
+
+    for (int sample = 0; sample < 2400; ++sample)
+    {
+        const auto input = sample == 0 ? synth::FxStereoFrame { 0.0f, 1.0f } : synth::FxStereoFrame {};
+        fx.process(input, parameters);
+    }
+
+    parameters.fx.reverbEnabled = false;
+    fx.process({}, parameters);
+
+    parameters.fx.reverbEnabled = true;
+    auto peak = 0.0f;
+    for (int sample = 0; sample < 5000; ++sample)
+    {
+        const auto output = fx.process({}, parameters);
+        peak = std::max(peak, std::max(std::abs(output.left), std::abs(output.right)));
+    }
+
+    return peak < 1.0e-7f;
 }
 
 bool testEngineFxWetOutputSafety()
@@ -1006,6 +1079,18 @@ int main()
     if (!testFxDelaySyncAndTail())
     {
         std::cerr << "FX delay sync/tail test failed.\n";
+        return 1;
+    }
+
+    if (!testPanicClearsFxBuffers())
+    {
+        std::cerr << "FX panic clear test failed.\n";
+        return 1;
+    }
+
+    if (!testReverbBypassClearsRightCombState())
+    {
+        std::cerr << "FX reverb bypass clear test failed.\n";
         return 1;
     }
 

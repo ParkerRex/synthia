@@ -29,7 +29,7 @@ public:
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 2.5; }
+    double getTailLengthSeconds() const override;
 
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
@@ -192,6 +192,7 @@ private:
     std::atomic<int> diagnosticMidiEvents { 0 };
     std::atomic<int> diagnosticInvalidSamples { 0 };
     std::atomic<float> diagnosticPeak { 0.0f };
+    std::atomic<float> diagnosticTempoBpm { 128.0f };
     std::atomic<bool> panicRequested { false };
     std::atomic<std::uint64_t> parameterStateSequence { 0 };
     mutable juce::CriticalSection presetMetadataLock;

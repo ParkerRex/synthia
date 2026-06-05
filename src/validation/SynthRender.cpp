@@ -1585,15 +1585,31 @@ struct PresetRenderResult
     int sampleRate = 48000;
     int sampleCount = 0;
     int fixtureEvents = 0;
+    int lastEventSample = 0;
     int invalidDuringRender = 0;
     int tempoSyncedDelaySamples = 0;
     float delayDivisionBeats = 0.0f;
     float fxTailSeconds = 0.0f;
+    float tempoBpm = 128.0f;
+    float postLastEventSeconds = 0.0f;
     synth::QualityMode qualityMode = synth::QualityMode::Normal;
     float noteLocalLfoSpread = 0.0f;
     bool noteLocalMotionPassed = false;
+    double wetDryMaxAbsDiff = 0.0;
+    double wetDryRmsDiff = 0.0;
+    bool wetMeaningfulPassed = false;
     bool passed = false;
 };
+
+struct AudioDiff
+{
+    double maxAbs = 0.0;
+    double rms = 0.0;
+    double peakDelta = 0.0;
+};
+
+AudioDiff compareAudio(const PresetRenderResult& a, const PresetRenderResult& b);
+void evaluateWetDifference(PresetRenderResult& wet, const PresetRenderResult& dry);
 
 PresetRenderResult renderPresetAudio(const std::filesystem::path& presetPath,
                                      const std::filesystem::path& fixturePath,
@@ -1623,19 +1639,24 @@ PresetRenderResult renderPresetAudio(const std::filesystem::path& presetPath,
         parameters.fx.enabled = true;
 
     result.qualityMode = parameters.quality.activeMode;
+    result.tempoBpm = parameters.tempoBpm;
     result.tempoSyncedDelaySamples = synth::tempoSyncedDelaySamples(result.sampleRate, parameters.tempoBpm,
                                                                     parameters.fx.delaySyncDivision);
     result.delayDivisionBeats = synth::delayDivisionBeats(parameters.fx.delaySyncDivision);
-    result.fxTailSeconds = synth::fxTailLengthSeconds(parameters.fx);
+    result.fxTailSeconds = synth::fxTailLengthSeconds(parameters);
 
     std::vector<RenderEvent> events;
     if (!loadMidiFixture(fixturePath, result.sampleRate, events, result.error))
         return result;
 
     result.fixtureEvents = static_cast<int>(events.size());
-    const auto lastEventSample = events.empty() ? 0 : events.back().sample;
+    result.lastEventSample = events.empty() ? 0 : events.back().sample;
+    const auto voiceTailSeconds = std::max(parameters.ampEnv.releaseMs, parameters.modEnv.releaseMs) * 0.001f;
+    result.postLastEventSeconds = std::max(0.4f, std::max(result.fxTailSeconds, voiceTailSeconds) + 0.1f);
     result.sampleCount = std::max(static_cast<int>(result.sampleRate * 1.35),
-                                  lastEventSample + static_cast<int>(result.sampleRate * 0.4));
+                                  result.lastEventSample
+                                      + static_cast<int>(std::ceil(static_cast<double>(result.sampleRate)
+                                                                  * result.postLastEventSeconds)));
 
     synth::SynthEngine engine;
     engine.prepare(result.sampleRate, 1);
@@ -1729,7 +1750,9 @@ void writePresetRenderReport(const std::filesystem::path& reportPath,
     out << "  \"wet\": " << boolString(fxMode == RenderFxMode::Wet) << ",\n";
     out << "  \"sample_rate\": " << result.sampleRate << ",\n";
     out << "  \"samples_rendered\": " << result.sampleCount << ",\n";
-    out << "  \"tempo_bpm\": 128,\n";
+    out << "  \"last_event_sample\": " << result.lastEventSample << ",\n";
+    out << "  \"post_last_event_seconds\": " << result.postLastEventSeconds << ",\n";
+    out << "  \"tempo_bpm\": " << result.tempoBpm << ",\n";
     out << "  \"delay_division_beats\": " << result.delayDivisionBeats << ",\n";
     out << "  \"tempo_synced_delay_samples\": " << result.tempoSyncedDelaySamples << ",\n";
     out << "  \"fx_tail_seconds\": " << result.fxTailSeconds << ",\n";
@@ -1743,6 +1766,9 @@ void writePresetRenderReport(const std::filesystem::path& reportPath,
     out << "  \"spectral_centroid_hz\": " << result.metrics.spectralCentroidHz << ",\n";
     out << "  \"note_local_lfo_spread\": " << result.noteLocalLfoSpread << ",\n";
     out << "  \"note_local_motion_passed\": " << boolString(result.noteLocalMotionPassed) << ",\n";
+    out << "  \"wet_dry_max_abs_diff\": " << result.wetDryMaxAbsDiff << ",\n";
+    out << "  \"wet_dry_rms_diff\": " << result.wetDryRmsDiff << ",\n";
+    out << "  \"wet_meaningful_passed\": " << boolString(result.wetMeaningfulPassed) << ",\n";
     out << "  \"nonzero_samples\": " << result.metrics.nonzero << ",\n";
     out << "  \"invalid_samples\": " << result.metrics.invalid << ",\n";
     out << "  \"passed\": " << boolString(result.passed) << "\n";
@@ -1752,12 +1778,25 @@ void writePresetRenderReport(const std::filesystem::path& reportPath,
 int renderPreset(const Options& options)
 {
     const auto fxMode = options.wet && !options.dry ? RenderFxMode::Wet : RenderFxMode::Dry;
-    const auto result = renderPresetAudio(options.presetPath, options.fixturePath,
-                                          PresetRenderVariant::Default, fxMode);
+    auto result = renderPresetAudio(options.presetPath, options.fixturePath,
+                                    PresetRenderVariant::Default, fxMode);
     if (!result.ok)
     {
         std::cerr << result.error << "\n";
         return 1;
+    }
+
+    if (fxMode == RenderFxMode::Wet)
+    {
+        const auto dryReference = renderPresetAudio(options.presetPath, options.fixturePath,
+                                                    PresetRenderVariant::Default, RenderFxMode::Dry);
+        if (!dryReference.ok)
+        {
+            std::cerr << dryReference.error << "\n";
+            return 1;
+        }
+
+        evaluateWetDifference(result, dryReference);
     }
 
     writeWav16(options.output, result.left, result.right, result.sampleRate);
@@ -1779,13 +1818,6 @@ void writeFailureReport(const std::filesystem::path& reportPath, const std::stri
     out << "}\n";
 }
 
-struct AudioDiff
-{
-    double maxAbs = 0.0;
-    double rms = 0.0;
-    double peakDelta = 0.0;
-};
-
 AudioDiff compareAudio(const PresetRenderResult& a, const PresetRenderResult& b)
 {
     AudioDiff diff;
@@ -1803,6 +1835,17 @@ AudioDiff compareAudio(const PresetRenderResult& a, const PresetRenderResult& b)
     diff.rms = sampleCount > 0 ? std::sqrt(sumSquares / static_cast<double>(sampleCount)) : 0.0;
     diff.peakDelta = std::abs(static_cast<double>(a.metrics.peak) - static_cast<double>(b.metrics.peak));
     return diff;
+}
+
+void evaluateWetDifference(PresetRenderResult& wet, const PresetRenderResult& dry)
+{
+    const auto diff = compareAudio(wet, dry);
+    wet.wetDryMaxAbsDiff = diff.maxAbs;
+    wet.wetDryRmsDiff = diff.rms;
+    wet.wetMeaningfulPassed = wet.fxTailSeconds > 0.0f
+        && diff.maxAbs > 1.0e-4
+        && diff.rms > 1.0e-5;
+    wet.passed = wet.passed && wet.wetMeaningfulPassed;
 }
 
 int writeDeterminismReport(const std::filesystem::path& reportPath,
@@ -2051,14 +2094,27 @@ int writeCoreSuite(const Options& options)
         }
         else
         {
+            const auto dryReference = renderPresetAudio(presetPath, fixturePath,
+                                                        PresetRenderVariant::Default,
+                                                        RenderFxMode::Dry);
+            auto checkedRender = render;
+            if (dryReference.ok)
+                evaluateWetDifference(checkedRender, dryReference);
+            else
+                checkedRender.passed = false;
+
             writeWav16(wavPath, render.left, render.right, render.sampleRate);
-            writePresetRenderReport(reportPath, render, presetPath, fixturePath, wavPath,
+            writePresetRenderReport(reportPath, checkedRender, presetPath, fixturePath, wavPath,
                                     RenderFxMode::Wet, PresetRenderVariant::Default);
-            const auto expectedDelaySamples = synth::tempoSyncedDelaySamples(render.sampleRate, 128.0f,
+            const auto expectedDelaySamples = synth::tempoSyncedDelaySamples(checkedRender.sampleRate,
+                                                                             checkedRender.tempoBpm,
                                                                              synth::DelaySyncDivision::Eighth);
-            const auto wetPassed = render.passed
-                && render.fxTailSeconds > 0.5f
-                && std::abs(render.tempoSyncedDelaySamples - expectedDelaySamples) <= 1;
+            const auto wetPassed = dryReference.ok
+                && checkedRender.passed
+                && checkedRender.fxTailSeconds > 0.5f
+                && checkedRender.wetMeaningfulPassed
+                && checkedRender.postLastEventSeconds >= checkedRender.fxTailSeconds
+                && std::abs(checkedRender.tempoSyncedDelaySamples - expectedDelaySamples) <= 1;
             addItem("pluck-core-01-wet", reportPath, wetPassed ? 0 : 1);
         }
     }

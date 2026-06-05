@@ -34,7 +34,7 @@ FX make the instrument practical in production, but they must not hide a weak sy
 
 ## Surprises & Discoveries
 
-The standalone wet render uses the factory `1/8` delay sync at 128 BPM and reports `11250` delay samples at 48 kHz. FX report a 1.5 second tail for the current factory wet settings. Quality modes affect the reverb/chorus processing shape without reallocating resources on the audio thread.
+The standalone wet render uses the factory `1/8` delay sync at 128 BPM and reports `11250` delay samples at 48 kHz. FX tail reporting is derived from the active delay, reverb, macro-space, and tempo parameters; the current factory wet render reports a `1.384` second FX tail and renders `1.484` seconds after the last MIDI event. Quality modes affect the reverb/chorus processing shape without reallocating resources on the audio thread.
 
 ## Decision Log
 
@@ -44,7 +44,7 @@ Date: 2026-06-04.
 
 ## Outcomes & Retrospective
 
-Completed on 2026-06-05. The FX chain is post-voice and bypassable; dry render validation explicitly forces FX off, while wet validation forces the preset FX path on. `SynthRender --suite core` now writes 11 reports including `pluck-core-01-wet.json`, and CTest covers FX bypass equivalence, delay sync/tail behavior, and wet finite-output safety.
+Completed on 2026-06-05. The FX chain is post-voice and bypassable; dry render validation explicitly forces FX off, while wet validation forces the preset FX path on and compares it against a dry reference. `SynthRender --suite core` now writes 11 reports including `pluck-core-01-wet.json`, and CTest covers FX bypass equivalence, maximum delay sync/tail behavior, panic clearing FX buffers, reverb bypass clearing stale comb state, and wet finite-output safety.
 
 ## Context and Orientation
 
@@ -91,7 +91,7 @@ Implement FX and quality settings. Run:
 
 ## Validation and Acceptance
 
-Acceptance requires FX bypass null-equivalent behavior within tolerance, no invalid samples, correct delay sync at test tempos, documented tail length, serialized quality settings, dry-core validation still passing, and wet render reports.
+Acceptance requires FX bypass null-equivalent behavior within tolerance, no invalid samples, correct delay sync at test tempos including the longest supported delay, documented parameter-derived tail length, serialized quality settings, dry-core validation still passing, and wet render reports that prove meaningful wet-versus-dry difference.
 
 ### Test Commands
 
