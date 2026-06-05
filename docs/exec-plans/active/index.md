@@ -8,3 +8,5 @@ Active child plans:
 - `2026-06-04-build-onboard-fx-and-quality-modes.md`
 - `2026-06-04-build-ableton-host-integration-and-packaging.md`
 - `2026-06-04-build-release-hardening-and-documentation-closeout.md`
+
+Immediate Ableton-laptop pickup: run the early host smoke path in `2026-06-04-build-ableton-host-integration-and-packaging.md` and fill `../../host-validation/ableton-smoke.md`.

@@ -16,6 +16,7 @@ This directory holds implementation-facing documentation for Synth. `../SPEC.md`
 - `VALIDATION.md`: tests, render fixtures, host checks, and acceptance metrics.
 - `CLEAN_ROOM.md`: legal/evidence/naming rules.
 - `PLANS.md`: routing for Programs and ExecPlans.
+- `host-validation/`: Ableton and other host validation notes/templates.
 - `programs/`: active multi-slice initiative packets.
 - `exec-plans/`: active and completed implementation-slice plans.
 

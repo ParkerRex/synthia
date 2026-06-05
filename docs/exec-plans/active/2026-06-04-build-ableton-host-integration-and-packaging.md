@@ -26,15 +26,18 @@ Synth is not useful until it loads and restores correctly in Ableton. After this
 ## Progress
 
 - [x] 2026-06-04 EDT: Created this Program-linked ExecPlan from `planning-brief-1.md`.
+- [x] 2026-06-05 EDT: Added local bundle-check/install scripts and an Ableton smoke-note template for handoff validation.
 - [ ] Verify AU/VST3 bundle outputs and metadata.
-- [ ] Add packaging/install scripts.
+- [x] Add local development install scripts.
 - [ ] Add architecture/signing checks.
 - [ ] Run Ableton AU and VST3 smoke validation.
 - [ ] Document install, uninstall, and host troubleshooting.
 
 ## Surprises & Discoveries
 
-None yet. Record Ableton scan, plugin cache, code signing, architecture, and state-restore issues here.
+2026-06-05: Ableton is available on the next development laptop, so this slice can begin as an early host-smoke pass before the final UI/FX slices. Full release acceptance still waits for UI, FX/quality, packaging, and release hardening.
+
+Record Ableton scan, plugin cache, code signing, architecture, and state-restore issues here.
 
 ## Decision Log
 
@@ -48,7 +51,9 @@ Pending implementation.
 
 ## Context and Orientation
 
-This slice depends on a working plugin, editor, presets, validation harness, and FX/quality state. Ableton docs identify macOS plugin folders under `/Library/Audio/Plug-Ins/Components/` and `/Library/Audio/Plug-Ins/VST3/`, with per-user equivalents also available.
+Full host-release acceptance depends on a working plugin, editor, presets, validation harness, and FX/quality state. An early Ableton smoke pass can start now because AU/VST3 bundles, dry-core DSP, factory presets, and standalone validation exist.
+
+Ableton docs identify macOS plugin folders under `/Library/Audio/Plug-Ins/Components/` and `/Library/Audio/Plug-Ins/VST3/`, with per-user equivalents also available.
 
 ### In Scope
 
@@ -60,7 +65,7 @@ This plan does not add new DSP features, redesign the UI, implement copy protect
 
 ## Plan of Work
 
-Confirm plugin metadata, bundle identifiers, manufacturer code, plugin code, category, MIDI input, stereo output, and tail length. Add scripts to copy AU and VST3 bundles into per-user plugin folders for testing. Add architecture checks with `lipo` or equivalent.
+Confirm plugin metadata, bundle identifiers, manufacturer code, plugin code, category, MIDI input, stereo output, and tail length. Use `scripts/install-local-plugins.sh` to copy AU and VST3 bundles into per-user plugin folders for testing. Use `scripts/check-plugin-bundles.sh` for local bundle existence, executable, architecture, signing, and Info.plist checks.
 
 Prepare signing and notarization commands but do not require production credentials unless available. Document local development signing separately from distribution signing.
 
@@ -93,7 +98,7 @@ Run command checks:
     ./build-release/SynthRender --suite core --output-dir build-release/reports/core
     scripts/check-plugin-bundles.sh build-release
 
-Then perform the Ableton manual smoke checklist documented by this slice.
+Then perform the Ableton manual smoke checklist in `docs/host-validation/ableton-smoke.md`.
 
 ## Validation and Acceptance
 
@@ -107,8 +112,9 @@ Acceptance requires AU and VST3 bundles produced, architecture checks passing, p
     ctest --test-dir build-release --output-on-failure
     ./build-release/SynthRender --suite core --output-dir build-release/reports/core
     scripts/check-plugin-bundles.sh build-release
+    scripts/install-local-plugins.sh build-release
 
-Manual verification: run the Ableton AU and VST3 smoke checklist and record results in `docs/host-validation/ableton-smoke.md` or the path this slice creates.
+Manual verification: run the Ableton AU and VST3 smoke checklist and record results in `docs/host-validation/ableton-smoke.md` or a dated sibling note under `docs/host-validation/`.
 
 ## Idempotence and Recovery
 
@@ -126,4 +132,3 @@ Expected proof artifacts:
 ## Interfaces and Dependencies
 
 This slice owns package scripts, install paths, plugin metadata checks, Ableton smoke validation, and signing/notarization preparation for release hardening.
-

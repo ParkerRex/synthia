@@ -62,6 +62,8 @@ This plan does not add major new DSP, UI, or packaging features. It may fix rele
 
 Run the full command validation suite, release build, plugin bundle checks, and Ableton smoke checklist. Add performance reports for sample rates, buffer sizes, voice counts, unison counts, oversampling, UI open/closed, and silence tails.
 
+The current available standalone suite is `--suite core`. Add `--suite full` and `scripts/check-clean-room.sh` during this slice before using them as release gates.
+
 Audit shipped names, preset names, UI text, bundle IDs, and docs against `docs/CLEAN_ROOM.md`. Remove internal research aliases from release-facing artifacts.
 
 Update docs to reflect actual commands, supported environments, known limitations, install/uninstall flow, preset behavior, validation reports, and future extension backlog.
@@ -89,9 +91,8 @@ Run full validation:
     cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTH_ENABLE_TESTS=ON
     cmake --build build-release --config Release
     ctest --test-dir build-release --output-on-failure
-    ./build-release/SynthRender --suite full --output-dir build-release/reports/full
+    ./build-release/SynthRender --suite core --output-dir build-release/reports/core
     scripts/check-plugin-bundles.sh build-release
-    scripts/check-clean-room.sh
 
 Run the Ableton smoke checklist and update the release docs.
 
@@ -105,9 +106,8 @@ Acceptance requires full validation reports, performance report, Ableton smoke p
     cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTH_ENABLE_TESTS=ON
     cmake --build build-release --config Release
     ctest --test-dir build-release --output-on-failure
-    ./build-release/SynthRender --suite full --output-dir build-release/reports/full
+    ./build-release/SynthRender --suite core --output-dir build-release/reports/core
     scripts/check-plugin-bundles.sh build-release
-    scripts/check-clean-room.sh
 
 Manual verification: complete the Ableton AU/VST3 smoke checklist and record screenshots or notes in the host validation doc.
 
@@ -129,4 +129,3 @@ Expected proof artifacts:
 ## Interfaces and Dependencies
 
 This slice consumes all project interfaces and produces the final release-readiness truth. It is the gate before moving the Program to `docs/programs/completed/`.
-
