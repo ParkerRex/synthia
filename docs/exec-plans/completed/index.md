@@ -10,3 +10,4 @@
 - `2026-06-04-build-render-validation-harness-and-metrics.md`
 - `2026-06-04-build-editor-ui-and-preset-workflow.md`
 - `2026-06-04-build-onboard-fx-and-quality-modes.md`
+- `2026-06-05-build-sylenth-layer-oscillator-backbone.md`

@@ -43,6 +43,8 @@ Current validation command:
 - `macros`: list of macro objects.
 - `metadata`: optional object.
 
+User preset writes currently include `metadata.program = "sylenth_lab_rebuild"`.
+
 Phase 2 and Phase 3 may extend `metadata` with generation provenance, prompt text, seed, model/version identifiers, reference-analysis summaries, and reversible edit history. Those fields must not be required for normal audio rendering.
 
 ## Parameter Values
@@ -60,6 +62,52 @@ The parameter registry owns conversion between physical values and host-normaliz
 When a preset is loaded through the plugin editor, the processor resets APVTS parameters to registry defaults before applying preset overrides. This prevents values from a previous preset from leaking into presets that intentionally omit optional fields.
 
 Current FX and quality fields are ordinary serialized parameters. `fx.enabled` is the global FX bypass; module bypasses use `fx.saturation_enabled`, `fx.delay_enabled`, `fx.reverb_enabled`, and `fx.chorus_enabled`. Delay sync is stored as an enum string such as `1/8`. Realtime and offline quality are stored as `quality.realtime_mode` and `quality.offline_mode`.
+
+## Layer and Oscillator Slot State
+
+Phase 1 now serializes a Sylenth-style A/B layer backbone as ordinary parameter state. Layer indices are numeric in IDs:
+
+- `layer.1.*`: Layer A.
+- `layer.2.*`: Layer B.
+
+Layer fields:
+
+- `layer.N.enabled`: boolean.
+- `layer.N.level_db`: dB, `-48.0` through `12.0`, default `0.0`.
+- `layer.N.pan`: normalized bipolar pan, `-1.0` through `1.0`, default `0.0`.
+- `layer.N.solo`: boolean.
+- `layer.N.mute`: boolean.
+
+Each layer owns two oscillator-slot records, giving four slots total: `layer.1.osc.1`, `layer.1.osc.2`, `layer.2.osc.1`, and `layer.2.osc.2`.
+
+Oscillator-slot fields:
+
+- `layer.N.osc.M.enabled`: boolean.
+- `layer.N.osc.M.voices`: integer-like voice count, `0` through `8`; `0` is a disabled-slot-compatible value.
+- `layer.N.osc.M.waveform`: enum string: `Saw`, `Pulse`, `Noise`, or `Sub`.
+- `layer.N.osc.M.octave`: integer-like octave offset, `-4` through `4`.
+- `layer.N.osc.M.note`: integer-like semitone offset, `-12` through `12`.
+- `layer.N.osc.M.fine_cents`: cents, `-100.0` through `100.0`.
+- `layer.N.osc.M.level`: normalized level, `0.0` through `1.0`.
+- `layer.N.osc.M.phase_degrees`: degrees, `0.0` through `360.0`.
+- `layer.N.osc.M.detune`: normalized detune, `0.0` through `1.0`.
+- `layer.N.osc.M.stereo`: normalized stereo spread, `0.0` through `1.0`.
+- `layer.N.osc.M.pan`: normalized bipolar pan, `-1.0` through `1.0`.
+- `layer.N.osc.M.retrigger`: boolean.
+- `layer.N.osc.M.invert`: boolean.
+
+Defaults preserve the current sound path:
+
+- Layer A is enabled.
+- Layer B is disabled.
+- Layer A oscillator 1 is enabled with `voices = 1`, `waveform = Saw`, and `level = 1.0`.
+- The other three oscillator slots are disabled with `voices = 0` and `level = 0.0`.
+
+The existing flat `osc.*`, `filter.*`, envelope, modulation, amp, and FX parameters remain host-stable and still drive current audio rendering. The namespaced `layer.*` fields are preset/host-state contracts for UI handoff and future Layer B/four-slot rendering. Legacy presets that omit `layer.*` fields load by registry defaults; host states that predate these fields are merged over registry defaults before restore. Newly saved user presets include the layer and oscillator-slot fields.
+
+Legacy presets are not inferred into equivalent oscillator-slot state yet. For example, a preset that renders from flat stack, pulse, sub, and detune parameters will still show the default Layer A slot backbone until the future layer renderer/migration slice maps or replaces the flat oscillator model. UI should treat these fields as editable backbone state, not as an authoritative visualization of the current flat oscillator audio path.
+
+Layer display names are not automatable parameters. If custom names are added later, they should live in preset metadata or UI-local state with an explicit migration rule.
 
 ## Mod Slot Shape
 

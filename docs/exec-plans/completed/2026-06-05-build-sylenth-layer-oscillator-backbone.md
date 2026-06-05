@@ -1,10 +1,10 @@
 ---
 title: Build Sylenth Layer Oscillator Backbone
-status: active
+status: completed
 created_at: 2026-06-05
-completed_at: null
+completed_at: 2026-06-05
 summary: Establish Phase 1 A/B layer and four-oscillator-slot state contracts, migrations, and validation while preserving the current Layer A sound.
-post_build_recap: null
+post_build_recap: Added A/B layer and A1/A2/B1/B2 oscillator-slot APVTS/preset state, realtime snapshots, engine-boundary clamping, legacy preset defaults, layer voice-cost validation, and docs while preserving the current flat osc audio path.
 read_when:
   - Starting the Phase 1 Sylenth rebuild implementation.
   - Changing layer, oscillator-slot, parameter, preset, or host-state contracts.
@@ -27,16 +27,18 @@ Phase 1 must become a real Sylenth-level instrument, not a skinned single-core s
 ## Progress
 
 - [x] 2026-06-05 EDT: Created this Program-linked ExecPlan from `planning-brief-1.md`.
-- [ ] Inventory current parameter IDs and preset fields affected by layer/oscillator namespacing.
-- [ ] Add layer and oscillator-slot state structs.
-- [ ] Add registry entries or migration aliases for Layer A and future Layer B without breaking existing presets.
-- [ ] Preserve current engine as Layer A and prove old preset equivalence.
-- [ ] Add validation for layer/slot defaults, migration, and voice math.
-- [ ] Update docs with the implemented contracts.
+- [x] 2026-06-05 EDT: Inventoried current flat `osc.*`, `filter.*`, envelope, modulation, amp, FX, macro, and TransMod parameter/preset contracts.
+- [x] 2026-06-05 EDT: Added `LayerParameters` and `LayerOscillatorParameters` state for Layer A/B and A1/A2/B1/B2.
+- [x] 2026-06-05 EDT: Added 62 namespaced `layer.*` registry entries while leaving old IDs stable.
+- [x] 2026-06-05 EDT: Preserved current audio behavior by keeping the flat `osc.*` render path active and mapping Layer A defaults to the current primary sound path.
+- [x] 2026-06-05 EDT: Added validation for layer/slot defaults, legacy preset load, saved preset serialization, and slot voice-cost math.
+- [x] 2026-06-05 EDT: Updated README, architecture, preset schema, and modern Sylenth baseline docs with the implemented contracts.
+- [x] 2026-06-05 EDT: Added host-state default-merge and current-render no-op regression coverage for the layer/slot backbone.
 
 ## Surprises & Discoveries
 
-None yet. Record parameter migration, APVTS, preset schema, host automation, or CPU surprises here.
+- The pre-change `SynthRender` report commands could not run until `build/` was configured in this checkout. After `cmake -S . -B build -DSYNTH_ENABLE_TESTS=ON`, post-change reports generated normally.
+- The current audio path can remain untouched for this slice because the new layer/slot state is a host/preset/UI contract, not a rendered signal graph yet.
 
 ## Decision Log
 
@@ -44,9 +46,19 @@ Decision: Do the backbone before UI polish.
 Rationale: Sylenth-style UI affordances need real A/B and oscillator-slot state. Fake controls would create brittle preset and automation semantics.
 Date: 2026-06-05.
 
+Decision: Keep the existing flat `osc.*` path as the current audio path and host-stable compatibility surface.
+Rationale: Existing presets, automation, and render tests already depend on it. Namespaced `layer.*` state can prepare UI and future DSP without breaking current sound.
+Date: 2026-06-05.
+
+Decision: Do not add `layer.N.name` as an automatable parameter.
+Rationale: APVTS parameters are numeric/boolean/choice sound-state controls. Custom layer names should be preset metadata or UI-local state if added later.
+Date: 2026-06-05.
+
 ## Outcomes & Retrospective
 
-Pending implementation.
+Completed. The registry now reports 218 parameters. Layer A/B and four oscillator-slot state exist in APVTS, preset serialization, host-state default migration, realtime snapshots, and validation. Layer B is valid but disabled by default. Current rendering remains equivalent because the flat oscillator/filter/envelope/modulation path still drives audio, and regression coverage proves extreme layer/slot state changes do not alter the current render path.
+
+Follow-up: the next engine slice should wrap the current voice path in a layer render unit, add Layer B/four-slot rendering, and add render tests for independent slots, layer mixer, solo/mute, and patch-cost behavior.
 
 ## Context and Orientation
 
@@ -105,6 +117,8 @@ Inspect current contracts:
     ./build/SynthRender --list-parameters --output build/reports/parameters-before-layer.json
     ./build/SynthRender --validate-presets presets/factory --output build/reports/presets-before-layer.json
 
+Note: those pre-change commands require an existing `build/` tree. In this run, `build/` was configured after the failed pre-change attempt.
+
 After implementation, run:
 
     cmake --build build --config Debug
@@ -140,9 +154,10 @@ Preset migration must be deterministic and rerunnable. Unknown future fields sho
 
 Expected artifacts:
 
-- parameter report before/after
-- preset validation report
-- core suite report
+- `build/reports/parameters.json` with 218 parameters
+- `build/reports/presets.json`
+- `build/reports/core/`
+- `build/reports/pluck-core-01-dry.json`
 - docs updates for layer/slot contracts
 
 ## Interfaces and Dependencies
@@ -153,4 +168,3 @@ This slice creates dependencies for:
 - future Layer B/four-oscillator rendering plan
 - future modulation route model
 - future preset browser and arp UI handoff
-

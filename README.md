@@ -20,6 +20,7 @@ The repo builds a JUCE/CMake instrument scaffold with:
 - A dry-core DSP path with oscillator, filter, envelopes, LFO, ramp, glide, velocity glide, amp drive, pan/spread, and performance MIDI sources.
 - A bypassable post-voice FX path with saturation, tempo-synced delay, simple reverb, chorus, and realtime/offline quality settings.
 - An 8-slot TransMod-style modulation layer with source/scaler routing and physical destination depths.
+- A Phase 1 A/B layer and four oscillator-slot backbone in host/preset state; Layer A maps to the current sound path and Layer B is valid but disabled by default.
 - Factory presets, preset schema validation, MIDI fixture rendering, and JSON report generation.
 - A registry-bound editor with factory/user preset load-save-duplicate workflow, TransMod slot editing, and diagnostics.
 - Core validation for oscillator/filter behavior, modulation routing, voice allocation, dry/wet renders, render determinism, and preset loading.
@@ -202,4 +203,3 @@ If something fails, write it into `docs/host-validation/ableton-smoke.md` with:
 - `tests/smoke/`: CTest smoke, contract, voice, and DSP coverage.
 - `presets/factory/`: factory presets.
 - `fixtures/`: MIDI and preset fixtures used by validation.
-

@@ -73,6 +73,33 @@ public:
 private:
     struct RawParameterPointers
     {
+        struct RawLayerOscillator
+        {
+            std::atomic<float>* enabled = nullptr;
+            std::atomic<float>* voices = nullptr;
+            std::atomic<float>* waveform = nullptr;
+            std::atomic<float>* octave = nullptr;
+            std::atomic<float>* note = nullptr;
+            std::atomic<float>* fineCents = nullptr;
+            std::atomic<float>* level = nullptr;
+            std::atomic<float>* phaseDegrees = nullptr;
+            std::atomic<float>* detune = nullptr;
+            std::atomic<float>* stereo = nullptr;
+            std::atomic<float>* pan = nullptr;
+            std::atomic<float>* retrigger = nullptr;
+            std::atomic<float>* invert = nullptr;
+        };
+
+        struct RawLayer
+        {
+            std::atomic<float>* enabled = nullptr;
+            std::atomic<float>* levelDb = nullptr;
+            std::atomic<float>* pan = nullptr;
+            std::atomic<float>* solo = nullptr;
+            std::atomic<float>* mute = nullptr;
+            std::array<RawLayerOscillator, synth::oscillatorSlotsPerLayer> oscillators {};
+        };
+
         struct RawTransModSlot
         {
             std::atomic<float>* enabled = nullptr;
@@ -92,6 +119,7 @@ private:
         std::atomic<float>* voiceRetrigger = nullptr;
         std::atomic<float>* voiceGlideMs = nullptr;
         std::atomic<float>* voiceVelocityGlideMs = nullptr;
+        std::array<RawLayer, synth::layerCount> layers {};
         std::atomic<float>* oscPitchSemitones = nullptr;
         std::atomic<float>* oscFineCents = nullptr;
         std::atomic<float>* oscStackCount = nullptr;

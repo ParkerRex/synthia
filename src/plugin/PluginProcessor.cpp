@@ -217,6 +217,35 @@ void SynthAudioProcessor::cacheParameterPointers()
     raw.voiceRetrigger = get("voice.retrigger");
     raw.voiceGlideMs = get("voice.glide_ms");
     raw.voiceVelocityGlideMs = get("voice.velocity_glide_ms");
+    for (int layer = 0; layer < synth::layerCount; ++layer)
+    {
+        const auto layerPrefix = "layer." + std::to_string(layer + 1) + ".";
+        auto& rawLayer = raw.layers[static_cast<std::size_t>(layer)];
+        rawLayer.enabled = get((layerPrefix + "enabled").c_str());
+        rawLayer.levelDb = get((layerPrefix + "level_db").c_str());
+        rawLayer.pan = get((layerPrefix + "pan").c_str());
+        rawLayer.solo = get((layerPrefix + "solo").c_str());
+        rawLayer.mute = get((layerPrefix + "mute").c_str());
+
+        for (int oscillator = 0; oscillator < synth::oscillatorSlotsPerLayer; ++oscillator)
+        {
+            const auto oscillatorPrefix = layerPrefix + "osc." + std::to_string(oscillator + 1) + ".";
+            auto& rawOscillator = rawLayer.oscillators[static_cast<std::size_t>(oscillator)];
+            rawOscillator.enabled = get((oscillatorPrefix + "enabled").c_str());
+            rawOscillator.voices = get((oscillatorPrefix + "voices").c_str());
+            rawOscillator.waveform = get((oscillatorPrefix + "waveform").c_str());
+            rawOscillator.octave = get((oscillatorPrefix + "octave").c_str());
+            rawOscillator.note = get((oscillatorPrefix + "note").c_str());
+            rawOscillator.fineCents = get((oscillatorPrefix + "fine_cents").c_str());
+            rawOscillator.level = get((oscillatorPrefix + "level").c_str());
+            rawOscillator.phaseDegrees = get((oscillatorPrefix + "phase_degrees").c_str());
+            rawOscillator.detune = get((oscillatorPrefix + "detune").c_str());
+            rawOscillator.stereo = get((oscillatorPrefix + "stereo").c_str());
+            rawOscillator.pan = get((oscillatorPrefix + "pan").c_str());
+            rawOscillator.retrigger = get((oscillatorPrefix + "retrigger").c_str());
+            rawOscillator.invert = get((oscillatorPrefix + "invert").c_str());
+        }
+    }
     raw.oscPitchSemitones = get("osc.pitch_semitones");
     raw.oscFineCents = get("osc.fine_cents");
     raw.oscStackCount = get("osc.stack_count");
@@ -318,6 +347,7 @@ synth::SynthParameters SynthAudioProcessor::readParameters(float tempoBpm, bool 
         return std::isfinite(loaded) ? loaded : fallback;
     };
 
+    const synth::SynthParameters defaults;
     synth::SynthParameters snapshot;
     snapshot.voiceMode = static_cast<synth::VoiceMode>(static_cast<int>(std::round(value(raw.voiceMode, 2.0f))));
     snapshot.polyphony = static_cast<int>(std::round(value(raw.voicePolyphony, 8.0f)));
@@ -325,6 +355,46 @@ synth::SynthParameters SynthAudioProcessor::readParameters(float tempoBpm, bool 
     snapshot.retrigger = value(raw.voiceRetrigger, 1.0f) >= 0.5f;
     snapshot.glideMs = value(raw.voiceGlideMs, 0.0f);
     snapshot.velocityGlideMs = value(raw.voiceVelocityGlideMs, 0.0f);
+    for (int layer = 0; layer < synth::layerCount; ++layer)
+    {
+        const auto& rawLayer = raw.layers[static_cast<std::size_t>(layer)];
+        const auto& defaultLayer = defaults.layers[static_cast<std::size_t>(layer)];
+        auto& layerSnapshot = snapshot.layers[static_cast<std::size_t>(layer)];
+        layerSnapshot.enabled = value(rawLayer.enabled, defaultLayer.enabled ? 1.0f : 0.0f) >= 0.5f;
+        layerSnapshot.levelDb = value(rawLayer.levelDb, defaultLayer.levelDb);
+        layerSnapshot.pan = value(rawLayer.pan, defaultLayer.pan);
+        layerSnapshot.solo = value(rawLayer.solo, defaultLayer.solo ? 1.0f : 0.0f) >= 0.5f;
+        layerSnapshot.mute = value(rawLayer.mute, defaultLayer.mute ? 1.0f : 0.0f) >= 0.5f;
+
+        for (int oscillator = 0; oscillator < synth::oscillatorSlotsPerLayer; ++oscillator)
+        {
+            const auto& rawOscillator = rawLayer.oscillators[static_cast<std::size_t>(oscillator)];
+            const auto& defaultOscillator = defaultLayer.oscillators[static_cast<std::size_t>(oscillator)];
+            auto& oscillatorSnapshot = layerSnapshot.oscillators[static_cast<std::size_t>(oscillator)];
+            oscillatorSnapshot.enabled = value(rawOscillator.enabled,
+                                               defaultOscillator.enabled ? 1.0f : 0.0f) >= 0.5f;
+            oscillatorSnapshot.voices = static_cast<int>(std::round(value(rawOscillator.voices,
+                                                                          static_cast<float>(defaultOscillator.voices))));
+            oscillatorSnapshot.waveform = static_cast<synth::OscillatorSlotWaveform>(
+                static_cast<int>(std::round(value(rawOscillator.waveform,
+                                                  static_cast<float>(static_cast<int>(
+                                                      defaultOscillator.waveform))))));
+            oscillatorSnapshot.octave = static_cast<int>(std::round(value(rawOscillator.octave,
+                                                                          static_cast<float>(defaultOscillator.octave))));
+            oscillatorSnapshot.note = static_cast<int>(std::round(value(rawOscillator.note,
+                                                                        static_cast<float>(defaultOscillator.note))));
+            oscillatorSnapshot.fineCents = value(rawOscillator.fineCents, defaultOscillator.fineCents);
+            oscillatorSnapshot.level = value(rawOscillator.level, defaultOscillator.level);
+            oscillatorSnapshot.phaseDegrees = value(rawOscillator.phaseDegrees, defaultOscillator.phaseDegrees);
+            oscillatorSnapshot.detune = value(rawOscillator.detune, defaultOscillator.detune);
+            oscillatorSnapshot.stereo = value(rawOscillator.stereo, defaultOscillator.stereo);
+            oscillatorSnapshot.pan = value(rawOscillator.pan, defaultOscillator.pan);
+            oscillatorSnapshot.retrigger = value(rawOscillator.retrigger,
+                                                 defaultOscillator.retrigger ? 1.0f : 0.0f) >= 0.5f;
+            oscillatorSnapshot.invert = value(rawOscillator.invert,
+                                              defaultOscillator.invert ? 1.0f : 0.0f) >= 0.5f;
+        }
+    }
     snapshot.osc.pitchSemitones = value(raw.oscPitchSemitones, 0.0f);
     snapshot.osc.fineCents = value(raw.oscFineCents, 0.0f);
     snapshot.osc.stackCount = static_cast<int>(std::round(value(raw.oscStackCount, 1.0f)));
@@ -562,9 +632,10 @@ void SynthAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
             if (state.isValid())
             {
                 const auto presetName = state.getProperty("current_preset", "Restored State").toString();
+                const auto migratedState = synth::mergeParameterStateWithDefaults(parameters, state);
                 {
                     ScopedParameterStateUpdate update(parameterStateSequence);
-                    parameters.replaceState(state);
+                    parameters.replaceState(migratedState);
                 }
                 setPresetMetadata(presetName, "Host state restored");
                 panicRequested.store(true, std::memory_order_release);

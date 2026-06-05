@@ -62,8 +62,8 @@ The current Program is not release hardening. It is a product expansion Program.
 
 - [x] 2026-06-05 EDT: Committed the Sylenth lab roadmap and local evidence corpus in `075150d`.
 - [x] 2026-06-05 EDT: Created this Program packet for the current Phase 1/2/3 product roadmap.
-- [ ] Execute the Phase 1 engine/state backbone: A/B layers, layer mixer/master, and four oscillator-slot state.
-- [ ] Execute Phase 1 rendering: Layer B, four oscillator slots, per-part filters/envelopes, and migration-compatible presets.
+- [x] 2026-06-05 EDT: Executed the first Phase 1 engine/state backbone: A/B layer state and A1/A2/B1/B2 oscillator-slot state, with Layer A mapped to the current sound path and Layer B disabled by default.
+- [ ] Execute Phase 1 layer rendering: Layer B, four oscillator slots, per-layer mixer/master, per-part filters/envelopes, and migration-compatible presets.
 - [ ] Execute Phase 1 arp/step/chord workflow.
 - [ ] Execute Phase 1 preset browser/bank workflow.
 - [ ] Execute Phase 1 FX rack expansion.
@@ -84,17 +84,20 @@ The current Program is not release hardening. It is a product expansion Program.
 
 Active child ExecPlans:
 
-- `docs/exec-plans/active/2026-06-05-build-sylenth-layer-oscillator-backbone.md`
 - `docs/exec-plans/active/2026-06-05-handoff-modern-sylenth-ui-shell.md`
 - `docs/exec-plans/active/2026-06-05-handoff-modulation-preset-arp-ui-polish.md`
+
+Completed child ExecPlans:
+
+- `docs/exec-plans/completed/2026-06-05-build-sylenth-layer-oscillator-backbone.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
 ## Next Slice
 
-Product-order next slice: `docs/exec-plans/active/2026-06-05-build-sylenth-layer-oscillator-backbone.md`.
+Product-order next slice: `docs/exec-plans/active/2026-06-05-handoff-modern-sylenth-ui-shell.md`.
 
-It is next because every later Phase 1 item depends on stable layer, oscillator-slot, migration, and preset-state contracts. The UI handoff plans are written now but should not be implemented until the relevant state APIs are available.
+It is next because the first layer/oscillator-slot state dependency is now satisfied. The deeper modulation/preset/arp/FX handoff remains blocked until those feature models exist.
 
 ## Risks and Watchpoints
 

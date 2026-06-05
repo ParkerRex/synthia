@@ -208,6 +208,74 @@ bool testEngineProducesAudio()
     return stats.activeVoices == 1 && stats.invalidSamples == 0 && stats.peak > 0.001f;
 }
 
+bool testLayerStateDoesNotAffectCurrentRender()
+{
+    synth::SynthParameters baseParameters;
+    baseParameters.filter.enabled = false;
+    baseParameters.osc.sawLevel = 1.0f;
+    baseParameters.osc.pulseLevel = 0.15f;
+    baseParameters.osc.subLevel = 0.1f;
+    baseParameters.ampEnv.releaseMs = 20.0f;
+
+    auto mutatedLayerParameters = baseParameters;
+    mutatedLayerParameters.layers[0].enabled = false;
+    mutatedLayerParameters.layers[0].solo = true;
+    mutatedLayerParameters.layers[0].mute = true;
+    mutatedLayerParameters.layers[0].levelDb = -48.0f;
+    mutatedLayerParameters.layers[0].oscillators[0].enabled = false;
+    mutatedLayerParameters.layers[0].oscillators[0].voices = 0;
+    mutatedLayerParameters.layers[0].oscillators[0].level = 0.0f;
+    mutatedLayerParameters.layers[0].oscillators[1].enabled = true;
+    mutatedLayerParameters.layers[0].oscillators[1].voices = 8;
+    mutatedLayerParameters.layers[0].oscillators[1].waveform = synth::OscillatorSlotWaveform::Noise;
+    mutatedLayerParameters.layers[0].oscillators[1].level = 1.0f;
+    mutatedLayerParameters.layers[0].oscillators[1].invert = true;
+    mutatedLayerParameters.layers[1].enabled = true;
+    mutatedLayerParameters.layers[1].solo = true;
+    mutatedLayerParameters.layers[1].levelDb = 12.0f;
+    mutatedLayerParameters.layers[1].pan = 1.0f;
+    for (auto& oscillator : mutatedLayerParameters.layers[1].oscillators)
+    {
+        oscillator.enabled = true;
+        oscillator.voices = 8;
+        oscillator.waveform = synth::OscillatorSlotWaveform::Sub;
+        oscillator.octave = -4;
+        oscillator.note = 12;
+        oscillator.fineCents = 100.0f;
+        oscillator.level = 1.0f;
+        oscillator.phaseDegrees = 360.0f;
+        oscillator.detune = 1.0f;
+        oscillator.stereo = 1.0f;
+        oscillator.pan = -1.0f;
+        oscillator.retrigger = false;
+        oscillator.invert = true;
+    }
+
+    synth::SynthEngine baseEngine;
+    synth::SynthEngine mutatedLayerEngine;
+    baseEngine.prepare(48000.0, 1);
+    mutatedLayerEngine.prepare(48000.0, 1);
+    baseEngine.setParameters(baseParameters);
+    mutatedLayerEngine.setParameters(mutatedLayerParameters);
+    baseEngine.noteOn(60, 0.8f);
+    mutatedLayerEngine.noteOn(60, 0.8f);
+
+    for (int i = 0; i < 4096; ++i)
+    {
+        float baseLeft = 0.0f;
+        float baseRight = 0.0f;
+        float mutatedLeft = 0.0f;
+        float mutatedRight = 0.0f;
+        baseEngine.process(&baseLeft, &baseRight, 1);
+        mutatedLayerEngine.process(&mutatedLeft, &mutatedRight, 1);
+
+        if (std::abs(baseLeft - mutatedLeft) > 1.0e-7f || std::abs(baseRight - mutatedRight) > 1.0e-7f)
+            return false;
+    }
+
+    return true;
+}
+
 synth::VoiceSnapshot firstActiveSnapshot(const synth::SynthEngine& engine)
 {
     for (int i = 0; i < 32; ++i)
@@ -995,6 +1063,12 @@ int main()
     if (!testEngineProducesAudio())
     {
         std::cerr << "Engine audio test failed.\n";
+        return 1;
+    }
+
+    if (!testLayerStateDoesNotAffectCurrentRender())
+    {
+        std::cerr << "Layer no-op render test failed.\n";
         return 1;
     }
 

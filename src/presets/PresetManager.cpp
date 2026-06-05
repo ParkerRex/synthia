@@ -64,6 +64,25 @@ float physicalValueFromPresetValue(const ParameterSpec& spec, const juce::var& v
     return spec.defaultValue;
 }
 
+float physicalValueFromStateValue(const ParameterSpec& spec, const juce::var& value)
+{
+    if (!isNumber(value))
+        return spec.kind == ParameterKind::Choice ? static_cast<float>(spec.defaultChoice) : spec.defaultValue;
+
+    const auto numeric = static_cast<float>(static_cast<double>(value));
+    if (!std::isfinite(numeric))
+        return spec.kind == ParameterKind::Choice ? static_cast<float>(spec.defaultChoice) : spec.defaultValue;
+
+    if (spec.kind == ParameterKind::Bool)
+        return numeric >= 0.5f ? 1.0f : 0.0f;
+
+    if (spec.kind == ParameterKind::Choice)
+        return static_cast<float>(std::clamp(static_cast<int>(std::round(numeric)), 0,
+                                             static_cast<int>(spec.choices.size()) - 1));
+
+    return std::clamp(numeric, spec.minimum, spec.maximum);
+}
+
 juce::var valueForPreset(const ParameterSpec& spec, const juce::RangedAudioParameter& parameter)
 {
     const auto physical = parameter.convertFrom0to1(parameter.getValue());
@@ -118,6 +137,25 @@ void applyPresetParameter(juce::ValueTree& state,
         return;
 
     setParameterValue(state, *spec, physicalValueFromPresetValue(*spec, value));
+}
+
+void overlayParameterStateChild(juce::ValueTree& state, const juce::ValueTree& child)
+{
+    if (!child.hasType("PARAM"))
+    {
+        state.appendChild(child.createCopy(), nullptr);
+        return;
+    }
+
+    const auto id = child.getProperty("id").toString().toStdString();
+    const auto* spec = findParameterSpec(id);
+    if (spec == nullptr)
+    {
+        state.appendChild(child.createCopy(), nullptr);
+        return;
+    }
+
+    setParameterValue(state, *spec, physicalValueFromStateValue(*spec, child.getProperty("value")));
 }
 
 void applyModSlotDepth(juce::ValueTree& state,
@@ -518,6 +556,19 @@ PresetLoadResult preparePresetState(juce::AudioProcessorValueTreeState& paramete
     return result;
 }
 
+juce::ValueTree mergeParameterStateWithDefaults(juce::AudioProcessorValueTreeState& parameters,
+                                                const juce::ValueTree& overrideState)
+{
+    auto state = parameters.copyState();
+    resetStateToDefaults(state);
+    state.copyPropertiesFrom(overrideState, nullptr);
+
+    for (const auto& child : overrideState)
+        overlayParameterStateChild(state, child);
+
+    return state;
+}
+
 PresetLoadResult loadPresetIntoState(juce::AudioProcessorValueTreeState& parameters,
                                      const std::filesystem::path& path)
 {
@@ -557,7 +608,7 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
     root->setProperty("macros", currentMacroArray(parameters));
 
     auto metadata = std::make_unique<juce::DynamicObject>();
-    metadata->setProperty("clean_room", true);
+    metadata->setProperty("program", "sylenth_lab_rebuild");
     root->setProperty("metadata", juce::var(metadata.release()));
 
     const auto file = juce::File(juce::String(destination.string()));

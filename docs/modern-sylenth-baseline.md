@@ -1,6 +1,6 @@
 # Modern Sylenth Baseline
 
-Status: baseline plan, no implementation.
+Status: baseline plan with Phase 1 layer/oscillator-slot state backbone implemented.
 
 Purpose: define the lab roadmap for rebuilding Sylenth as a modern virtual analog instrument first, then extending it with AI-assisted sound/arpeggio creation and conversational VST control.
 
@@ -29,7 +29,7 @@ Purpose: define the lab roadmap for rebuilding Sylenth as a modern virtual analo
 
 - `[Observed]` Synth builds a JUCE/CMake instrument with AU, VST3, and Standalone targets, MIDI input enabled, bundled factory preset resources, and product metadata in `CMakeLists.txt`.
 - `[Observed]` The current engine is a single-core subtractive pluck architecture: one oscillator stack, one nonlinear multimode filter, one amp envelope, one mod envelope, one LFO, one ramp, direct modulation, eight TransMod-style slots, macros, performance sources, amp drive/stereo spread, and post-voice FX.
-- `[Observed]` The parameter registry reports 156 parameters from `./build-release/SynthRender --list-parameters --output /tmp/synth-modern-sylenth/parameters.json`.
+- `[Observed]` The parameter registry reports 218 parameters from `./build/SynthRender --list-parameters --output build/reports/parameters.json`.
 - `[Observed]` Current oscillator features include stack count 1-5, stack detune, saw, pulse, noise, sub oscillator with wave and octave, hard sync amount, pulse width, sub pulse width, pitch/fine tuning, and phase reset modes.
 - `[Observed]` Current filter features include enable/bypass, L2/L4/B2/B4/H2/H4/Peak2/Notch2/Notch4 modes, semitone cutoff, resonance, drive, keytrack, and oversampling.
 - `[Observed]` Current FX include global FX bypass, saturation, tempo-synced delay, simple reverb, chorus, realtime/offline quality modes, FX bypass equivalence validation, delay timing proof, wet/dry proof, and FX tail reporting.
@@ -64,7 +64,7 @@ Purpose: define the lab roadmap for rebuilding Sylenth as a modern virtual analo
 
 | Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
 |---|---|---|---|---|---|---|---|---|---|
-| C. Part A/B model | [Observed] Sylenth1 has Part A and Part B; each part contains two oscillators and a filter, only one part is shown at a time. | [Observed] Synth has one oscillator stack, one filter, and one amp path. | [Observed] No literal two-part/four-osc architecture. | [Inferred] Add as a Phase 1 architecture milestone through a generic Layer model; map Layer A to current core first, then add Layer B. | [Inferred] UI may show Layer A now and should expose Layer B only after state and DSP paths exist. | [Inferred] First isolate current core as `LayerVoiceCore` or equivalent before duplicating it. | [Inferred] Add namespaced layer fields with migration; do not alias old parameters ambiguously. | [Inferred] Regression tests must prove old presets sound equivalent after migration. | P0 |
+| C. Part A/B model | [Observed] Sylenth1 has Part A and Part B; each part contains two oscillators and a filter, only one part is shown at a time. | [Observed] Synth now has APVTS/preset state for Layer A and Layer B, but audio rendering still uses one oscillator stack, one filter, and one amp path. | [Observed] Layer B rendering, dual filters, and layer mixer are still missing. | [Inferred] Use the delivered generic Layer model as the Phase 1 migration anchor; keep Layer A mapped to the current core until Layer B rendering lands. | [Inferred] UI may now bind to real layer state, but must not imply Layer B audio rendering is complete. | [Inferred] Next isolate current core as `LayerVoiceCore` or equivalent before duplicating it. | [Observed] Namespaced `layer.*` fields exist; old flat IDs remain host-stable for current rendering. | [Observed] Regression tests now prove old presets load with layer defaults; future render tests must prove Layer B equivalence and mix behavior. | P0 |
 | C. Part select and solo | [Observed] Sylenth1 top bar has Part Select and Solo for the selected part. | [Observed] Synth has no part/layer select or solo. | [Observed] Missing. | [Inferred] Add during the Phase 1 layer milestone. | [Inferred] Layer tabs show active state, solo, mute, copy, and cost. | [Inferred] Solo/mute must not destroy held voice state unexpectedly. | [Inferred] Solo/mute are preset-serialized if they are patch design state. | [Inferred] Unit and render test for layer mute/solo and preset restore. | P1 |
 | C. Cross-routing and global filter control | [Observed] Sylenth1 can route oscillator outputs across filters and has global filter cutoff/resonance controls affecting both filters. | [Observed] Synth has one filter and no cross-routing. | [Observed] Missing dual-filter workflow. | [Inferred] Defer cross-routing; Add global layer filter macro only after two layers exist. | [Inferred] UI should avoid showing fake cross-routing while engine is single-core. | [Inferred] True cross-routing is a significant engine graph change and must be planned separately. | [Inferred] Preset schema needs explicit routing enum, not loose booleans. | [Inferred] Render fixture proves routing and no phase/level regressions. | P2 |
 | C. Mixer and master FX | [Observed] Sylenth1 mixes Part A/B before master FX; master volume is after FX. | [Observed] Synth sums voices into post-voice FX and output level in amp stage. | [Observed] No Part A/B mixer or master volume separate from amp level. | [Inferred] Add with the Phase 1 layer milestone; keep current FX after voice sum until the layer mixer exists. | [Inferred] Main page shows Layer A, Layer B, and Master once implemented. | [Inferred] Maintain post-mix FX and tail reporting. | [Inferred] Mixer levels must serialize per layer and master. | [Inferred] Layer mixer render and tail-length tests. | P1 |
@@ -73,7 +73,7 @@ Purpose: define the lab roadmap for rebuilding Sylenth as a modern virtual analo
 
 | Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
 |---|---|---|---|---|---|---|---|---|---|
-| D. Four oscillator slots A1/A2/B1/B2 | [Observed] Sylenth1 core has four alias-free unison oscillators, two per part. | [Observed] Synth has one oscillator stack with saw/pulse/noise/sub mixed inside one voice. | [Observed] Missing separate oscillator slots, per-slot on/off, per-slot waveform, per-slot pan/phase/invert/copy. | [Inferred] Add as a Phase 1 rebuild milestone after layer namespacing; do not fake four slots before DSP/state support exists. | [Inferred] Current UI should label the current block as `Core Oscillator` or `Layer A Oscillator`; Phase 1 UI should expose real A1/A2/B1/B2 when implemented. | [Observed] Current stack is validated and can serve as the per-slot oscillator implementation foundation. | [Inferred] Future slots require stable namespaced IDs such as `layer.1.osc.1.*`. | [Inferred] Migration and oscillator render tests before exposing four slots. | P1 |
+| D. Four oscillator slots A1/A2/B1/B2 | [Observed] Sylenth1 core has four alias-free unison oscillators, two per part. | [Observed] Synth now has state for A1/A2/B1/B2 through `layer.N.osc.M.*`, while the current audio still renders one oscillator stack with saw/pulse/noise/sub mixed inside one voice. | [Observed] Separate per-slot audio rendering, copy/paste, and waveform previews are still missing. | [Inferred] Use the delivered slot state for UI handoff and preset migration; implement per-slot DSP in the next engine slice. | [Inferred] Current UI can expose real A1/A2/B1/B2 state if it clearly reflects the implemented render boundary. | [Observed] Current stack is validated and can serve as the per-slot oscillator implementation foundation. | [Observed] Stable namespaced IDs such as `layer.1.osc.1.*` now exist. | [Observed] Registry/preset tests cover slot defaults and serialization; future oscillator render tests must cover independent slots. | P1 |
 | D. Oscillator voices and unison | [Observed] Each Sylenth oscillator can use 0-8 unison voices; 0 disables the oscillator. | [Observed] Synth has global `voice.unison_count` 1-8 and oscillator `stack_count` 1-5. | [Observed] No per-oscillator unison count or 0-off oscillator slot. | [Inferred] Keep current note unison and stack for P0; Add per-slot voices only with layer/slot engine. | [Inferred] Show voice math clearly to avoid confusing unison with stack. | [Observed] Current voice allocator and stack detune are tested. | [Inferred] Future per-slot voice count changes preset voice math. | [Observed] Existing oscillator/voice tests; add slot-cost tests when implemented. | P1 |
 | D. Waveform, tuning, volume, phase, detune, stereo, pan, retrigger, invert | [Observed] Sylenth oscillator panel exposes waveform, octave/note/fine, volume, phase, detune, stereo, pan, retrigger, invert, copy/paste. | [Observed] Synth exposes pitch/fine, stack detune, saw/pulse/noise/sub levels, pulse width, phase reset, sync amount, pan/spread at amp stage. | [Observed] Missing per-slot octave/note split, oscillator-level pan/stereo, invert, copy/paste, waveform preview, and cost display. | [Inferred] Upgrade current oscillator UI first; Add per-slot controls later. | [Inferred] Add compact waveform preview, copy/paste for current oscillator block, and cost label. | [Inferred] Invert can be cheap for current oscillator output; per-slot pan/stereo waits for slots. | [Inferred] Copy/paste block state must include oscillator parameters only. | [Inferred] Oscillator unit tests for invert and preset copy/paste state if added. | P1 |
 | D. Current oscillator stack strengths | [Observed] Sylenth has analog-shaped waveforms and unison detune/spread. | [Observed] Synth has polyBLEP saw/pulse, deterministic noise, sub waves, hard sync, stack detune symmetry, and gain compensation. | [Inferred] Current core is closer to a compact supersaw/subtractive block than to four independent oscillators. | [Inferred] Keep as sound foundation. | [Inferred] UI should make stack, detune, sync, pulse width, sub, and noise fast to reach. | [Observed] No allocation needed in oscillator sample render. | [Observed] Preset schema serializes existing oscillator IDs. | [Observed] Existing oscillator tests cover tuning, pulse duty, sub octave, deterministic noise, stack detune, and hard sync. | P0 |
@@ -196,11 +196,11 @@ Tradeoff:
 
 Architecture path:
 
-1. `[Inferred]` P0: preserve current engine and UI label it honestly as the core/layer A sound path.
-2. `[Inferred]` P0: design parameter/state namespaces for future layers before adding many one-off controls.
-3. `[Inferred]` P1: wrap current voice path in a layer object and migrate old IDs into `layer.1` state while keeping host automation compatibility.
+1. `[Observed]` P0: current engine remains the audio path and now has Layer A-compatible state defaults.
+2. `[Observed]` P0: `layer.*` and `layer.N.osc.M.*` parameter/state namespaces exist before broad UI polish.
+3. `[Inferred]` P1: wrap current voice rendering in a layer-render object while keeping old host automation IDs stable.
 4. `[Inferred]` P1/P2: add Layer B and layer mixer only after migration, route model, and validation are ready.
-5. `[Inferred]` P2: add the four-slot oscillator model or a proven equivalent only if it still lets users recreate Sylenth-style patches quickly and predictably.
+5. `[Inferred]` P2: render the four-slot oscillator model or a proven equivalent only if it still lets users recreate Sylenth-style patches quickly and predictably.
 
 ## P0 / P1 / P2 Build Backlog
 
@@ -208,8 +208,8 @@ Architecture path:
 
 - `[Inferred]` Approve this baseline and architecture decision.
 - `[Inferred]` Treat Phase 1 Sylenth rebuild as the product baseline; the current Strobe-like pluck core is scaffolding, not the final goal.
-- `[Inferred]` Create ExecPlan: Phase 1 Sylenth architecture: A/B layers, layer select/solo, layer mixer, master output, and four oscillator-slot state model.
-- `[Inferred]` Create ExecPlan: parameter inventory expansion and future layer namespace, without breaking existing IDs.
+- `[Observed]` Phase 1 A/B layer and four oscillator-slot state contracts exist in APVTS, presets, and validation.
+- `[Inferred]` Create ExecPlan: Layer B/four-slot rendering, layer mixer, master output, and per-layer filter behavior.
 - `[Inferred]` Create ExecPlan: UI information architecture and reusable visual control system: meter, compact controls, graph panels, source tiles, drawer framework, context menus.
 - `[Inferred]` Create ExecPlan: modulation visual layer: source tiles, drag/drop, halos, hover inspector, context menus, matrix sync, route serialization/migration.
 - `[Inferred]` Create ExecPlan: preset browser upgrade: search, tags, favorites, author, notes, prev/next, dirty state, init, randomize, reset, safe overwrite.
@@ -223,7 +223,7 @@ Architecture path:
 - `[Inferred]` Add filter response graph and modulation overlays.
 - `[Inferred]` Add voice math and patch cost estimator in header.
 - `[Inferred]` Add MIDI learn/forget and persistent map design.
-- `[Inferred]` Implement the generic Layer abstraction and Layer A/B rendering path while preserving existing presets.
+- `[Inferred]` Implement the generic layer rendering path and Layer B audio while preserving existing presets.
 - `[Inferred]` Expand modulation destination catalog beyond current TransMod destinations.
 
 ### P2
@@ -256,12 +256,12 @@ Architecture path:
 - `[Inferred]` `tests/smoke/*`: focused C++ regression coverage for each feature slice.
 - `[Inferred]` `presets/factory/*.json` and `fixtures/**/*.json`: migrated schema fixtures and factory preset updates.
 
-## New Parameters Likely Needed
+## Parameter Roadmap
 
-Do not add all of these at once. `[Inferred]` Add only when an ExecPlan owns the behavior and validation.
+Do not add all future parameters at once. `[Inferred]` Add only when an ExecPlan owns the behavior and validation.
 
-- `[Inferred]` Layer namespace: `layer.1.enabled`, `layer.1.name`, `layer.1.level_db`, `layer.1.pan`, `layer.1.solo`, `layer.1.mute`; future `layer.2.*`.
-- `[Inferred]` Future oscillator slots: `layer.1.osc.1.enabled`, `layer.1.osc.1.voices`, `layer.1.osc.1.waveform`, `layer.1.osc.1.octave`, `layer.1.osc.1.note`, `layer.1.osc.1.fine_cents`, `layer.1.osc.1.level`, `layer.1.osc.1.phase_degrees`, `layer.1.osc.1.detune`, `layer.1.osc.1.spread`, `layer.1.osc.1.pan`, `layer.1.osc.1.retrigger`, `layer.1.osc.1.invert`.
+- `[Observed]` Layer namespace: `layer.1.enabled`, `layer.1.level_db`, `layer.1.pan`, `layer.1.solo`, `layer.1.mute`, and matching `layer.2.*`. Layer display names are not automatable parameters and should live in preset metadata or UI-local state if added.
+- `[Observed]` Oscillator-slot namespace: `layer.N.osc.M.enabled`, `voices`, `waveform`, `octave`, `note`, `fine_cents`, `level`, `phase_degrees`, `detune`, `stereo`, `pan`, `retrigger`, and `invert`.
 - `[Inferred]` LFO migration/addition: `lfo.1.*` aliases for current IDs, `lfo.2.shape`, `lfo.2.rate_mode`, `lfo.2.rate_hz`, `lfo.2.sync_division`, `lfo.2.phase_degrees`, `lfo.2.gate_mode`, `lfo.2.mono`, `lfo.2.gain`, `lfo.2.offset`, `lfo.2.delay_ms`, `lfo.2.rise_ms`, `lfo.2.smooth`.
 - `[Inferred]` Mod route model: `mod_route.N.enabled`, `mod_route.N.source`, `mod_route.N.destination`, `mod_route.N.amount`, `mod_route.N.polarity`, `mod_route.N.curve`, `mod_route.N.scaler`, `mod_route.N.bypassed`.
 - `[Inferred]` Arp: `arp.enabled`, `arp.mode`, `arp.rate_mode`, `arp.sync_division`, `arp.gate`, `arp.octaves`, `arp.wrap`, `arp.velocity_mode`, `arp.swing`, `arp.step_count`, `arp.step.N.pitch`, `arp.step.N.velocity`, `arp.step.N.tie`, `arp.step.N.enabled`.

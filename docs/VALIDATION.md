@@ -32,9 +32,11 @@ The current smoke render is intentionally note-less and proves initialization, f
 
 The current contract validation proves:
 
-- 156 unique parameter IDs,
+- 218 unique parameter IDs,
 - valid defaults and ranges,
 - APVTS state round-trip,
+- old host-state default merge for new layer and oscillator-slot fields,
+- layer and oscillator-slot defaults, legacy preset defaulting, saved preset serialization, and current-render no-op behavior,
 - two factory preset JSON files,
 - no unknown preset parameter IDs,
 - TransMod slot objects use valid slot IDs, source/scaler choices, depth domains, and destination IDs.

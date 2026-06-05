@@ -90,6 +90,14 @@ enum class DelaySyncDivision
     Half = 4
 };
 
+enum class OscillatorSlotWaveform
+{
+    Saw = 0,
+    Pulse = 1,
+    Noise = 2,
+    Sub = 3
+};
+
 enum class ModSource
 {
     None = 0,
@@ -115,6 +123,8 @@ enum class ModSource
 };
 
 inline constexpr int transModSlotCount = 8;
+inline constexpr int layerCount = 2;
+inline constexpr int oscillatorSlotsPerLayer = 2;
 
 struct EnvelopeParameters
 {
@@ -140,6 +150,33 @@ struct OscillatorParameters
     float subPulseWidth = 0.5f;
     float syncAmount = 0.0f;
     int phaseReset = 0;
+};
+
+struct LayerOscillatorParameters
+{
+    bool enabled = false;
+    int voices = 0;
+    OscillatorSlotWaveform waveform = OscillatorSlotWaveform::Saw;
+    int octave = 0;
+    int note = 0;
+    float fineCents = 0.0f;
+    float level = 0.0f;
+    float phaseDegrees = 0.0f;
+    float detune = 0.0f;
+    float stereo = 0.0f;
+    float pan = 0.0f;
+    bool retrigger = true;
+    bool invert = false;
+};
+
+struct LayerParameters
+{
+    bool enabled = false;
+    float levelDb = 0.0f;
+    float pan = 0.0f;
+    bool solo = false;
+    bool mute = false;
+    std::array<LayerOscillatorParameters, oscillatorSlotsPerLayer> oscillators {};
 };
 
 struct FilterParameters
@@ -264,6 +301,34 @@ struct SynthParameters
     bool retrigger = true;
     float glideMs = 0.0f;
     float velocityGlideMs = 0.0f;
+    std::array<LayerParameters, layerCount> layers {
+        LayerParameters {
+            true,
+            0.0f,
+            0.0f,
+            false,
+            false,
+            std::array<LayerOscillatorParameters, oscillatorSlotsPerLayer> {
+                LayerOscillatorParameters {
+                    true,
+                    1,
+                    OscillatorSlotWaveform::Saw,
+                    0,
+                    0,
+                    0.0f,
+                    1.0f,
+                    0.0f,
+                    0.0f,
+                    0.0f,
+                    0.0f,
+                    true,
+                    false
+                },
+                LayerOscillatorParameters {}
+            }
+        },
+        LayerParameters {}
+    };
     OscillatorParameters osc;
     FilterParameters filter;
     AmpParameters amp;
@@ -293,6 +358,39 @@ inline float decibelsToGain(float db) noexcept
 inline float midiNoteToHz(float midiNote) noexcept
 {
     return 440.0f * std::pow(2.0f, (midiNote - 69.0f) / 12.0f);
+}
+
+inline int oscillatorSlotVoiceCost(const LayerOscillatorParameters& oscillator) noexcept
+{
+    return oscillator.enabled ? std::clamp(oscillator.voices, 0, 8) : 0;
+}
+
+inline int layerVoiceCost(const LayerParameters& layer) noexcept
+{
+    if (!layer.enabled || layer.mute)
+        return 0;
+
+    auto voices = 0;
+    for (const auto& oscillator : layer.oscillators)
+        voices += oscillatorSlotVoiceCost(oscillator);
+
+    return voices;
+}
+
+inline int layerOscillatorVoiceCost(const SynthParameters& parameters) noexcept
+{
+    auto hasSolo = false;
+    for (const auto& layer : parameters.layers)
+        hasSolo = hasSolo || (layer.enabled && layer.solo);
+
+    auto voices = 0;
+    for (const auto& layer : parameters.layers)
+    {
+        if (!hasSolo || layer.solo)
+            voices += layerVoiceCost(layer);
+    }
+
+    return voices;
 }
 
 inline float semitonesToHz(float semitonesFromMidiZero) noexcept

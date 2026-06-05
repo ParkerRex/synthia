@@ -34,6 +34,9 @@ std::string presetIdFromDisplayName(const std::string& displayName);
 PresetLoadResult preparePresetState(juce::AudioProcessorValueTreeState& parameters,
                                     const std::filesystem::path& path);
 
+juce::ValueTree mergeParameterStateWithDefaults(juce::AudioProcessorValueTreeState& parameters,
+                                                const juce::ValueTree& overrideState);
+
 PresetLoadResult loadPresetIntoState(juce::AudioProcessorValueTreeState& parameters,
                                      const std::filesystem::path& path);
 

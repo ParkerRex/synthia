@@ -84,6 +84,33 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
     parameters.unisonCount = std::clamp(parameters.unisonCount, 1, 8);
     parameters.glideMs = std::clamp(finiteOr(parameters.glideMs, defaults.glideMs), 0.0f, 2000.0f);
     parameters.velocityGlideMs = std::clamp(finiteOr(parameters.velocityGlideMs, defaults.velocityGlideMs), 0.0f, 2000.0f);
+    for (std::size_t layerIndex = 0; layerIndex < parameters.layers.size(); ++layerIndex)
+    {
+        auto& layer = parameters.layers[layerIndex];
+        const auto& defaultLayer = defaults.layers[layerIndex];
+        layer.levelDb = std::clamp(finiteOr(layer.levelDb, defaultLayer.levelDb), -48.0f, 12.0f);
+        layer.pan = std::clamp(finiteOr(layer.pan, defaultLayer.pan), -1.0f, 1.0f);
+
+        for (std::size_t oscillatorIndex = 0; oscillatorIndex < layer.oscillators.size(); ++oscillatorIndex)
+        {
+            auto& oscillator = layer.oscillators[oscillatorIndex];
+            const auto& defaultOscillator = defaultLayer.oscillators[oscillatorIndex];
+            oscillator.voices = std::clamp(oscillator.voices, 0, 8);
+            oscillator.waveform = static_cast<OscillatorSlotWaveform>(
+                std::clamp(static_cast<int>(oscillator.waveform), 0, 3));
+            oscillator.octave = std::clamp(oscillator.octave, -4, 4);
+            oscillator.note = std::clamp(oscillator.note, -12, 12);
+            oscillator.fineCents = std::clamp(finiteOr(oscillator.fineCents, defaultOscillator.fineCents),
+                                              -100.0f, 100.0f);
+            oscillator.level = std::clamp(finiteOr(oscillator.level, defaultOscillator.level), 0.0f, 1.0f);
+            oscillator.phaseDegrees = std::clamp(finiteOr(oscillator.phaseDegrees,
+                                                          defaultOscillator.phaseDegrees),
+                                                 0.0f, 360.0f);
+            oscillator.detune = std::clamp(finiteOr(oscillator.detune, defaultOscillator.detune), 0.0f, 1.0f);
+            oscillator.stereo = std::clamp(finiteOr(oscillator.stereo, defaultOscillator.stereo), 0.0f, 1.0f);
+            oscillator.pan = std::clamp(finiteOr(oscillator.pan, defaultOscillator.pan), -1.0f, 1.0f);
+        }
+    }
     parameters.osc.pitchSemitones = std::clamp(finiteOr(parameters.osc.pitchSemitones, defaults.osc.pitchSemitones), -48.0f, 48.0f);
     parameters.osc.fineCents = std::clamp(finiteOr(parameters.osc.fineCents, defaults.osc.fineCents), -100.0f, 100.0f);
     parameters.osc.stackCount = std::clamp(parameters.osc.stackCount, 1, 5);

@@ -865,6 +865,53 @@ void applyPresetValue(synth::SynthParameters& parameters, const std::string& id,
     else if (id == "macro.width") parameters.macro.width = numeric;
     else if (id == "macro.drive") parameters.macro.drive = numeric;
     else if (id == "macro.space") parameters.macro.space = numeric;
+    else if (id.starts_with("layer."))
+    {
+        const auto layerStart = std::string("layer.").size();
+        const auto layerEnd = id.find('.', layerStart);
+        if (layerEnd == std::string::npos)
+            return;
+
+        const auto layerNumber = std::stoi(id.substr(layerStart, layerEnd - layerStart));
+        if (layerNumber < 1 || layerNumber > synth::layerCount)
+            return;
+
+        auto& layer = parameters.layers[static_cast<std::size_t>(layerNumber - 1)];
+        const auto field = id.substr(layerEnd + 1);
+        if (field == "enabled") layer.enabled = numeric >= 0.5f;
+        else if (field == "level_db") layer.levelDb = numeric;
+        else if (field == "pan") layer.pan = numeric;
+        else if (field == "solo") layer.solo = numeric >= 0.5f;
+        else if (field == "mute") layer.mute = numeric >= 0.5f;
+        else if (field.starts_with("osc."))
+        {
+            const auto oscillatorStart = std::string("osc.").size();
+            const auto oscillatorEnd = field.find('.', oscillatorStart);
+            if (oscillatorEnd == std::string::npos)
+                return;
+
+            const auto oscillatorNumber = std::stoi(field.substr(oscillatorStart,
+                                                                 oscillatorEnd - oscillatorStart));
+            if (oscillatorNumber < 1 || oscillatorNumber > synth::oscillatorSlotsPerLayer)
+                return;
+
+            auto& oscillator = layer.oscillators[static_cast<std::size_t>(oscillatorNumber - 1)];
+            const auto oscillatorField = field.substr(oscillatorEnd + 1);
+            if (oscillatorField == "enabled") oscillator.enabled = numeric >= 0.5f;
+            else if (oscillatorField == "voices") oscillator.voices = static_cast<int>(std::round(numeric));
+            else if (oscillatorField == "waveform") oscillator.waveform = static_cast<synth::OscillatorSlotWaveform>(choice);
+            else if (oscillatorField == "octave") oscillator.octave = static_cast<int>(std::round(numeric));
+            else if (oscillatorField == "note") oscillator.note = static_cast<int>(std::round(numeric));
+            else if (oscillatorField == "fine_cents") oscillator.fineCents = numeric;
+            else if (oscillatorField == "level") oscillator.level = numeric;
+            else if (oscillatorField == "phase_degrees") oscillator.phaseDegrees = numeric;
+            else if (oscillatorField == "detune") oscillator.detune = numeric;
+            else if (oscillatorField == "stereo") oscillator.stereo = numeric;
+            else if (oscillatorField == "pan") oscillator.pan = numeric;
+            else if (oscillatorField == "retrigger") oscillator.retrigger = numeric >= 0.5f;
+            else if (oscillatorField == "invert") oscillator.invert = numeric >= 0.5f;
+        }
+    }
     else if (id.starts_with("transmod."))
     {
         const auto slotStart = std::string("transmod.").size();

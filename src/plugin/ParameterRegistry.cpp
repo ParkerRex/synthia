@@ -1,5 +1,7 @@
 #include "ParameterRegistry.h"
 
+#include "../dsp/SynthParameters.h"
+
 #include <algorithm>
 #include <set>
 
@@ -161,6 +163,57 @@ std::vector<ParameterSpec> buildSpecs()
         floatParam("macro.drive", "Drive", "macro", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
         floatParam("macro.space", "Space", "macro", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
     };
+
+    const std::vector<std::string> oscillatorWaveforms { "Saw", "Pulse", "Noise", "Sub" };
+    for (int layer = 1; layer <= layerCount; ++layer)
+    {
+        const auto layerPrefix = "layer." + std::to_string(layer) + ".";
+        const auto layerLetter = std::string(1, static_cast<char>('A' + layer - 1));
+        const auto layerName = "Layer " + layerLetter;
+        const auto layerEnabled = layer == 1;
+        specs.push_back(boolParam(layerPrefix + "enabled", layerName + " Enabled", "layer", layerEnabled));
+        specs.push_back(floatParam(layerPrefix + "level_db", layerName + " Level", "layer", "dB",
+                                   -48.0f, 12.0f, 0.0f, 0.01f, 1.0f, 5.0f));
+        specs.push_back(floatParam(layerPrefix + "pan", layerName + " Pan", "layer", "normalized",
+                                   -1.0f, 1.0f, 0.0f, 0.0001f, 1.0f, 5.0f));
+        specs.push_back(boolParam(layerPrefix + "solo", layerName + " Solo", "layer", false));
+        specs.push_back(boolParam(layerPrefix + "mute", layerName + " Mute", "layer", false));
+
+        for (int oscillator = 1; oscillator <= oscillatorSlotsPerLayer; ++oscillator)
+        {
+            const auto oscillatorPrefix = layerPrefix + "osc." + std::to_string(oscillator) + ".";
+            const auto oscillatorName = layerName + " Osc " + std::to_string(oscillator);
+            const auto primaryLayerAOscillator = layer == 1 && oscillator == 1;
+            specs.push_back(boolParam(oscillatorPrefix + "enabled", oscillatorName + " Enabled",
+                                      "layer_osc", primaryLayerAOscillator));
+            specs.push_back(floatParam(oscillatorPrefix + "voices", oscillatorName + " Voices",
+                                       "layer_osc", "voices", 0.0f, 8.0f,
+                                       primaryLayerAOscillator ? 1.0f : 0.0f, 1.0f));
+            specs.push_back(choiceParam(oscillatorPrefix + "waveform", oscillatorName + " Waveform",
+                                        "layer_osc", oscillatorWaveforms, 0));
+            specs.push_back(floatParam(oscillatorPrefix + "octave", oscillatorName + " Octave",
+                                       "layer_osc", "octaves", -4.0f, 4.0f, 0.0f, 1.0f));
+            specs.push_back(floatParam(oscillatorPrefix + "note", oscillatorName + " Note",
+                                       "layer_osc", "semitones", -12.0f, 12.0f, 0.0f, 1.0f));
+            specs.push_back(floatParam(oscillatorPrefix + "fine_cents", oscillatorName + " Fine",
+                                       "layer_osc", "cents", -100.0f, 100.0f, 0.0f, 0.01f, 1.0f, 5.0f));
+            specs.push_back(floatParam(oscillatorPrefix + "level", oscillatorName + " Level",
+                                       "layer_osc", "normalized", 0.0f, 1.0f,
+                                       primaryLayerAOscillator ? 1.0f : 0.0f, 0.0001f, 1.0f, 5.0f));
+            specs.push_back(floatParam(oscillatorPrefix + "phase_degrees", oscillatorName + " Phase",
+                                       "layer_osc", "degrees", 0.0f, 360.0f, 0.0f, 0.01f));
+            specs.push_back(floatParam(oscillatorPrefix + "detune", oscillatorName + " Detune",
+                                       "layer_osc", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f, 0.5f, 10.0f));
+            specs.push_back(floatParam(oscillatorPrefix + "stereo", oscillatorName + " Stereo",
+                                       "layer_osc", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f, 1.0f, 5.0f));
+            specs.push_back(floatParam(oscillatorPrefix + "pan", oscillatorName + " Pan",
+                                       "layer_osc", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f, 1.0f, 5.0f));
+            specs.push_back(boolParam(oscillatorPrefix + "retrigger", oscillatorName + " Retrigger",
+                                      "layer_osc", true));
+            specs.push_back(boolParam(oscillatorPrefix + "invert", oscillatorName + " Invert",
+                                      "layer_osc", false));
+        }
+    }
 
     const auto sources = sourceChoices();
     for (int slot = 1; slot <= 8; ++slot)
