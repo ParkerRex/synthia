@@ -98,7 +98,7 @@ git clone https://github.com/ParkerRex/synth.git
 cd synth
 ```
 
-Configure, build, and run the local validation suite:
+Build and validate locally:
 
 ```bash
 cmake -S . -B build -DSYNTH_ENABLE_TESTS=ON
@@ -108,22 +108,54 @@ ctest --test-dir build --output-on-failure
 scripts/check-plugin-bundles.sh build
 ```
 
-Install the locally built plug-ins for Ableton:
+Install the locally built AU and VST3 into the per-user macOS plug-in folders:
 
 ```bash
 scripts/install-local-plugins.sh build
 ```
 
-Ableton validation checklist:
+Open the Ableton smoke template and record the environment before testing:
+
+```bash
+open docs/host-validation/ableton-smoke.md
+```
+
+Fill in:
+
+- date,
+- machine,
+- macOS version,
+- Ableton version,
+- repo commit from `git rev-parse --short HEAD`,
+- build directory, usually `build`,
+- sample rate,
+- buffer size,
+- plugin format tested: AU, VST3, or both.
+
+In Ableton:
 
 - Enable Audio Units and VST3 in Ableton's Plug-Ins settings.
-- Rescan plug-ins after each local install.
-- Load the AU and VST3 builds on separate MIDI tracks.
-- Play the `fixtures/midi/overlap-pluck.mid` phrase or an equivalent overlapping-note pluck pattern.
-- Save, close, reopen, and confirm state restore.
-- Check mono, mono-legato, poly, unison, glide, velocity glide, ramp, and TransMod behavior against the standalone render reports.
-- Record any host-specific failure with the Ableton version, macOS version, plug-in format, sample rate, buffer size, and exact preset/state.
-- Use `docs/host-validation/ableton-smoke.md` as the smoke-note template when recording reusable evidence.
+- Rescan plug-ins after running `scripts/install-local-plugins.sh build`.
+- Confirm `Synth` appears in the AU plug-in list.
+- Confirm `Synth` appears in the VST3 plug-in list.
+- Load the AU build on a MIDI track.
+- Load the VST3 build on a separate MIDI track.
+- Play `fixtures/midi/overlap-pluck.mid` or an equivalent overlapping-note pluck pattern.
+- Confirm both formats produce finite audible output.
+- Exercise mono, mono-legato, poly, unison, glide, velocity glide, ramp, and TransMod behavior.
+- Record and replay one parameter automation lane.
+- Save the Live set, close Ableton, reopen it, and confirm state restore.
+- Export a short bounce if playback and restore pass.
+
+If something fails, write it into `docs/host-validation/ableton-smoke.md` with:
+
+- plugin format,
+- exact step,
+- expected result,
+- actual result,
+- whether it reproduces,
+- Ableton log path or relevant message,
+- linked fix commit once fixed.
 
 ## Repository Map
 
