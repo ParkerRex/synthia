@@ -64,7 +64,7 @@ This slice intentionally produces silence. The next slice should replace the pla
 
 ## Context and Orientation
 
-The repo root is `/Users/bazelrex/Developer/synth`. `SPEC.md` requires AU, VST3, and standalone targets. `docs/ARCHITECTURE.md` defines the planned source layout. `docs/CLEAN_ROOM.md` forbids copied third-party code, presets, UI, and binary behavior.
+The repo root is `/Users/bazelrex/Developer/synth`. `SPEC.md` requires AU, VST3, and standalone targets. `docs/ARCHITECTURE.md` defines the planned source layout. `SPEC.md` defines third-party code, preset, UI, and binary-behavior boundaries.
 
 Create a JUCE/CMake project that can build without relying on Projucer. The implementation may use a git submodule, vendored JUCE checkout, system package, or `FetchContent`, but it must document the chosen dependency path in `README.md`. If the network or JUCE license posture blocks an approach, stop and record the blocker rather than substituting another framework silently.
 

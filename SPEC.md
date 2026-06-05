@@ -1,8 +1,8 @@
-# Synth Clean-Room Pluck Instrument Specification
+# Synth Sylenth Lab Instrument Specification
 
 Status: Draft v1 (research turn)
 
-Purpose: Define a clean-room macOS/Ableton software instrument that recreates the workflow and sound-design surface of an early Strobe-v1-like, SH-101-inspired pluck synth without copying third-party code, binaries, presets, UI assets, trademarks, or trade dress.
+Purpose: Define a lab-built macOS/Ableton software instrument whose Phase 1 goal is to recreate the Sylenth1 vintage VST experience for modern AU/VST3 hosts, then extend it with AI-assisted sound and arpeggio generation and conversational sound editing.
 
 ## Normative Language
 
@@ -18,61 +18,65 @@ This specification separates product requirements from research confidence:
 - `Inferred` means the statement is a reasoned design conclusion from observed material.
 - `Unknown` means the statement is unresolved and MUST NOT be treated as confirmed behavior.
 
-The historical target is an `Inferred` reference, not a legal or factual claim about the exact Deadmau5 plugin binary. The product MUST be implemented as a clean-room instrument.
+The Phase 1 target is a Sylenth-level instrument experience, grounded in `Sylenth1Manual.pdf`, `research/sylenth1-screenshots/`, and `docs/modern-sylenth-baseline.md`. Older Strobe/pluck research remains supporting background for the current engine, not the product destination.
 
 ## 1. Problem Statement
 
-Synth is a software instrument for producers, sound designers, and coding agents who need a modern, maintainable, macOS-compatible Ableton instrument for fast analog-style plucks in the early FXpansion Strobe v1 / SH-101-inspired family.
+Synth is a software instrument for producers, sound designers, and coding agents in a lab context. The product mission is to rebuild the Sylenth1-style virtual analog workflow that producers still love, make it run well on today's macOS/Ableton systems, and then add AI-native workflows that legacy VSTs never had.
 
 The instrument solves these problems:
 
-- Legacy DCAM Synth Squad / Strobe v1 is discontinued and not a reliable modern macOS production dependency.
-- Strobe2 is available as the successor lineage product, but ROLI documents it as a new plugin, not a drop-in Strobe v1 replacement.
-- Cheap SH-101 clones usually miss the relevant behavior: polyphony, unison, oscillator stacking, per-voice modulation, voice spread, semitone-domain cutoff movement, nonlinear filter drive, and TransMod-style routing.
-- The target pluck style depends more on per-voice cutoff movement, resonance/drive interaction, and voice variation than on exotic oscillators.
+- Sylenth1 remains a favorite vintage VST workflow, but it is no longer an actively evolving modern macOS-first production dependency.
+- Producers want the immediacy of the original Sylenth architecture: A/B parts, four oscillator slots, fast filter/envelope/modulation access, integrated arp/effects, and direct preset workflows.
+- Modern users also expect richer modulation inspection, browser metadata, high-DPI UI behavior, deterministic host restore, and strong Ableton AU/VST3 proof.
+- The next product leap is AI-assisted sound design: useful randomized patches, generated arpeggios/chord movement, reference-sound recreation, and natural-language edits.
 
 The product boundary:
 
-- Synth owns synthesis, modulation, preset state, host integration, rendering behavior, validation tools, and clean-room implementation requirements.
-- Synth does not own DAW arrangement, mastering chains, unauthorized reverse engineering, extraction from proprietary binaries, third-party brand usage, or exact recreation of any copyrighted factory preset.
-- Synth MAY include simple onboard FX for practical production use, but the dry synth core MUST remain strong enough to validate without hiding behind delay or reverb.
+- Synth owns synthesis, modulation, preset state, host integration, rendering behavior, validation tools, UI/UX, AI-assisted generation, and conversational control.
+- Synth does not own DAW arrangement, mastering chains, external sample libraries, or user-provided copyrighted reference audio outside local analysis and preset-generation workflows.
+- Synth MAY include onboard FX and arpeggiator/chord-generation features, but the core synth MUST remain strong enough to validate without hiding weak oscillator/filter/envelope behavior behind effects.
 
 Success means:
 
 - The plugin loads and behaves correctly in Ableton Live on supported macOS systems as AU and VST3.
-- A competent user can build the target pluck from first principles using the UI and factory presets.
-- Reference renders show stable note-local cutoff motion when notes overlap.
-- The codebase remains clean-room, testable, and portable enough for future Windows/Linux plugin targets.
+- A competent user recognizes the Phase 1 workflow as a faithful modern rebuild of the vintage Sylenth experience.
+- A user can browse, edit, save, automate, and restore presets with the speed expected from a production VST.
+- Phase 2 AI generation creates musically useful patches and arp/chord ideas as editable parameter state.
+- Phase 3 conversational control can translate text and reference-sound intent into safe, reversible synth changes.
+- The codebase remains testable, realtime-safe, and portable enough for future Windows/Linux plugin targets.
 
 ## 2. Goals and Non-Goals
 
 ### 2.1 Goals
 
-- Provide a clean-room Strobe-v1-like subtractive synth architecture with one stackable super-oscillator per voice.
-- Support saw, variable pulse, noise, and sub oscillator waveform mixing.
-- Support oscillator stack count, detune, hard sync, and pulse-width modulation.
+- Phase 1: recreate the Sylenth-style virtual analog architecture and workflow as the main product baseline.
+- Support A/B parts, four oscillator slots, per-slot voices/unison, tuning, detune, phase/retrigger/invert, pan/stereo spread, mixer, filters, modulation, arpeggiator, effects, preset banks, and performance controls.
+- Keep the current oscillator stack, nonlinear filter, modulation, and validation harness as useful scaffolding until the Sylenth-level architecture replaces or absorbs them.
 - Provide polyphonic, monophonic, legato, and unison voice modes.
 - Provide per-voice amp envelope, mod envelope, LFO, ramp, glide, velocity glide, random-on-note, voice index, and unison index sources.
 - Provide an 8-slot TransMod-style modulation layer where each slot routes one source, optionally scaled by another source, to many destinations.
 - Implement semitone-domain pitch and filter-cutoff modulation.
 - Implement a nonlinear OTA-cascade-style multimode filter with diode-feedback clipping behavior and drive/resonance interaction.
 - Provide amp-stage waveshaping, voice pan, unison pan, and analog-style instability controls.
-- Provide a compact production UI that exposes the sound without imitating third-party GUI assets or trade dress.
+- Provide a compact production UI that reaches Sylenth-level speed while using a modern original visual system.
+- Phase 2: add AI-assisted patch randomization, sound generation, chord movement, and arpeggio generation.
+- Phase 3: add conversational VST control for text edits and reference-audio recreation workflows.
 - Ship AU and VST3 plugin targets for macOS.
 - Support Universal macOS binaries for Apple Silicon and Intel Macs.
 - Provide a standalone target for validation and preset/render tooling.
 - Provide deterministic preset serialization, migration, and host state restore.
-- Provide automated audio validation for oscillators, envelopes, LFOs, filters, modulation, host state, and reference renders.
+- Provide automated validation for oscillators, envelopes, LFOs, filters, modulation, arpeggiator timing, preset generation, AI edit safety, host state, and reference renders.
 
 ### 2.2 Non-Goals
 
-- Exact bit-identical emulation of FXpansion Strobe, Strobe2, Roland SH-101, or any unreleased/internal plugin.
-- Copying third-party source code, binary behavior through decompilation, GUI layout, product names, preset names, preset data, samples, or marketing claims.
-- Shipping under a name that implies official FXpansion, ROLI, Roland, Deadmau5, or SH-101 affiliation.
+- Bit-identical binary emulation of any third-party plugin.
+- Requiring a licensed Sylenth install at runtime.
+- Shipping third-party factory presets, samples, marks, or product assets as Synth-owned content.
+- Turning the product into a generic wavetable workstation before the Phase 1 Sylenth rebuild is complete.
 - VST2 support in the first release.
 - AAX support in the first release.
 - Built-in DAW project templates.
-- Full Strobe2 feature parity, including MPE, microtuning, preset morphing, 16 TransMod slots, Euclid/Curve processors, or its full FX suite, unless added as optional extensions.
 - Cloud sync, accounts, copy protection, telemetry, or network services in v1.
 
 ## 3. System Overview
@@ -291,7 +295,7 @@ Fields:
 - `polyphony` (integer)
   - Required range: `1..32`.
 - `unison_count` (integer)
-  - Required range: `1..8`; Strobe-v1-like default range SHOULD emphasize `1..5`.
+  - Required range: `1..8`; Phase 1 voice math SHOULD make per-slot voices, note unison, and polyphony explicit.
 - `steal_policy` (enum)
   - Values: `Oldest`, `Quietest`, `ReleaseFirst`, `FarthestPitch`.
 - `retrigger` (boolean)
@@ -578,7 +582,7 @@ Rules:
 - Preset files are untrusted user input and MUST be parsed defensively.
 - Filesystem paths supplied by users or tests MUST be normalized and constrained by tool configuration.
 - No audio-thread code may depend on UI thread state without lock-free synchronization.
-- Clean-room boundaries apply to all third-party historical references.
+- Source-use and release boundaries apply to all third-party historical references.
 
 ## 6. Workflow Specification
 
@@ -984,7 +988,7 @@ Required build options:
 - `SYNTH_ENABLE_TESTS`
 - `SYNTH_ENABLE_DEBUG_DIAGNOSTICS`
 - `SYNTH_ENABLE_COPY_AFTER_BUILD`
-- `SYNTH_STRICT_CLEAN_ROOM_NAMES`
+- `SYNTH_STRICT_RELEASE_NAMES`
 
 Defaults:
 
@@ -1544,11 +1548,23 @@ Metrics:
 
 ## 19. Implementation Checklist
 
-### 19.1 Required for Full v1 Spec Conformance
+### 19.1 Required for Phase 1 Sylenth Rebuild Conformance
 
 - JUCE/CMake project with AU, VST3, and standalone targets.
 - Central parameter registry.
 - Stable host state serialization and preset JSON schema.
+- A/B part architecture with layer select, solo/mute, mixer, master output, and host-state restore.
+- Four oscillator slots across the A/B parts, with per-slot waveform, voices/unison, tuning, detune, phase/retrigger/invert, level, pan, and stereo spread.
+- Per-part filter, amp envelope, modulation envelope, LFO routing, and mixer behavior.
+- Arpeggiator and 16-step pattern workflow with host-tempo sync, gate, octave/wrap, velocity, hold/tie, and deterministic render proof.
+- Sylenth-level preset workflow: bank/folder browsing, previous/next, search/tags, favorites, author/notes, dirty state, init/randomize/reset, safe save/overwrite, and host restore.
+- FX rack coverage for distortion/saturation, phaser, chorus/flanger, EQ, delay, reverb, compressor, bypass state, tail reporting, and finite wet renders.
+- Modern original UI that reaches Sylenth-level speed and density while preserving readability and Ableton stability.
+- Ableton AU/VST3 proof for scan/load/playback, automation, save/reopen restore, bounce, buffer/sample-rate changes, and UI open/close while playing.
+- Release-safe product names, preset names, UI, and metadata.
+
+### 19.2 Required for Current Core Scaffold
+
 - Poly/mono/legato/unison voice allocator.
 - Band-limited saw and pulse oscillator.
 - Noise and sub oscillator with required waveforms.
@@ -1566,10 +1582,9 @@ Metrics:
 - Amp drive, voice pan, unison pan, analog instability.
 - Optional FX section with bypass.
 - Factory init preset and factory pluck preset.
-- Clean-room-safe product names, preset names, UI, and metadata.
 - Automated DSP, preset, and host validation.
 
-### 19.2 Recommended Extensions
+### 19.3 Recommended Extensions
 
 - Full compound filter mode family.
 - 16 TransMod slots in an extended profile.
@@ -1603,8 +1618,8 @@ Metrics:
 - Whether an audio-input/effect version is desired.
 - Whether to use GPL/commercial JUCE terms or another framework path.
 - Which exact reference audio clips and screenshots are approved for internal measurement.
-- Whether a licensed Strobe v1 system is available for black-box measurement.
-- Exact UI visual direction, beyond the clean-room constraints.
+- Whether older Strobe research remains useful once the Phase 1 Sylenth rebuild is underway.
+- Exact UI visual direction, beyond the source-use and release constraints.
 - Whether factory preset names may use indirect nods or must be completely generic.
 
 ## Appendix A. Factory Pluck Profile

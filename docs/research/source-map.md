@@ -15,6 +15,26 @@ Observed:
 - Steinberg VST3 developer documentation describes `.vst3` macOS bundles and universal binary placement.
   - https://steinbergmedia.github.io/vst3_dev_portal/pages/Technical%2BDocumentation/Locations%2BFormat/Plugin%2BFormat.html
 
+### Modern Sylenth Phase 1
+
+Observed:
+
+- `../../Sylenth1Manual.pdf` is the local manual source for the Phase 1 rebuild. It documents Sylenth1's A/B parts, oscillator/filter/envelope/modulation/LFO behavior, polyphony and voices display, preset/program workflow, arpeggiator, master FX, sync behavior, MIDI control, and CPU guidance.
+- `../../research/sylenth1-screenshots/SOURCE_INDEX.md` maps 25 local Sylenth UI screenshots to source pages and image URLs. These screenshots are accepted Phase 1 evidence for UI density, section grouping, preset views, skin/visual variation, arpeggiator/effects panels, routing diagrams, filter controls, oscillator/mix panels, top-panel workflow, and factory-bank browsing views.
+- `../modern-sylenth-baseline.md` translates the manual and screenshot corpus into the current feature matrix, roadmap, and validation requirements.
+
+Inferred:
+
+- Phase 1 should recreate the Sylenth-level instrument workflow before adding broader synthesis families.
+- The screenshot corpus should drive layout density, control grouping, visual hierarchy, and workflow comparisons, not require a literal pixel copy.
+
+### AI Extension References
+
+Inferred:
+
+- Phase 2 should add AI-assisted patch randomization, sound generation, chord movement, and arpeggio generation in the spirit of fast composition helpers such as Xfer Records' Cthulhu, while storing results as normal editable preset and parameter state.
+- Phase 3 should add conversational editing: text prompts and reference sounds produce reversible changes to synth parameters, modulation routes, arp/chord state, and FX.
+
 ### FXpansion / ROLI Lineage
 
 Observed:
@@ -44,8 +64,8 @@ Observed from the supplied research brief:
 
 Inferred:
 
-- The target should be treated as an early-Strobe-v1-like, SH-101-inspired architecture rather than a literal SH-101 clone.
-- The pluck signature is more likely per-voice cutoff movement plus filter/drive/stereo variation than wavetable synthesis.
+- The legacy pluck engine scaffold should be treated as early-Strobe-v1-like background rather than the current product target.
+- The legacy pluck signature is more likely per-voice cutoff movement plus filter/drive/stereo variation than wavetable synthesis.
 
 Unknown:
 
@@ -59,4 +79,3 @@ Unknown:
 - Do not promote community claims to observed facts without stronger evidence.
 - Do not use copied preset data or decompiled binary behavior.
 - Prefer behavior targets and measurable ranges over mythology.
-

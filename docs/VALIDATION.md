@@ -2,6 +2,14 @@
 
 Validation must prove the instrument behaves correctly as a plugin and as a sound engine. Passing unit tests alone is not enough; Ableton loading, host state, and audio renders are required.
 
+## Roadmap Validation Phases
+
+Phase 1 validation proves the Sylenth rebuild: AU/VST3 scan/load/play in Ableton, host state restore, automation, preset browsing, A/B architecture, oscillator/filter/envelope/modulation behavior, arpeggiator timing, FX tails, UI open/close while playing, and screenshot/manual QA against `docs/modern-sylenth-baseline.md`.
+
+Phase 2 validation proves AI-assisted generation: randomize/generate commands must produce finite audio, valid preset state, bounded parameter values, deterministic or intentionally seeded results, and editable arp/chord/modulation data rather than opaque output.
+
+Phase 3 validation proves conversational editing: text prompts and reference-sound workflows must produce reversible parameter diffs, preserve realtime safety, avoid invalid states, and include reports that explain which synth, modulation, arp, and FX controls changed.
+
 Current scaffold commands:
 
 ```bash
@@ -27,7 +35,7 @@ The current contract validation proves:
 - 156 unique parameter IDs,
 - valid defaults and ranges,
 - APVTS state round-trip,
-- two clean-room factory preset JSON files,
+- two factory preset JSON files,
 - no unknown preset parameter IDs,
 - TransMod slot objects use valid slot IDs, source/scaler choices, depth domains, and destination IDs.
 

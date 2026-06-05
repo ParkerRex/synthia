@@ -2,6 +2,14 @@
 
 Synth is planned as a JUCE/CMake C++ instrument with AU, VST3, and standalone targets.
 
+## Product Phases
+
+Phase 1 rebuilds the Sylenth-style virtual analog instrument workflow for modern macOS/Ableton AU and VST3 use. The current single-core pluck engine is scaffolding toward a fuller A/B architecture, four oscillator slots, Sylenth-level preset/arp/effects workflow, and a modern original UI.
+
+Phase 2 adds AI-assisted sound and arpeggio creation. Generated patches, chord movement, and arp ideas must compile down to ordinary editable parameters, presets, modulation routes, and sequencer state.
+
+Phase 3 adds conversational VST control. Text requests and reference-sound analysis should produce reversible parameter, modulation, arp, and FX edits without touching the realtime audio thread.
+
 Current scaffold:
 
 - `CMakeLists.txt` configures JUCE `8.0.13` through CMake `FetchContent`, unless `SYNTH_JUCE_PATH` points at a local checkout.
@@ -56,6 +64,11 @@ Current scaffold:
    - Audio metrics.
    - Host smoke tests.
 
+9. `AI Orchestration Layer`
+   - Planned Phase 2/3 layer outside the realtime audio path.
+   - Converts text prompts, randomization intent, chord/arp intent, or reference-sound analysis into validated parameter and preset edits.
+   - Must publish changes through the normal control/preset path.
+
 ## Realtime Boundary
 
 The audio thread may:
@@ -88,8 +101,9 @@ This is the expected code layout once implementation begins:
 - `src/modulation/`: source evaluation, direct routes, TransMod slots.
 - `src/presets/`: schema, migration, factory preset loader.
 - `src/validation/`: standalone render/test helpers.
+- `src/ai/`: planned Phase 2/3 prompt, generation, reference-analysis, and reversible-edit orchestration.
 - `tests/`: unit and render tests.
-- `presets/factory/`: clean-room factory presets.
+- `presets/factory/`: factory presets.
 - `fixtures/`: MIDI and render fixtures.
 - `docs/`: project docs.
 
@@ -156,7 +170,7 @@ Current registry status:
 
 Current editor and preset status:
 
-- `PluginEditor` is a clean-room dark control surface with a preset header, diagnostics, panic, and a scrollable set of sections for Voice, Oscillator, Filter, Envelopes, LFO, Ramp, Direct Mod, Amp/Stereo, Macros, FX, Quality, and all eight TransMod slots.
+- `PluginEditor` is a dark control surface with a preset header, diagnostics, panic, and a scrollable set of sections for Voice, Oscillator, Filter, Envelopes, LFO, Ramp, Direct Mod, Amp/Stereo, Macros, FX, Quality, and all eight TransMod slots.
 - Editor controls are constructed against `ParameterRegistry` IDs and use APVTS attachments for sliders, combo boxes, and toggles so UI edits reach the same host-automatable parameters as presets and host state.
 - `PresetManager` scans bundled factory presets with a source-directory development fallback, scans user presets from `~/Music/ParkerX/Synth/Presets`, validates preset JSON before load, prepares defaults-plus-overrides APVTS state for one-shot replacement, maps canonical `mod_slots` objects into flat TransMod parameters, and writes schema-valid user preset JSON.
 - Processor diagnostics expose sample rate, block size, active voices, MIDI event count, invalid sample count, peak, current preset, and binary architecture to the editor without filesystem or UI work on the audio thread.
@@ -166,7 +180,7 @@ Current voice-core status:
 - `SynthEngine` consumes note-on, note-off, all-notes-off, and all-sound-off from the plugin processor.
 - `VoiceAllocator` supports basic poly allocation, note release, panic, and deterministic random-on-note values.
 - `Envelope` and `Lfo` provide deterministic per-voice modulation primitives.
-- `OscillatorStack` renders clean-room polyBLEP saw/pulse, deterministic noise, sub waveforms, stack detune, and hard sync.
+- `OscillatorStack` renders polyBLEP saw/pulse, deterministic noise, sub waveforms, stack detune, and hard sync.
 - `Filter` renders semitone-domain L2/L4/B2/B4/H2/H4/Peak2/Notch2/Notch4 nonlinear responses with drive/resonance compensation and interpolated oversampling sub-steps.
 - `Voice` applies direct pitch/pulse/cutoff routes, ramp, glide, velocity glide, TransMod scalers, synced or Hz LFO rates, per-voice/mono LFO behavior, amp envelope, amp drive, level, pan spread, unison spread, analog variation, performance MIDI sources, and macro influence.
 - `FxChain` applies bypassable post-voice saturation, chorus, tempo-synced delay, and simple reverb. It allocates delay buffers during `prepare` and does not allocate in sample processing. `quality.realtime_mode` and `quality.offline_mode` select conservative processing variations without changing audio-thread resource allocation.
@@ -176,10 +190,12 @@ Current voice-core status:
 
 Highest priority:
 
-- Ableton AU/VST3 proof.
+- Phase 1 Sylenth rebuild roadmap and Ableton AU/VST3 proof.
+- Layer/A-B architecture and oscillator-slot plan.
+- Preset browser, arpeggiator, effects, and modulation UX that support the Sylenth-level workflow.
 
 Lower priority:
 
-- full compound filter mode set,
-- preset browser UI,
-- extended modulation processors.
+- Phase 2 AI generation,
+- Phase 3 conversational/reference-sound editing,
+- extended modulation processors beyond the Phase 1 workflow.

@@ -7,7 +7,7 @@ This pass records the durable inputs that define the Synth build program.
 - `SPEC.md`
 - `CONTEXT.md`
 - `docs/ARCHITECTURE.md`
-- `docs/CLEAN_ROOM.md`
+- `docs/research/source-map.md`
 - `docs/VALIDATION.md`
 - `docs/PRESET_SCHEMA.md`
 - `docs/research/source-map.md`
@@ -42,4 +42,3 @@ Host and packaging work should land after the core plugin and UI exist, but Able
 - JUCE license posture.
 - Whether Windows VST3 joins v1.
 - Exact manual black-box reference materials approved for measurement.
-

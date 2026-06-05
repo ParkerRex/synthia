@@ -64,7 +64,7 @@ Run the full command validation suite, release build, plugin bundle checks, and 
 
 The current available standalone suite is `--suite core`. Add `--suite full` and `scripts/check-clean-room.sh` during this slice before using them as release gates.
 
-Audit shipped names, preset names, UI text, bundle IDs, and docs against `docs/CLEAN_ROOM.md`. Remove internal research aliases from release-facing artifacts.
+Audit shipped names, preset names, UI text, bundle IDs, and docs against `SPEC.md` and `docs/research/source-map.md`. Remove internal research aliases from release-facing artifacts.
 
 Update docs to reflect actual commands, supported environments, known limitations, install/uninstall flow, preset behavior, validation reports, and future extension backlog.
 

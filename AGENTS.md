@@ -1,6 +1,6 @@
 # Synth Agent Guide
 
-Synth is a clean-room JUCE/CMake software instrument for macOS Ableton validation. Keep agent work practical, test-backed, and aligned with the product docs.
+Synth is a JUCE/CMake software instrument for macOS Ableton validation. Keep agent work practical, test-backed, and aligned with the product docs.
 
 ## Read First
 
@@ -9,28 +9,18 @@ For meaningful work, read these in order:
 1. `SPEC.md`
 2. `CONTEXT.md`
 3. `docs/index.md`
-4. `docs/CLEAN_ROOM.md`
-5. `docs/ARCHITECTURE.md`
-6. `docs/VALIDATION.md`
+4. `docs/ARCHITECTURE.md`
+5. `docs/VALIDATION.md`
 
 Use the docs as the durable source of truth:
 
 - `SPEC.md`: product requirements and behavioral contract.
 - `CONTEXT.md`: vocabulary and decision lanes.
-- `docs/CLEAN_ROOM.md`: permitted evidence, naming, and measurement rules.
 - `docs/ARCHITECTURE.md`: component boundaries and realtime boundary.
 - `docs/VALIDATION.md`: validation profiles, metrics, and host proof.
 - `docs/PRESET_SCHEMA.md`: preset and persistence schema details.
 
 Do not bury product requirements in comments, build files, or tests unless the requirement already exists in `SPEC.md` or the relevant doc.
-
-## Clean-Room Constraints
-
-- Do not copy third-party source, binaries, factory presets, preset parameter dumps, GUI assets, screenshots, logos, typography, trade dress, or proprietary parameter data.
-- Do not decompile, disassemble, patch, memory-inspect, or otherwise inspect proprietary binaries.
-- Allowed inputs are public documentation, public host/plugin-format docs, licensed black-box listening or measurement through normal controls, and original DSP/UI/preset work.
-- Record research confidence as `Observed`, `Inferred`, or `Unknown`. Do not promote historical claims without stronger evidence.
-- Shipped names, presets, UI, bundle IDs, and marketing text must avoid implying affiliation with FXpansion, ROLI, Roland, SH-101, Deadmau5, or song titles unless legal approval exists.
 
 ## Realtime Audio Rules
 

@@ -14,7 +14,7 @@ Use these local source-of-truth docs:
 
 - `SPEC.md`
 - `CONTEXT.md`
-- `docs/CLEAN_ROOM.md`
+- `docs/research/source-map.md`
 - `docs/ARCHITECTURE.md`
 - `docs/VALIDATION.md`
 - `docs/PRESET_SCHEMA.md`
@@ -55,4 +55,3 @@ Implement these slices in order:
 Start with `docs/exec-plans/active/2026-06-04-scaffold-juce-cmake-plugin-foundation.md`.
 
 That slice must create the buildable project, local command surface, minimal plugin/standalone targets, initial test harness, and docs sync needed for later slices.
-

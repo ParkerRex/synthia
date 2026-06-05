@@ -14,7 +14,7 @@ This directory holds implementation-facing documentation for Synth. `../SPEC.md`
 - `ARCHITECTURE.md`: component model, planned code layout, realtime boundaries.
 - `PRESET_SCHEMA.md`: preset and host-state shape.
 - `VALIDATION.md`: tests, render fixtures, host checks, and acceptance metrics.
-- `CLEAN_ROOM.md`: legal/evidence/naming rules.
+- `modern-sylenth-baseline.md`: Phase 1 Sylenth rebuild baseline, current gaps, and Phase 2/3 AI roadmap.
 - `PLANS.md`: routing for Programs and ExecPlans.
 - `host-validation/`: Ableton and other host validation notes/templates.
   - `host-validation/local-install-troubleshooting.md`: local AU/VST3 install, uninstall, ad-hoc signing, AU validation, and Ableton rescan troubleshooting.
@@ -24,13 +24,14 @@ This directory holds implementation-facing documentation for Synth. `../SPEC.md`
 ## Research
 
 - `research/source-map.md`: vendor docs, host docs, manual-derived facts, inferred target behavior, and unknowns.
+- `../Sylenth1Manual.pdf`: local manual used for Phase 1 feature and workflow evidence.
+- `../research/sylenth1-screenshots/SOURCE_INDEX.md`: traceable source map for the local Sylenth screenshot corpus.
 
 ## Maintenance Rule
 
 When docs disagree:
 
 1. `SPEC.md` wins on product requirements.
-2. `CLEAN_ROOM.md` wins on evidence and safety posture.
-3. `docs/programs/active/*/program.md` wins on initiative-level progress and slice order.
-4. `docs/exec-plans/active/*.md` wins on one-slice execution details while that slice is active.
-5. `ARCHITECTURE.md`, `VALIDATION.md`, and `PRESET_SCHEMA.md` are implementation guidance and must be updated to match spec changes.
+2. `docs/programs/active/*/program.md` wins on initiative-level progress and slice order.
+3. `docs/exec-plans/active/*.md` wins on one-slice execution details while that slice is active.
+4. `ARCHITECTURE.md`, `VALIDATION.md`, and `PRESET_SCHEMA.md` are implementation guidance and must be updated to match spec changes.

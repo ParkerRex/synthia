@@ -56,7 +56,7 @@ Residual work remains in later slices: FX controls are bound to placeholder para
 
 ## Context and Orientation
 
-This slice depends on the parameter registry, preset system, dry-core engine, and validation harness. `SPEC.md` section 8.1 defines the required UI surfaces. `docs/CLEAN_ROOM.md` defines visual and naming boundaries.
+This slice depends on the parameter registry, preset system, dry-core engine, and validation harness. `SPEC.md` section 8.1 defines the required UI surfaces, visual boundaries, and naming boundaries.
 
 ### In Scope
 

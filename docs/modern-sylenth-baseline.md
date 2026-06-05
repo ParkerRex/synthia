@@ -1,0 +1,306 @@
+# Modern Sylenth Baseline
+
+Status: baseline plan, no implementation.
+
+Purpose: define the lab roadmap for rebuilding Sylenth as a modern virtual analog instrument first, then extending it with AI-assisted sound/arpeggio creation and conversational VST control.
+
+## Evidence Labels
+
+- `[Observed]`: directly found in the supplied manuals or current repo.
+- `[Inferred]`: reasoned product or implementation choice from observed evidence.
+- `[Hypothesis]`: plausible but still needs proof.
+- `[Unknown]`: not proven and must not be treated as current behavior.
+
+## Evidence Sources
+
+- `[Observed]` Sylenth1Manual.pdf: sections 3.1-3.8, 4.1-4.4, and 5 document the A/B audio path, preset/program workflow, polyphony and voices display, sync behavior, oscillator/filter/envelope/modulation/LFO behavior, master FX, arpeggiator, and CPU guidance.
+- `[Observed]` `research/sylenth1-screenshots/` contains 25 valid Sylenth1 UI/screenshots, with traceable source mapping in `research/sylenth1-screenshots/SOURCE_INDEX.md`.
+- `[Observed]` Serum_Manual.pdf: pages 9, 29-32, 35-36, and 65 document preset notes/author, mouseover modulation inspection, drag/drop modulation routing, modulation halos, context menus, matrix sync, LFO graph interactions, and preset folder behavior.
+- `[Observed]` Current repo docs and code: `CMakeLists.txt`, `SPEC.md`, `CONTEXT.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, `docs/PRESET_SCHEMA.md`, `docs/host-validation/ableton-smoke.md`, `src/plugin/ParameterRegistry.cpp`, `src/dsp/SynthParameters.h`, `src/dsp/OscillatorStack.*`, `src/dsp/Filter.*`, `src/dsp/fx/FxChain.*`, `src/plugin/PluginProcessor.*`, `src/plugin/PluginEditor.*`, `src/presets/*`, `src/validation/SynthRender.cpp`, and `tests/smoke/*`.
+
+## Lab Mission And Product Phases
+
+- `[Inferred]` Phase 1 is to recreate the Sylenth experience as the primary product baseline: A/B virtual analog architecture, four oscillator slots, fast filters/envelopes/modulation, arpeggiator, effects, preset banks, CPU/voice feedback, MIDI control, and Ableton-safe AU/VST3 behavior.
+- `[Inferred]` Phase 1 should use `Sylenth1Manual.pdf`, `research/sylenth1-screenshots/SOURCE_INDEX.md`, and this feature matrix as the decision packet for roadmap and UI/UX work.
+- `[Inferred]` Phase 2 adds AI-assisted patch randomization, sound generation, chord movement, and arpeggio creation. The target is musically useful generated state, not opaque audio rendering.
+- `[Inferred]` Phase 3 adds conversational VST control: users can type requests such as `make the bass wubbier` or provide a reference sound and ask Synth to recreate the character through editable synth, modulation, arp, and FX settings.
+
+## Summary Of Current Repo Baseline
+
+- `[Observed]` Synth builds a JUCE/CMake instrument with AU, VST3, and Standalone targets, MIDI input enabled, bundled factory preset resources, and product metadata in `CMakeLists.txt`.
+- `[Observed]` The current engine is a single-core subtractive pluck architecture: one oscillator stack, one nonlinear multimode filter, one amp envelope, one mod envelope, one LFO, one ramp, direct modulation, eight TransMod-style slots, macros, performance sources, amp drive/stereo spread, and post-voice FX.
+- `[Observed]` The parameter registry reports 156 parameters from `./build-release/SynthRender --list-parameters --output /tmp/synth-modern-sylenth/parameters.json`.
+- `[Observed]` Current oscillator features include stack count 1-5, stack detune, saw, pulse, noise, sub oscillator with wave and octave, hard sync amount, pulse width, sub pulse width, pitch/fine tuning, and phase reset modes.
+- `[Observed]` Current filter features include enable/bypass, L2/L4/B2/B4/H2/H4/Peak2/Notch2/Notch4 modes, semitone cutoff, resonance, drive, keytrack, and oversampling.
+- `[Observed]` Current FX include global FX bypass, saturation, tempo-synced delay, simple reverb, chorus, realtime/offline quality modes, FX bypass equivalence validation, delay timing proof, wet/dry proof, and FX tail reporting.
+- `[Observed]` Current preset workflow scans factory and user presets, validates JSON, loads, saves, duplicates, writes user presets under `~/Music/ParkerX/Synth/Presets`, and serializes author/description/tags in the schema.
+- `[Observed]` Current UI is a dark scrollable editor with header, preset controls, diagnostics, panic, sections for Voice/Oscillator/Filter/Envelopes/LFO/Ramp/Direct Mod/Amp/Macros/FX/Quality, and all eight TransMod slots.
+- `[Observed]` Ableton proof is partial: AU and VST3 scan/load/play/reopen smoke is recorded, but automation, full preset recreation, modulation exercise, and bounce remain open in `docs/host-validation/ableton-smoke.md`.
+
+## Feature Matrix
+
+### A. Plugin / Host Basics
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| A. AU/VST3/Standalone status | [Observed] Sylenth1 is described as a VST instrument in the supplied manual and is host-loaded. | [Observed] SynthPlugin builds AU, VST3, and Standalone via JUCE/CMake. | [Observed] No VST2 target and no need for it. | [Inferred] Keep AU/VST3/Standalone; Avoid VST2 for v1. | [Inferred] Header should expose format only in diagnostics, not as a main workflow control. | [Observed] Existing plugin shell is sufficient for this baseline. | [Observed] Host state already serializes APVTS state. | [Observed] Preserve build, CTest, core suite, preset validation, and bundle check commands. | P0 |
+| A. Ableton loading | [Observed] Sylenth1 workflow assumes host program loading and MIDI playback. | [Observed] Ableton AU/VST3 scan/load/play/reopen smoke is partially recorded. | [Observed] Automation, bounce, full preset recreation, and behavior exercise are still incomplete. | [Inferred] Upgrade host proof before release hardening. | [Inferred] Add a small host-status/debug panel only in development builds. | [Inferred] No DSP change unless host smoke exposes bugs. | [Observed] Host state must restore without external preset files. | [Observed] Complete Ableton AU and VST3 automation, bounce, state restore, UI open/close, sample-rate, and buffer-size checklist. | P0 |
+| A. Host automation | [Observed] Sylenth1 exposes many automatable parameters and appendix CC/parameter mappings. | [Observed] Synth parameters are APVTS-backed and registry-bound. | [Unknown] Automation gesture coverage in Ableton is not yet fully proven. | [Inferred] Keep registry-bound automation; Upgrade manual Ableton proof. | [Inferred] Every visible control must send begin/end gestures through attachments or explicit gestures. | [Inferred] Smooth high-risk parameters as already done for pitch, filter, amp, and FX. | [Observed] Stable parameter IDs are required by docs. | [Observed] Record/replay automation lane in AU and VST3. | P0 |
+| A. MIDI input and performance controls | [Observed] Sylenth1 supports MIDI notes, program change for first 128 programs, MIDI CC control, learn/forget, mod wheel, aftertouch, pitchbend, keyboard controls, and portamento. | [Observed] Synth accepts MIDI, handles note on/off, all notes off, all sound off, pitchbend, sustain pedal, modwheel CC1, aftertouch, and channel pressure. | [Observed] No MIDI learn UI or persistent CC maps yet. | [Inferred] Add MIDI learn and forget; Keep current performance sources. | [Inferred] Context menu on any learnable control includes MIDI Learn, Forget, and current CC display. | [Inferred] MIDI map application must be control-thread safe and must not allocate on audio thread. | [Inferred] Save mappings in preset or user MIDI map with explicit migration. | [Inferred] Add MIDI learn unit/fixture tests and Ableton controller smoke after implementation. | P1 |
+| A. Panic and diagnostics | [Observed] Sylenth1 has MIDI/all-notes behavior and CPU guidance. | [Observed] Synth has panic, active voices, MIDI count, invalid sample count, peak, sample rate, block size, architecture diagnostics. | [Inferred] Missing patch cost/CPU estimate and current output meter graphics. | [Inferred] Upgrade. | [Inferred] Header always shows panic, output meter, active voices, invalid sample warning, and patch cost. | [Observed] Panic clears voices and FX; diagnostics use atomics. | [Inferred] Diagnostics preferences should be local state, not preset-critical sound state. | [Observed] Existing panic-clear tests; add output meter smoke and patch-cost deterministic checks. | P0 |
+| A. Release packaging | [Observed] Sylenth1 is distributed as a host plugin. | [Observed] Synth has local bundle check/install/uninstall scripts and ad-hoc signing for local host scans. | [Observed] Distribution signing, notarization, clean-machine install, and full release package remain open. | [Inferred] Defer distribution polish until Modern Sylenth feature baseline is stable, but preserve current scripts. | [Inferred] UI should show version and architecture in diagnostics. | [Inferred] Tail length must stay accurate as FX and arp evolve. | [Observed] Bundled factory presets must remain in plugin resources. | [Observed] Preserve `scripts/check-plugin-bundles.sh build-release`; add clean-machine release proof later. | P2 |
+
+### B. Top Bar / Header UX
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| B. Preset selector and previous/next | [Observed] Sylenth1 uses program arrows and a program popup over sub-banks. | [Observed] Synth has preset combo and Load button. | [Observed] No previous/next inside folder and no browser drawer. | [Inferred] Upgrade. | [Inferred] Header has preset name, prev/next, save icon/button, dirty indicator, and browser opener. | [Inferred] No audio-thread work during browsing. | [Observed] Current preset paths and display names are available. | [Inferred] Preset browser smoke test and preset roundtrip. | P0 |
+| B. Save, duplicate, init, randomize, reset | [Observed] Sylenth1 menu supports Save As, copy/paste/insert/delete, clear/init, randomize, and reset original. | [Observed] Synth supports Save As and Duplicate. | [Observed] Init, randomize, reset, safe overwrite prompt, delete, and A/B compare are missing. | [Inferred] Add init, randomize, reset, safe overwrite, A/B; Defer delete if safety UI is not ready. | [Inferred] Use explicit icons/buttons with confirmation where destructive. | [Inferred] Randomize must use bounded musical ranges and never create invalid audio. | [Inferred] Dirty state and original-state snapshot must be serialized or locally tracked. | [Inferred] Preset roundtrip, randomize finite render, init-default state test. | P0 |
+| B. Polyphony, active voices, sync toggle | [Observed] Sylenth1 top bar has polyphony 0-16, voices active/maximum display, and global sync toggle. | [Observed] Synth has polyphony 1-32, unison count, active voice diagnostic, LFO/delay sync per-module choices. | [Observed] No global sync toggle or voice math display. | [Inferred] Add voice math display; Defer global sync until parameter model supports it cleanly. | [Inferred] Header shows `notes x unison x stack` estimate and active voices. | [Inferred] Patch cost must be computed from parameters without touching audio-thread allocation. | [Inferred] Store global sync only if it maps to concrete parameters. | [Inferred] Unit test voice math and UI smoke. | P1 |
+| B. MIDI learn, panic, output meter | [Observed] Sylenth1 has right-click MIDI learn/forget and VU meter. | [Observed] Synth has panic and peak diagnostic text. | [Observed] No learn UI; no graphical output meter. | [Inferred] Add. | [Inferred] Header panic is always visible; output meter uses peak/RMS with clip/invalid indicators. | [Observed] Existing peak and invalid samples are collected. | [Inferred] Learn mappings persist separately or in preset by explicit rule. | [Observed] Existing panic tests; add meter UI smoke and MIDI learn proof. | P0 |
+| B. Author, notes, patch cost | [Observed] Serum preset bar supports author and notes fields. | [Observed] Synth schema includes author, description, and tags; current editor does not expose rich metadata. | [Observed] No visible author/notes or CPU/patch cost indicator. | [Inferred] Add metadata display/editor and patch cost. | [Inferred] Browser/detail panel shows author, notes, tags, favorite, dirty state, and cost. | [Inferred] Patch cost estimates oscillator stack, unison, polyphony, oversampling, release, and FX. | [Observed] Author/description/tags already exist in JSON schema. | [Inferred] Preset save/load metadata test and patch-cost test. | P0 |
+
+### C. Sylenth-Style Architecture Model
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| C. Part A/B model | [Observed] Sylenth1 has Part A and Part B; each part contains two oscillators and a filter, only one part is shown at a time. | [Observed] Synth has one oscillator stack, one filter, and one amp path. | [Observed] No literal two-part/four-osc architecture. | [Inferred] Add as a Phase 1 architecture milestone through a generic Layer model; map Layer A to current core first, then add Layer B. | [Inferred] UI may show Layer A now and should expose Layer B only after state and DSP paths exist. | [Inferred] First isolate current core as `LayerVoiceCore` or equivalent before duplicating it. | [Inferred] Add namespaced layer fields with migration; do not alias old parameters ambiguously. | [Inferred] Regression tests must prove old presets sound equivalent after migration. | P0 |
+| C. Part select and solo | [Observed] Sylenth1 top bar has Part Select and Solo for the selected part. | [Observed] Synth has no part/layer select or solo. | [Observed] Missing. | [Inferred] Add during the Phase 1 layer milestone. | [Inferred] Layer tabs show active state, solo, mute, copy, and cost. | [Inferred] Solo/mute must not destroy held voice state unexpectedly. | [Inferred] Solo/mute are preset-serialized if they are patch design state. | [Inferred] Unit and render test for layer mute/solo and preset restore. | P1 |
+| C. Cross-routing and global filter control | [Observed] Sylenth1 can route oscillator outputs across filters and has global filter cutoff/resonance controls affecting both filters. | [Observed] Synth has one filter and no cross-routing. | [Observed] Missing dual-filter workflow. | [Inferred] Defer cross-routing; Add global layer filter macro only after two layers exist. | [Inferred] UI should avoid showing fake cross-routing while engine is single-core. | [Inferred] True cross-routing is a significant engine graph change and must be planned separately. | [Inferred] Preset schema needs explicit routing enum, not loose booleans. | [Inferred] Render fixture proves routing and no phase/level regressions. | P2 |
+| C. Mixer and master FX | [Observed] Sylenth1 mixes Part A/B before master FX; master volume is after FX. | [Observed] Synth sums voices into post-voice FX and output level in amp stage. | [Observed] No Part A/B mixer or master volume separate from amp level. | [Inferred] Add with the Phase 1 layer milestone; keep current FX after voice sum until the layer mixer exists. | [Inferred] Main page shows Layer A, Layer B, and Master once implemented. | [Inferred] Maintain post-mix FX and tail reporting. | [Inferred] Mixer levels must serialize per layer and master. | [Inferred] Layer mixer render and tail-length tests. | P1 |
+
+### D. Oscillator Baseline
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| D. Four oscillator slots A1/A2/B1/B2 | [Observed] Sylenth1 core has four alias-free unison oscillators, two per part. | [Observed] Synth has one oscillator stack with saw/pulse/noise/sub mixed inside one voice. | [Observed] Missing separate oscillator slots, per-slot on/off, per-slot waveform, per-slot pan/phase/invert/copy. | [Inferred] Add as a Phase 1 rebuild milestone after layer namespacing; do not fake four slots before DSP/state support exists. | [Inferred] Current UI should label the current block as `Core Oscillator` or `Layer A Oscillator`; Phase 1 UI should expose real A1/A2/B1/B2 when implemented. | [Observed] Current stack is validated and can serve as the per-slot oscillator implementation foundation. | [Inferred] Future slots require stable namespaced IDs such as `layer.1.osc.1.*`. | [Inferred] Migration and oscillator render tests before exposing four slots. | P1 |
+| D. Oscillator voices and unison | [Observed] Each Sylenth oscillator can use 0-8 unison voices; 0 disables the oscillator. | [Observed] Synth has global `voice.unison_count` 1-8 and oscillator `stack_count` 1-5. | [Observed] No per-oscillator unison count or 0-off oscillator slot. | [Inferred] Keep current note unison and stack for P0; Add per-slot voices only with layer/slot engine. | [Inferred] Show voice math clearly to avoid confusing unison with stack. | [Observed] Current voice allocator and stack detune are tested. | [Inferred] Future per-slot voice count changes preset voice math. | [Observed] Existing oscillator/voice tests; add slot-cost tests when implemented. | P1 |
+| D. Waveform, tuning, volume, phase, detune, stereo, pan, retrigger, invert | [Observed] Sylenth oscillator panel exposes waveform, octave/note/fine, volume, phase, detune, stereo, pan, retrigger, invert, copy/paste. | [Observed] Synth exposes pitch/fine, stack detune, saw/pulse/noise/sub levels, pulse width, phase reset, sync amount, pan/spread at amp stage. | [Observed] Missing per-slot octave/note split, oscillator-level pan/stereo, invert, copy/paste, waveform preview, and cost display. | [Inferred] Upgrade current oscillator UI first; Add per-slot controls later. | [Inferred] Add compact waveform preview, copy/paste for current oscillator block, and cost label. | [Inferred] Invert can be cheap for current oscillator output; per-slot pan/stereo waits for slots. | [Inferred] Copy/paste block state must include oscillator parameters only. | [Inferred] Oscillator unit tests for invert and preset copy/paste state if added. | P1 |
+| D. Current oscillator stack strengths | [Observed] Sylenth has analog-shaped waveforms and unison detune/spread. | [Observed] Synth has polyBLEP saw/pulse, deterministic noise, sub waves, hard sync, stack detune symmetry, and gain compensation. | [Inferred] Current core is closer to a compact supersaw/subtractive block than to four independent oscillators. | [Inferred] Keep as sound foundation. | [Inferred] UI should make stack, detune, sync, pulse width, sub, and noise fast to reach. | [Observed] No allocation needed in oscillator sample render. | [Observed] Preset schema serializes existing oscillator IDs. | [Observed] Existing oscillator tests cover tuning, pulse duty, sub octave, deterministic noise, stack detune, and hard sync. | P0 |
+
+### E. Filter Baseline
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| E. Per-part filters and routing | [Observed] Sylenth1 has Filter A/B, input select, bypass/LP/BP/HP, and 12/24 dB modes. | [Observed] Synth has one filter with enable, L2/L4/B2/B4/H2/H4/Peak2/Notch2/Notch4 modes. | [Observed] No Filter A/B, input routing, or cross-filter workflow. | [Inferred] Keep single filter for P0; Add per-layer filter after layer abstraction. | [Inferred] Main page shows one filter now; future Layer tabs show one filter per layer. | [Observed] Current filter has broader mode set than Sylenth baseline but only one instance. | [Inferred] Future routing enum must be explicit. | [Observed] Existing filter mode tests; add layer routing tests later. | P2 |
+| E. Cutoff/resonance/drive/keytrack/warm drive | [Observed] Sylenth exposes cutoff, resonance, drive, keytrack, global cutoff/resonance, and Warm Drive quality/CPU toggle. | [Observed] Synth has semitone cutoff, resonance, drive, keytrack, oversampling, and realtime/offline quality modes. | [Observed] No global dual-filter controls and no named Warm Drive toggle. | [Inferred] Keep semitone cutoff and oversampling; Upgrade UI to show quality state and add a warm/high-quality drive mode if useful. | [Inferred] Filter panel includes response graph and modulation overlays on cutoff/resonance/drive. | [Inferred] Warm drive maps to oversampling/saturation quality without changing existing stable IDs unless needed. | [Inferred] Persist quality mode and any warm-drive mode explicitly. | [Observed] Existing filter cutoff, drive, resonance, and oversampling validation; add graph/UI smoke. | P1 |
+| E. Filter response graph and modulation overlays | [Observed] Sylenth manual does not require a graph. | [Observed] Synth has no filter graph or modulation overlays. | [Observed] Missing modern visual feedback. | [Inferred] Add. | [Inferred] Graph shows selected mode, cutoff/resonance marker, and colored mod ranges. | [Inferred] Graph reads parameter/model state and must not run heavy DSP on audio thread. | [Inferred] Graph state is derived, not serialized. | [Inferred] UI smoke screenshot and deterministic graph model unit tests. | P0 |
+
+### F. Envelopes
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| F. Amp Env A/B and Mod Env 1/2 | [Observed] Sylenth has two amp envelopes, two modulation envelopes, and ADSR controls. | [Observed] Synth has one amp envelope and one mod envelope. | [Observed] Missing second amp envelope and second mod envelope for literal Part A/B parity. | [Inferred] Keep current envelopes for P0; Add per-layer amp envelope with layers and add Mod Env 2 if modulation UX needs it. | [Inferred] UI must show ADSR graphs for current amp and mod env; future tabs map to layers. | [Observed] Current envelope is deterministic and validated. | [Inferred] New env IDs must be namespaced and migrated. | [Observed] Existing envelope tests; add click-safe and graph tests. | P1 |
+| F. Click-safe attack/release | [Observed] Sylenth manual warns 0 attack/release can click and recommends small values when clicks are unwanted. | [Observed] Synth allows 0 ms amp attack and 1 ms release minimum; docs require guarding uncontrolled gain jumps. | [Hypothesis] Click behavior needs render validation at extreme settings. | [Inferred] Upgrade with click-safe UI affordance and tests, not hidden fallback defaults. | [Inferred] Envelope graph warns or highlights zero attack with transient risk. | [Inferred] DSP may keep exact fast envelopes but must remain finite and denormal-safe. | [Inferred] Store exact user values; do not silently rewrite. | [Inferred] Render fixture for zero/near-zero attack/release transient bounds. | P1 |
+| F. Copy/paste and drag-edit graph | [Observed] Sylenth has copy/paste on oscillator and FX panels; envelope copy is not clearly proven in supplied manual. | [Observed] Synth has no envelope graph copy/paste. | [Observed] Missing visual graph and copy/paste. | [Inferred] Add graph P0; Defer drag-edit/copy until visual control system is stable. | [Inferred] ADSR graph supports drag handles for A/D/S/R after read-only graph ships. | [Inferred] Graph edits map to APVTS gestures. | [Inferred] Copy/paste block state must preserve envelope parameters. | [Inferred] UI smoke and preset roundtrip. | P1 |
+
+### G. LFO / Movement
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| G. Two Sylenth LFOs | [Observed] Sylenth1 has two LFOs with waveform, rate, gain, offset, free mode, and destination assignment. | [Observed] Synth has one LFO with seven shape choices in registry, rate Hz/sync, phase, gate mode, mono flag, swing; current `Lfo` class implements sine/triangle/saw/square/sample-hold. | [Observed] Missing LFO2, gain/offset parameters, and first-class visible destination count. | [Inferred] Add LFO2 in P0/P1; make Ramp a first-class source tile. | [Inferred] Source tiles show LFO1, LFO2, Ramp, Amp Env, Mod Env, Velocity, Keytrack, Mod Wheel, Aftertouch, Random, Voice, Unison, Macros. | [Inferred] LFO2 should reuse LFO implementation and be per-voice safe. | [Inferred] Add namespaced `lfo.1.*` migration from current `lfo.*`; add `lfo.2.*`. | [Inferred] LFO2 unit/render tests and preset migration. | P1 |
+| G. Serum-style LFO graph | [Observed] Serum has visual LFO graph, shape presets, source tiles, trigger/env/off modes, BPM switch, delay/rise/smooth, and copy between LFOs. | [Observed] Synth has no visual LFO graph. | [Observed] Missing visual movement feedback. | [Inferred] Add read-only/generated graph first; Defer full drawable editor. | [Inferred] Graph shows current shape, phase, sync/free mode, live playhead if cheap, and destination count. | [Inferred] Graph uses UI timer/model state, not audio-thread callbacks. | [Inferred] Shape presets can serialize as enum until a drawable shape format exists. | [Inferred] UI smoke and LFO sync render tests. | P0 |
+| G. Ramp source | [Observed] Sylenth has modulation envelopes and LFOs; Serum has LFO Env mode. | [Observed] Synth has Ramp with enabled/mode/delay/rise/curve and ramp modulation source. | [Inferred] Ramp is useful as a Serum-like one-shot movement source. | [Inferred] Keep and elevate as source tile. | [Inferred] Ramp tile shows one-shot/loop/sync state and destination badge. | [Observed] Ramp is already in TransMod sources and render validation. | [Observed] Current ramp parameters serialize. | [Observed] Existing modulation tests cover ramp timing. | P0 |
+
+### H. Modulation System
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| H. Sylenth-style modulation routes | [Observed] Sylenth modulation panel routes each source to two destinations with bipolar amount knobs; misc sources include velocity, aftertouch, keytrack, modwheel, amp envs, mod envs, and LFOs. | [Observed] Synth has direct routes plus eight TransMod slots with source, scaler, enable, and physical depths to osc pitch, pulse width, filter cutoff, amp level, and pan. Sources include LFO, Ramp, ModEnv, AmpEnv, Keytrack, Velocity, VelocityGlide, PitchBend, ModWheel, Aftertouch, Voice, Unison, Random, and four Macros. | [Observed] Current UI is matrix/slot-based but not direct-manipulation. Destination set is narrower than all visible controls. | [Inferred] Keep engine model; Upgrade UX and expand destination catalog carefully. | [Inferred] Drag source tile to target; control halo shows modulation amount; hover source shows destinations; hover target shows sources; matrix always syncs. | [Inferred] Modulation model must support multiple modulators per destination and bypass per route without audio-thread allocation. | [Observed] Current `mod_slots` schema exists; future route schema may need normalized route objects instead of flat TransMod fields. | [Observed] Existing modulation render tests; add route model unit tests and UI smoke. | P0 |
+| H. Serum-style halos and context menus | [Observed] Serum shows destination badges, halos, positive/negative hue, hover inspection, context menus for bypass/remove/remove all/reset/source/MIDI learn, and matrix sync. | [Observed] Synth has no halos, drag/drop, hover inspector, or context menu modulation editing. | [Observed] Missing. | [Inferred] Add as signature P0 UX. | [Inferred] Every modulatable control shows base value, mod range, live effective value, active badges, and clear polarity. | [Inferred] Effective value display needs engine/mod evaluation snapshots or deterministic UI-side estimate. | [Inferred] Route bypass/remove state must serialize and migrate. | [Inferred] UI smoke for drag/drop, matrix edit, halo update, hover, context menu; render proof for changed route. | P0 |
+| H. Matrix sync | [Observed] Serum matrix and drag/drop assignments update each other. | [Observed] Synth TransMod section edits slots directly. | [Observed] No separate visual route model. | [Inferred] Upgrade to a route model that can drive both matrix and halos. | [Inferred] Matrix drawer is the canonical table view but not the only editing path. | [Inferred] Route evaluation should compile to the current eight-slot structure or replace it with a bounded route array. | [Inferred] Presets must preserve route order, source, scaler, amount, polarity, bypass, and destination. | [Inferred] Matrix/halo sync unit tests and preset roundtrip. | P0 |
+
+### I. Arpeggiator / Step Sequencer
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| I. Arp modes and timing | [Observed] Sylenth arpeggiator includes Up, Down, Up/Down variants, Random, Ordered, Step Seq, Step Chord, Time, Gate, Wrap, and Octave. | [Observed] No arp/step sequencer engine or UI found in current parameters/code. | [Observed] Missing high-value Sylenth workflow. | [Inferred] Add v1 arp before wavetable/editor work. | [Inferred] Main or lower dock has Arp enable, mode, rate, gate, octave, step length, and hold. | [Inferred] Arp must be MIDI-event deterministic, host-tempo synced, and safe across transport stop/all-notes-off. | [Inferred] Serialize arp state and 16-step lanes. | [Inferred] New deterministic MIDI fixture and render proof after implementation. | P0 |
+| I. Step lanes and velocity source | [Observed] Sylenth step sequencer has transpose, velocity, hold; step velocity/hold can be used as modulation source. | [Observed] No step lanes or step velocity modulation source. | [Observed] Missing. | [Inferred] Add v1 16-step sequencer with step pitch, velocity, hold/tie, and step velocity source. | [Inferred] Compact 16-step grid with pitch and velocity lanes; no piano-roll bloat. | [Inferred] Arp output should feed existing voice allocator and expose step velocity as source. | [Inferred] Preset schema must store lane arrays with fixed length and validation. | [Inferred] Unit tests for sequence order/gate/tie and render tests for deterministic note output. | P0 |
+
+### J. FX Baseline
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| J. Sylenth FX list and order | [Observed] Sylenth has arpeggiator, distortion, phaser, chorus/flanger, EQ, delay, reverb, compressor, with effects after the mixer. | [Observed] Synth has post-voice saturation, chorus, tempo delay, simple reverb, global FX bypass, module bypasses, quality modes, and tail reporting. | [Observed] Missing phaser, EQ, compressor, multiple distortion modes, richer delay/reverb controls, and FX copy/paste. | [Inferred] Upgrade FX after modulation/preset/arp. | [Inferred] FX page is a simple rack with enable/bypass/mix per module; disabled modules collapsed or hidden. | [Inferred] Disabled effects must skip processing; tail length must include active time-based modules. | [Observed] Existing FX fields serialize as parameters. | [Observed] Existing FX tests; add phaser/EQ/compressor/distortion render tests. | P1 |
+| J. FX rack interaction | [Observed] Serum FX rack shows enabled modules, signal flow top-to-bottom, drag reorder, per-module mix, and temporary bypass versus permanent disable. | [Observed] Synth has sectioned FX controls, not a rack. | [Observed] No rack, reorder, copy/paste, or per-module visual enable model beyond controls. | [Inferred] Add fixed-order rack first; Defer drag reorder until module state and validation are stable. | [Inferred] Every FX module has power/bypass, mix where applicable, compact controls, and cost hint. | [Inferred] Reorder changes tail/determinism and should not be casual. | [Inferred] If reorder is added, serialize order explicitly and validate migration. | [Inferred] Rack UI smoke and wet/dry render tests per module. | P1 |
+
+### K. Preset Workflow
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| K. Banks, folders, prev/next | [Observed] Sylenth soundbanks contain 512 presets across four sub-banks, with program arrows, popup, load/save preset, load/save bank, rename, copy/paste/insert/delete, clear/randomize/reset. | [Observed] Synth scans factory and user folders and has combo, load, save-as, duplicate. | [Observed] Missing browser, search, categories, favorites, prev/next within folder, bank import/export, reset/init/randomize. | [Inferred] Add browser/search/tags/favorites/prev-next; Avoid Sylenth bank cloning. | [Inferred] Browser drawer supports search, tag chips, favorites, factory/user filters, author, notes, and validation errors. | [Inferred] Browser scan must happen off audio thread and be refreshable. | [Observed] JSON schema already includes author, description, tags, parameters, mod_slots, macros. | [Observed] Existing preset validation; add browser scan/filter tests and UI smoke. | P0 |
+| K. Metadata and safe writes | [Observed] Serum stores author and notes in preset bar; Sylenth supports rename and reset original. | [Observed] Synth schema has author/description/tags; save writes `User` author and user tag by default. | [Observed] UI does not expose metadata editing, safe overwrite prompt, dirty indicator, A/B compare, or reset original. | [Inferred] Add. | [Inferred] Header and browser show dirty state, author, notes, save/overwrite flow, A/B, init, randomize, reset. | [Inferred] No DSP change except randomize must produce finite safe parameter values. | [Inferred] Store metadata explicitly; A/B may be local host state unless saved with preset. | [Inferred] Preset roundtrip, metadata save/load, randomize finite render, overwrite prompt UI smoke. | P0 |
+
+### L. MIDI / Controller Workflow
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| L. MIDI learn and forget | [Observed] Sylenth right-click menu can Learn or Forget MIDI CC for most knobs. | [Observed] Synth handles fixed CC1 modwheel, pitchbend, aftertouch, sustain, all-notes-off, and all-sound-off. | [Observed] No MIDI learn or persistent mapping UI. | [Inferred] Add after modulation context menus. | [Inferred] Right-click control menu includes MIDI Learn/Forget and current CC. | [Inferred] Learned CC must update APVTS parameters on control path and avoid audio-thread allocation. | [Inferred] Decide whether mappings are per-preset, global user map, or both. | [Inferred] MIDI learn fixture/manual controller smoke and preset/global map roundtrip. | P1 |
+| L. Default CC map | [Observed] Sylenth appendix lists default CC mappings. | [Observed] Synth only has fixed performance sources for CC1 and sustain. | [Observed] No default CC map for main controls. | [Inferred] Defer broad default map; Add only useful performance defaults. | [Inferred] Keep modwheel/aftertouch/pitchbend visible as performance sources. | [Inferred] No engine change beyond learn routing. | [Inferred] Default map stored as data, not hard-coded through scattered conditionals. | [Inferred] Unit test map lookup and conflict handling. | P2 |
+
+### M. Voice / Polyphony / CPU UX
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| M. Polyphony and active voices | [Observed] Sylenth shows active voices and max voices, with voice math based on oscillator voices times polyphony. | [Observed] Synth has polyphony 1-32, unison count 1-8, stack count 1-5, active voice diagnostic. | [Observed] No max voice math or warnings. | [Inferred] Add voice math and patch cost. | [Inferred] Header shows active voices, max estimate, stack/unison math, high-cost warning. | [Inferred] Cost estimate derives from polyphony, unison, stack, filters, oversampling, release, and FX. | [Inferred] Cost estimate is derived and not serialized except optional user warning preferences. | [Inferred] Unit tests for estimator and UI smoke. | P1 |
+| M. CPU-saving behavior | [Observed] Sylenth manual advises bypassing filters/effects and reducing polyphony/oscillators/release to save CPU; disabled effects stop processing. | [Observed] Synth filter bypass returns input; FX bypass/module bypass exist; quality modes exist. | [Hypothesis] Need more proof that all disabled modules skip work after future FX expansion. | [Inferred] Keep and expand. | [Inferred] Disabled modules visually collapse and show zero/low cost. | [Observed] Current filter bypass and FX bypass are implemented. | [Inferred] Module enable state serializes. | [Observed] Existing FX bypass tests; add per-new-module skip/tail tests. | P1 |
+| M. Quality and tail indicators | [Observed] Sylenth has Warm Drive quality/CPU tradeoff and FX tail behavior implied by delay/reverb. | [Observed] Synth reports realtime/offline quality and tail length. | [Observed] No visible quality/tail indicator beyond controls/diagnostics. | [Inferred] Add. | [Inferred] Header or FX page shows quality mode and tail length when FX release/tails are long. | [Observed] `getTailLengthSeconds` uses envelope and FX tail. | [Inferred] Tail state derived from parameters. | [Observed] Existing tail tests; add UI smoke. | P1 |
+
+### N. UI Layout Direction
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| N. Phase 1 Sylenth-level layout | [Observed] Sylenth is organized into part section, shared filter/mixer section, modulation section, LCD master FX section, and bottom keyboard/wheels. | [Observed] Synth current editor is dark, scrollable, and sectioned by current parameter groups. | [Observed] It is not yet a compact modern instrument layout and does not expose modulation visually. | [Inferred] Upgrade to an original Modern Sylenth layout informed by the 25-image screenshot corpus. | [Inferred] Header: preset, prev/next, save, init/randomize, panic, output meter, active voices, patch cost. Main: oscillator/filter/envelopes/mixer. Lower dock: source tiles, graphs, macros. Matrix drawer. FX page. Browser drawer. Bottom performance strip optional. | [Inferred] UI reads parameter snapshots and diagnostics without audio-thread callbacks. | [Inferred] Layout state should be local UI state unless it changes sound. | [Inferred] Standalone UI smoke screenshots and manual control checks. | P0 |
+| N. Tooltips and inspection | [Observed] Serum mouseover help shows control info and modulation sources. | [Observed] Synth has no documented hover inspector. | [Observed] Missing. | [Inferred] Add hover inspection. | [Inferred] Hover any control: parameter name, value, base value, live effective value, sources, ranges, automation/MIDI state, and short help. | [Inferred] Effective value may be approximate until engine exposes modulation snapshots. | [Inferred] Tooltip state not serialized. | [Inferred] UI smoke/manual QA. | P0 |
+
+### O. Validation
+
+| Feature area | Sylenth1 behavior / feature | Current Synth behavior | Gap | Product decision: Keep / Add / Upgrade / Defer / Avoid | UI/UX requirement | DSP / engine requirement | Preset / state requirement | Validation proof required | Priority |
+|---|---|---|---|---|---|---|---|---|---|
+| O. Existing proof commands | [Observed] Sylenth manual is product documentation, not a validation harness. | [Observed] Synth has CMake build, CTest, SynthRender core/preset/voice/osc/filter/modulation/render commands, and bundle checks. | [Observed] Host validation remains partial; no modern-sylenth-specific modes exist. | [Inferred] Keep all existing commands; do not weaken validation. | [Inferred] UI acceptance always includes standalone screenshot/manual smoke where automated JUCE UI testing is hard. | [Inferred] DSP changes require unit or render proof. | [Inferred] Preset/state changes require roundtrip and migration proof. | [Observed] Required commands to preserve: `cmake --build build --config Debug`; `ctest --test-dir build --output-on-failure`; `./build/SynthRender --suite core --output-dir build/reports/core`; `./build/SynthRender --validate-presets presets/factory --output build/reports/presets.json`; `scripts/check-plugin-bundles.sh build-release`. | P0 |
+| O. New proof surfaces | [Observed] Serum/Sylenth manuals do not define repo tests. | [Observed] Current SynthRender has no arp, preset-browser, MIDI learn, or modern baseline command modes. | [Observed] Missing future validation modes. | [Inferred] Add new SynthRender/test modes only when implemented; do not advertise unimplemented commands as current. | [Inferred] Browser, modulation drag/drop, and layout need UI smoke/manual QA. | [Inferred] Arp, layer, LFO2, FX, patch cost, MIDI learn need deterministic engine tests. | [Inferred] Route, preset browser, metadata, A/B, init/randomize/reset need preset/state tests. | [Inferred] Add proof per feature before marking an ExecPlan complete. | P1 |
+
+## Serum UX Ideas We Should Import
+
+- `[Observed]` Preset author and notes fields are a useful workflow pattern.
+- `[Observed]` Mouseover inspection can show which modulation sources affect a control.
+- `[Observed]` Dragging a source tile onto a valid destination creates a route without leaving the main panel.
+- `[Observed]` Source tiles can show destination counts and hover destination lists.
+- `[Observed]` Modulated controls can show colored halos/arcs for active modulation ranges and different polarity.
+- `[Observed]` Context menus on controls can bypass, remove selected modulation, remove all modulation, reset control, choose a source, and enter MIDI learn.
+- `[Observed]` Matrix edits and drag/drop edits can stay synchronized.
+- `[Observed]` LFO graphs and shape presets make movement legible.
+- `[Observed]` FX rack modules can be visible only when enabled and can distinguish temporary bypass from permanent disable.
+- `[Inferred]` For Synth, import the interaction model, not Serum's wavetable-first product model.
+
+## Serum Features To Explicitly Avoid For Now
+
+- `[Inferred]` Avoid full wavetable editor, wavetable import, formula editor, morph/process menus, table sorting, and deep waveform editing in the first Modern Sylenth pass.
+- `[Inferred]` Avoid four fully drawable Serum-class LFO editors as a P0 requirement; ship clear graph presets and simple generated shapes first.
+- `[Inferred]` Avoid making noise samples or external waveform folders a preset dependency.
+- `[Inferred]` Avoid FM/AM/RM/warp-centric oscillator workflows as a near-term priority unless they serve the analog/subtractive thesis.
+- `[Inferred]` Avoid a mastering-style FX lab; keep FX fast, visible, and producer-practical.
+- `[Inferred]` Avoid copying Serum visual trade dress, colors, layouts, icons, or wording beyond generic interaction concepts.
+
+## Recommended Architecture Decision
+
+Recommendation: `[Inferred]` Phase 1 should end at a real Sylenth-level architecture. Implement it incrementally by adding a generic Layer architecture, mapping Layer A to the current proven single-core engine first, then adding Layer B, per-layer mixer/filter behavior, and four oscillator slots as explicit milestones.
+
+Tradeoff:
+
+- `[Observed]` The current single-core engine is already validated for oscillator, filter, envelopes, ramp, glide, TransMod, performance sources, FX, preset loading, determinism, and dry/wet renders.
+- `[Observed]` Sylenth's literal architecture is two parts, each with two oscillators, one filter, and one amp envelope, plus mixer and master FX.
+- `[Inferred]` Rewriting immediately to true Part A/B would risk breaking a working pluck core and would multiply parameters before the UI/preset/modulation model is ready.
+- `[Inferred]` Leaving the product as a single-core pluck synth would miss the Phase 1 goal.
+- `[Inferred]` A generic Layer abstraction gives clean namespacing, preserves existing presets through migration, and can become the Phase 1 A/B architecture without fake UI semantics.
+
+Architecture path:
+
+1. `[Inferred]` P0: preserve current engine and UI label it honestly as the core/layer A sound path.
+2. `[Inferred]` P0: design parameter/state namespaces for future layers before adding many one-off controls.
+3. `[Inferred]` P1: wrap current voice path in a layer object and migrate old IDs into `layer.1` state while keeping host automation compatibility.
+4. `[Inferred]` P1/P2: add Layer B and layer mixer only after migration, route model, and validation are ready.
+5. `[Inferred]` P2: add the four-slot oscillator model or a proven equivalent only if it still lets users recreate Sylenth-style patches quickly and predictably.
+
+## P0 / P1 / P2 Build Backlog
+
+### P0
+
+- `[Inferred]` Approve this baseline and architecture decision.
+- `[Inferred]` Treat Phase 1 Sylenth rebuild as the product baseline; the current Strobe-like pluck core is scaffolding, not the final goal.
+- `[Inferred]` Create ExecPlan: Phase 1 Sylenth architecture: A/B layers, layer select/solo, layer mixer, master output, and four oscillator-slot state model.
+- `[Inferred]` Create ExecPlan: parameter inventory expansion and future layer namespace, without breaking existing IDs.
+- `[Inferred]` Create ExecPlan: UI information architecture and reusable visual control system: meter, compact controls, graph panels, source tiles, drawer framework, context menus.
+- `[Inferred]` Create ExecPlan: modulation visual layer: source tiles, drag/drop, halos, hover inspector, context menus, matrix sync, route serialization/migration.
+- `[Inferred]` Create ExecPlan: preset browser upgrade: search, tags, favorites, author, notes, prev/next, dirty state, init, randomize, reset, safe overwrite.
+- `[Inferred]` Create ExecPlan: v1 arp/step sequencer engine and UI: 16 steps, host-synced rate, gate, octave, mode, step pitch, step velocity, hold/tie, step velocity source.
+- `[Observed]` Complete Ableton AU/VST3 automation, bounce, current preset recreation, modulation exercise, sample-rate/buffer-size, and UI open/close validation.
+
+### P1
+
+- `[Inferred]` Add LFO2 and migrate `lfo.*` to `lfo.1.*` compatibility.
+- `[Inferred]` Make Ramp a first-class source tile with graph.
+- `[Inferred]` Add filter response graph and modulation overlays.
+- `[Inferred]` Add voice math and patch cost estimator in header.
+- `[Inferred]` Add MIDI learn/forget and persistent map design.
+- `[Inferred]` Implement the generic Layer abstraction and Layer A/B rendering path while preserving existing presets.
+- `[Inferred]` Expand modulation destination catalog beyond current TransMod destinations.
+
+### P2
+
+- `[Inferred]` Refine layer mixer, solo/mute, and per-layer filter/mixer validation after the first A/B implementation lands.
+- `[Inferred]` Refine true oscillator slots or two-stack-per-layer architecture based on Phase 1 patch recreation tests.
+- `[Inferred]` Expand FX: phaser, EQ, compressor, distortion modes, module copy/paste, fixed rack page.
+- `[Inferred]` Add FX reorder only after fixed rack validation.
+- `[Inferred]` Add envelope drag-edit and block copy/paste.
+- `[Inferred]` Add distribution signing/notarization and clean-machine installer flow.
+
+### Later
+
+- `[Inferred]` Phase 2 AI sound and arpeggio generation.
+- `[Inferred]` Phase 3 conversational VST edits and reference-sound recreation.
+- `[Inferred]` Wavetable import/editor, deep Serum LFO editing, MPE, microtuning, cloud sync, AAX, VST2, and advanced modulation processors.
+
+## Files Likely To Touch
+
+- `[Inferred]` `docs/exec-plans/active/*.md`: new implementation ExecPlans.
+- `[Inferred]` `SPEC.md`, `CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, `docs/PRESET_SCHEMA.md`: durable requirement and schema updates before behavior changes.
+- `[Inferred]` `src/plugin/ParameterRegistry.*`: new parameter IDs, choices, ranges, smoothing, migration anchors.
+- `[Inferred]` `src/dsp/SynthParameters.h`: new state structs for arp, LFO2, modulation routes, patch cost, layers, and expanded FX.
+- `[Inferred]` `src/dsp/SynthEngine.*`, `src/voice/Voice.*`, `src/voice/VoiceAllocator.*`: arp note scheduling, layer wrapper, LFO2/ramp source routing, route evaluation, patch-cost-safe stats.
+- `[Inferred]` `src/dsp/OscillatorStack.*`, `src/dsp/Filter.*`, `src/dsp/Envelope.*`, `src/dsp/Lfo.*`, `src/dsp/Ramp.*`: only as required by graph/model additions, LFO2 reuse, click-safe tests, invert, layer wrapping, or future slots.
+- `[Inferred]` `src/dsp/fx/FxChain.*`: phaser/EQ/compressor/distortion modes and rack behavior.
+- `[Inferred]` `src/plugin/PluginEditor.*`: main UI layout, source tiles, visual controls, matrix drawer, browser drawer, FX rack, context menus, hover inspector, meters.
+- `[Inferred]` `src/presets/PresetManager.*`, `src/presets/PresetValidator.*`: route schema, metadata, favorites, A/B, init/randomize/reset, layer migration, arp lanes.
+- `[Inferred]` `src/validation/SynthRender.cpp`: future arp, route, browser/state, MIDI learn, layer, and FX reports after implementation.
+- `[Inferred]` `tests/smoke/*`: focused C++ regression coverage for each feature slice.
+- `[Inferred]` `presets/factory/*.json` and `fixtures/**/*.json`: migrated schema fixtures and factory preset updates.
+
+## New Parameters Likely Needed
+
+Do not add all of these at once. `[Inferred]` Add only when an ExecPlan owns the behavior and validation.
+
+- `[Inferred]` Layer namespace: `layer.1.enabled`, `layer.1.name`, `layer.1.level_db`, `layer.1.pan`, `layer.1.solo`, `layer.1.mute`; future `layer.2.*`.
+- `[Inferred]` Future oscillator slots: `layer.1.osc.1.enabled`, `layer.1.osc.1.voices`, `layer.1.osc.1.waveform`, `layer.1.osc.1.octave`, `layer.1.osc.1.note`, `layer.1.osc.1.fine_cents`, `layer.1.osc.1.level`, `layer.1.osc.1.phase_degrees`, `layer.1.osc.1.detune`, `layer.1.osc.1.spread`, `layer.1.osc.1.pan`, `layer.1.osc.1.retrigger`, `layer.1.osc.1.invert`.
+- `[Inferred]` LFO migration/addition: `lfo.1.*` aliases for current IDs, `lfo.2.shape`, `lfo.2.rate_mode`, `lfo.2.rate_hz`, `lfo.2.sync_division`, `lfo.2.phase_degrees`, `lfo.2.gate_mode`, `lfo.2.mono`, `lfo.2.gain`, `lfo.2.offset`, `lfo.2.delay_ms`, `lfo.2.rise_ms`, `lfo.2.smooth`.
+- `[Inferred]` Mod route model: `mod_route.N.enabled`, `mod_route.N.source`, `mod_route.N.destination`, `mod_route.N.amount`, `mod_route.N.polarity`, `mod_route.N.curve`, `mod_route.N.scaler`, `mod_route.N.bypassed`.
+- `[Inferred]` Arp: `arp.enabled`, `arp.mode`, `arp.rate_mode`, `arp.sync_division`, `arp.gate`, `arp.octaves`, `arp.wrap`, `arp.velocity_mode`, `arp.swing`, `arp.step_count`, `arp.step.N.pitch`, `arp.step.N.velocity`, `arp.step.N.tie`, `arp.step.N.enabled`.
+- `[Inferred]` Preset browser local/preset metadata: `preset.favorite` may be a user-library sidecar, not an audio parameter; `preset.author`, `preset.notes`, `preset.tags`, `preset.category` belong in preset JSON, not APVTS automation.
+- `[Inferred]` UI/local state: selected page, selected source tile, selected matrix row, and browser filters should remain local UI state unless host restore must preserve them.
+- `[Inferred]` MIDI learn: `midi_map` should likely be a user map object or preset metadata, not 100+ automatable parameters.
+- `[Inferred]` FX expansion: `fx.distortion_type`, `fx.distortion_amount`, `fx.phaser_*`, `fx.eq_*`, `fx.compressor_*`, `fx.module_order` if reorder is implemented.
+
+## Tests / Validation Needed
+
+- `[Observed]` Preserve current validation commands:
+
+```bash
+cmake --build build --config Debug
+ctest --test-dir build --output-on-failure
+./build/SynthRender --suite core --output-dir build/reports/core
+./build/SynthRender --validate-presets presets/factory --output build/reports/presets.json
+scripts/check-plugin-bundles.sh build-release
+```
+
+- `[Inferred]` Parameter inventory: C++ registry test for unique IDs, migration aliases, ranges, defaults, smoothing, and preset serialization.
+- `[Inferred]` UI visual controls: standalone smoke screenshots for desktop and compact sizes; manual hover/context/drag checks if JUCE UI automation remains limited.
+- `[Inferred]` Modulation visual layer: route model unit tests, preset route roundtrip, drag/drop UI smoke, matrix/halo sync UI smoke, render proof that a created route changes sound as expected.
+- `[Inferred]` Preset browser: scan/filter/favorite metadata tests, invalid preset visible-error test, save/overwrite flow smoke, dirty state and reset/A-B tests.
+- `[Inferred]` Arp: unit tests for mode ordering, gate, wrap, octave, tie/hold, velocity modes, step velocity source; deterministic MIDI fixture render.
+- `[Inferred]` LFO2/Ramp graph: LFO sync/free tests, migration tests, graph model tests.
+- `[Inferred]` Layer architecture: old preset migration equivalence, layer mute/solo/mixer render, active voice and cost tests.
+- `[Inferred]` FX expansion: per-module bypass skip tests, finite-output render tests, tail reporting, wet/dry difference, quality-mode regression.
+- `[Inferred]` MIDI learn: map persistence, learn/forget UI smoke, incoming CC to parameter update, automation conflict behavior.
+- `[Observed]` Ableton: AU/VST3 scan/load/play, automation record/playback, host state save/reopen, offline bounce, buffer-size/sample-rate changes, transport stop, all-notes-off, panic, and UI open/close while playing.
+
+## Risks And Open Questions
+
+- `[Inferred]` Immediate Part A/B implementation has high blast radius because it changes parameter namespaces, voice allocation, modulation destinations, preset migration, UI layout, and validation.
+- `[Inferred]` Modulation halos need a reliable route/effective-value model; bolting them directly onto current flat TransMod parameters will make UI sync fragile.
+- `[Inferred]` Parameter count can grow quickly; every new parameter needs stable ID, migration, host automation behavior, preset serialization, and tests.
+- `[Unknown]` Whether users will prefer true four separate oscillator slots or a two-layer stack-based model needs prototype validation with actual sound design tasks.
+- `[Unknown]` JUCE UI automation depth may limit automated drag/drop and context-menu tests; plan for standalone screenshots and manual QA notes where necessary.
+- `[Hypothesis]` Patch cost can be estimated well enough from parameter state without measuring realtime CPU, but the estimate must be calibrated against real Ableton sessions.
+- `[Inferred]` Arp timing must be designed carefully around host tempo, block boundaries, held notes, sustain, panic, and offline bounce determinism.
+- `[Inferred]` Preset favorites may not belong inside preset files because factory presets are read-only and favorites are user-library state.
+- `[Inferred]` Do not add wavetable/editor features until Modern Sylenth's subtractive workflow, modulation UX, browser, arp, host validation, and release hardening are solid.

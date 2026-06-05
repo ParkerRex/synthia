@@ -1,10 +1,16 @@
 # Synth
 
-![Synth clean-room software instrument hero](docs/assets/readme-hero.png)
+![Synth lab software instrument hero](docs/assets/readme-hero.png)
 
-Synth is a clean-room macOS software instrument project focused on a fast, expressive pluck-synth core: oscillator stacking, mono/poly/unison allocation, per-voice modulation, semitone-domain filter motion, glide, ramp, and TransMod-style routing.
+Synth is a lab-built macOS software instrument project. The product goal is to rebuild everyone's favorite vintage VST, Sylenth1, optimized for today's macOS/Ableton workflow, then extend that foundation with AI-assisted sound design and conversational editing.
 
-This is not a clone and does not ship third-party presets, UI assets, names, binaries, or proprietary parameter data. The implementation is original and uses public documentation, clean-room design, and deterministic validation.
+## Product Roadmap
+
+Phase 1: recreate the Sylenth experience. The first milestone is a modern AU/VST3 instrument with Sylenth-level immediacy: A/B architecture, fast oscillator/filter/envelope/modulation access, a strong preset workflow, arpeggiator/effects coverage, and Ableton validation. The manual in `Sylenth1Manual.pdf`, the screenshot corpus in `research/sylenth1-screenshots/`, and `docs/modern-sylenth-baseline.md` drive product decisions for this phase.
+
+Phase 2: add AI-assisted sound and arpeggio creation. The plugin should be able to randomize and generate useful sounds, chord movement, and arpeggio ideas with the musical intent of tools like Xfer Records' Cthulhu, while keeping all generated state as normal editable presets and parameters.
+
+Phase 3: make the VST conversational. Users should be able to ask for changes in plain language, for example "make the bass wubbier," or provide a reference sound and ask Synth to recreate the character with editable synth, modulation, arp, and FX settings.
 
 ## Current State
 
@@ -15,10 +21,10 @@ The repo builds a JUCE/CMake instrument scaffold with:
 - A bypassable post-voice FX path with saturation, tempo-synced delay, simple reverb, chorus, and realtime/offline quality settings.
 - An 8-slot TransMod-style modulation layer with source/scaler routing and physical destination depths.
 - Factory presets, preset schema validation, MIDI fixture rendering, and JSON report generation.
-- A clean-room editor with registry-bound controls, factory/user preset load-save-duplicate workflow, TransMod slot editing, and diagnostics.
+- A registry-bound editor with factory/user preset load-save-duplicate workflow, TransMod slot editing, and diagnostics.
 - Core validation for oscillator/filter behavior, modulation routing, voice allocation, dry/wet renders, render determinism, and preset loading.
 
-The next required product validation step is host validation in Ableton: AU/VST3 scan, load, playback, automation, and state restore.
+The next required product validation step is Phase 1 host validation in Ableton: AU/VST3 scan, load, playback, automation, state restore, and enough UI/UX coverage to prove the Sylenth rebuild is becoming a real production instrument.
 
 ## Build
 
@@ -186,16 +192,14 @@ If something fails, write it into `docs/host-validation/ableton-smoke.md` with:
 - `CONTEXT.md`: project vocabulary and decision lanes.
 - `docs/ARCHITECTURE.md`: implementation architecture.
 - `docs/VALIDATION.md`: validation strategy and report contract.
-- `docs/CLEAN_ROOM.md`: clean-room implementation rules.
+- `docs/modern-sylenth-baseline.md`: Phase 1 Sylenth rebuild baseline and roadmap.
+- `research/sylenth1-screenshots/SOURCE_INDEX.md`: traceable source map for the local Sylenth screenshot corpus.
 - `src/dsp/`: DSP engine, oscillator, filter, envelopes, LFO, ramp, FX, and parameters.
 - `src/voice/`: voice rendering and allocation.
 - `src/plugin/`: JUCE processor/editor and parameter registry.
 - `src/presets/`: preset schema validation.
 - `src/validation/`: standalone render and report CLI.
 - `tests/smoke/`: CTest smoke, contract, voice, and DSP coverage.
-- `presets/factory/`: clean-room factory presets.
+- `presets/factory/`: factory presets.
 - `fixtures/`: MIDI and preset fixtures used by validation.
 
-## Clean-Room Policy
-
-Do not copy third-party source, binaries, GUI assets, presets, names, trade dress, or proprietary parameter data into this repository. Shipped names and UI should not imply affiliation with FXpansion, ROLI, Roland, SH-101, Deadmau5, or song titles unless legal approval exists.

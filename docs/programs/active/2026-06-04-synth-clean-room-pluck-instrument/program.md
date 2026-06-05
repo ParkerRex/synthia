@@ -42,7 +42,7 @@ Project truth surfaces:
 
 - `SPEC.md`
 - `CONTEXT.md`
-- `docs/CLEAN_ROOM.md`
+- `docs/research/source-map.md`
 - `docs/ARCHITECTURE.md`
 - `docs/VALIDATION.md`
 - `docs/PRESET_SCHEMA.md`
@@ -59,7 +59,7 @@ Ableton early host smoke passed on 2026-06-05. The remaining host-validation wor
 ## Progress
 
 - [x] 2026-06-04 EDT: Created `SPEC.md` from the supplied research brief.
-- [x] 2026-06-04 EDT: Added project orientation docs: `AGENTS.md`, `README.md`, `CONTEXT.md`, `docs/CLEAN_ROOM.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, `docs/PRESET_SCHEMA.md`, and `docs/research/source-map.md`.
+- [x] 2026-06-04 EDT: Added project orientation docs: `AGENTS.md`, `README.md`, `CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, `docs/PRESET_SCHEMA.md`, and `docs/research/source-map.md`.
 - [x] 2026-06-04 EDT: Created local Program and ExecPlan lanes adapted from Worker planning contracts.
 - [x] 2026-06-04 EDT: Created this Program packet and first immutable planning brief.
 - [x] 2026-06-04 EDT: Wrote all initial child ExecPlans required for the end-to-end build.
@@ -153,7 +153,7 @@ The Program intentionally does not choose final product name, bundle identifier,
 Program dependencies:
 
 - `SPEC.md` for product requirements.
-- `docs/CLEAN_ROOM.md` for evidence and naming safety.
+- `SPEC.md` and `docs/research/source-map.md` for evidence and naming safety.
 - `docs/ARCHITECTURE.md` for source layout and realtime boundaries.
 - `docs/VALIDATION.md` for test and host proof expectations.
 - `docs/PRESET_SCHEMA.md` for preset shape.

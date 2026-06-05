@@ -52,7 +52,7 @@ Completed. `build/renders/pluck-core-01-dry.wav` and `build/reports/pluck-core-0
 
 ## Context and Orientation
 
-This slice depends on oscillator, filter, voice/modulators, full modulation, and preset state. `SPEC.md` Appendix A defines the starting pluck profile. `docs/CLEAN_ROOM.md` controls naming.
+This slice depends on oscillator, filter, voice/modulators, full modulation, and preset state. `SPEC.md` Appendix A defines the starting pluck profile and naming boundaries.
 
 ### In Scope
 

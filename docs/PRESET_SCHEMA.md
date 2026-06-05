@@ -1,6 +1,6 @@
 # Preset Schema
 
-This document sketches the planned clean-room preset schema. `SPEC.md` remains the source of truth for required fields and behavior.
+This document sketches the planned preset schema. `SPEC.md` remains the source of truth for required fields and behavior.
 
 ## Format
 
@@ -42,6 +42,8 @@ Current validation command:
 - `mod_slots`: list of TransMod-style slot objects.
 - `macros`: list of macro objects.
 - `metadata`: optional object.
+
+Phase 2 and Phase 3 may extend `metadata` with generation provenance, prompt text, seed, model/version identifiers, reference-analysis summaries, and reversible edit history. Those fields must not be required for normal audio rendering.
 
 ## Parameter Values
 
@@ -121,4 +123,4 @@ Shipped factory presets must avoid unlicensed third-party marks.
 
 Internal research names may exist in `metadata` during development, but release builds should omit or sanitize them.
 
-The current factory preset display names are clean-room safe: `Init` and `Pluck Core 01`.
+The current factory preset display names are `Init` and `Pluck Core 01`.
