@@ -2,6 +2,7 @@
 #include "../../src/dsp/OscillatorStack.h"
 #include "../../src/dsp/Ramp.h"
 #include "../../src/dsp/SynthEngine.h"
+#include "../../src/dsp/fx/FxChain.h"
 
 #include <cmath>
 #include <iostream>
@@ -774,6 +775,116 @@ bool testVoiceModesAndOutputSafety()
     const auto stats = engine.process(left.data(), right.data(), static_cast<int>(left.size()));
     return stats.invalidSamples == 0 && stats.peak <= 1.0f;
 }
+
+bool testFxBypassIsDryEquivalent()
+{
+    synth::SynthParameters dryParameters;
+    dryParameters.filter.enabled = false;
+    dryParameters.osc.sawLevel = 1.0f;
+    dryParameters.ampEnv.releaseMs = 20.0f;
+
+    auto bypassParameters = dryParameters;
+    bypassParameters.fx.enabled = false;
+    bypassParameters.fx.saturationMix = 1.0f;
+    bypassParameters.fx.delayMix = 1.0f;
+    bypassParameters.fx.reverbMix = 1.0f;
+    bypassParameters.fx.chorusMix = 1.0f;
+
+    synth::SynthEngine dryEngine;
+    synth::SynthEngine bypassEngine;
+    dryEngine.prepare(48000.0, 1);
+    bypassEngine.prepare(48000.0, 1);
+    dryEngine.setParameters(dryParameters);
+    bypassEngine.setParameters(bypassParameters);
+    dryEngine.noteOn(60, 0.8f);
+    bypassEngine.noteOn(60, 0.8f);
+
+    for (int i = 0; i < 4096; ++i)
+    {
+        float dryLeft = 0.0f;
+        float dryRight = 0.0f;
+        float bypassLeft = 0.0f;
+        float bypassRight = 0.0f;
+        dryEngine.process(&dryLeft, &dryRight, 1);
+        bypassEngine.process(&bypassLeft, &bypassRight, 1);
+
+        if (std::abs(dryLeft - bypassLeft) > 1.0e-7f || std::abs(dryRight - bypassRight) > 1.0e-7f)
+            return false;
+    }
+
+    return true;
+}
+
+bool testFxDelaySyncAndTail()
+{
+    synth::FxChain fx;
+    fx.prepare(48000.0, 1);
+
+    synth::SynthParameters parameters;
+    parameters.fx.enabled = true;
+    parameters.fx.saturationEnabled = false;
+    parameters.fx.delayEnabled = true;
+    parameters.fx.delayMix = 1.0f;
+    parameters.fx.delayFeedback = 0.0f;
+    parameters.fx.delaySyncDivision = synth::DelaySyncDivision::Quarter;
+    parameters.fx.reverbEnabled = false;
+    parameters.fx.chorusEnabled = false;
+    parameters.tempoBpm = 120.0f;
+
+    const auto delaySamples = synth::tempoSyncedDelaySamples(48000.0, parameters.tempoBpm,
+                                                             parameters.fx.delaySyncDivision);
+    if (delaySamples != 24000)
+        return false;
+
+    auto delayedPeak = 0.0f;
+    for (int sample = 0; sample <= delaySamples + 8; ++sample)
+    {
+        const auto input = sample == 0 ? synth::FxStereoFrame { 0.5f, 0.5f } : synth::FxStereoFrame {};
+        const auto output = fx.process(input, parameters);
+        if (sample == delaySamples)
+            delayedPeak = std::max(std::abs(output.left), std::abs(output.right));
+    }
+
+    parameters.fx.reverbEnabled = true;
+    parameters.fx.reverbMix = 0.25f;
+    parameters.fx.reverbDecay = 0.75f;
+    const auto tail = synth::fxTailLengthSeconds(parameters.fx);
+    return delayedPeak > 0.49f && tail > 1.5f;
+}
+
+bool testEngineFxWetOutputSafety()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = true;
+    parameters.filter.cutoffSemitones = 60.0f;
+    parameters.filter.resonance = 0.4f;
+    parameters.amp.levelDb = -9.0f;
+    parameters.fx.enabled = true;
+    parameters.fx.saturationEnabled = true;
+    parameters.fx.saturationMix = 0.4f;
+    parameters.fx.saturationDrive = 0.7f;
+    parameters.fx.delayEnabled = true;
+    parameters.fx.delayMix = 0.25f;
+    parameters.fx.delayFeedback = 0.35f;
+    parameters.fx.reverbEnabled = true;
+    parameters.fx.reverbMix = 0.25f;
+    parameters.fx.reverbDecay = 0.55f;
+    parameters.fx.chorusEnabled = true;
+    parameters.fx.chorusMix = 0.18f;
+    parameters.quality.activeMode = synth::QualityMode::High;
+
+    synth::SynthEngine engine;
+    engine.prepare(48000.0, 128);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 1.0f);
+    processSamples(engine, 12000);
+    engine.noteOff(60);
+
+    std::vector<float> left(12000);
+    std::vector<float> right(12000);
+    const auto stats = engine.process(left.data(), right.data(), static_cast<int>(left.size()));
+    return stats.invalidSamples == 0 && stats.peak <= 1.0f;
+}
 } // namespace
 
 int main()
@@ -883,6 +994,24 @@ int main()
     if (!testVoiceModesAndOutputSafety())
     {
         std::cerr << "Voice mode/output safety test failed.\n";
+        return 1;
+    }
+
+    if (!testFxBypassIsDryEquivalent())
+    {
+        std::cerr << "FX bypass equivalence test failed.\n";
+        return 1;
+    }
+
+    if (!testFxDelaySyncAndTail())
+    {
+        std::cerr << "FX delay sync/tail test failed.\n";
+        return 1;
+    }
+
+    if (!testEngineFxWetOutputSafety())
+    {
+        std::cerr << "FX wet output safety test failed.\n";
         return 1;
     }
 

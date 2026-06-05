@@ -9,3 +9,4 @@
 - `2026-06-04-build-modulation-matrix-ramp-and-glide.md`
 - `2026-06-04-build-render-validation-harness-and-metrics.md`
 - `2026-06-04-build-editor-ui-and-preset-workflow.md`
+- `2026-06-04-build-onboard-fx-and-quality-modes.md`

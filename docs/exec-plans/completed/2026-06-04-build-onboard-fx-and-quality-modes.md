@@ -1,10 +1,10 @@
 ---
 title: Build Onboard FX And Quality Modes
-status: active
+status: completed
 created_at: 2026-06-04
-completed_at: null
+completed_at: 2026-06-05
 summary: Add bypassable saturation, delay, reverb, chorus, realtime/offline quality settings, and FX validation without weakening dry-core proof.
-post_build_recap: null
+post_build_recap: Added a realtime-safe post-voice FX chain with saturation, tempo-synced delay, simple reverb, chorus, serialized quality modes, dry/wet render splitting, and validation coverage.
 read_when:
   - Implementing onboard FX.
   - Changing oversampling or quality settings.
@@ -26,15 +26,15 @@ FX make the instrument practical in production, but they must not hide a weak sy
 ## Progress
 
 - [x] 2026-06-04 EDT: Created this Program-linked ExecPlan from `planning-brief-1.md`.
-- [ ] Implement FX module interfaces and global bypass.
-- [ ] Add saturation, delay, reverb, and optional chorus.
-- [ ] Add realtime/offline quality settings.
-- [ ] Add FX render tests and dry/wet comparisons.
-- [ ] Update UI/docs for FX behavior.
+- [x] 2026-06-05 EDT: Implemented FX module interfaces, global bypass, and module bypasses.
+- [x] 2026-06-05 EDT: Added saturation, tempo-synced delay, simple reverb, and chorus processing after voice summing.
+- [x] 2026-06-05 EDT: Added serialized realtime/offline quality settings with offline render quality selected in the standalone harness.
+- [x] 2026-06-05 EDT: Added FX bypass, delay sync/tail, wet output safety, explicit `--wet`, and core-suite wet render validation.
+- [x] 2026-06-05 EDT: Updated UI, factory preset, preset saving, validation docs, and architecture docs for FX behavior.
 
 ## Surprises & Discoveries
 
-None yet. Record latency, tail length, tempo sync, CPU, and offline quality issues here.
+The standalone wet render uses the factory `1/8` delay sync at 128 BPM and reports `11250` delay samples at 48 kHz. FX report a 1.5 second tail for the current factory wet settings. Quality modes affect the reverb/chorus processing shape without reallocating resources on the audio thread.
 
 ## Decision Log
 
@@ -44,7 +44,7 @@ Date: 2026-06-04.
 
 ## Outcomes & Retrospective
 
-Pending implementation.
+Completed on 2026-06-05. The FX chain is post-voice and bypassable; dry render validation explicitly forces FX off, while wet validation forces the preset FX path on. `SynthRender --suite core` now writes 11 reports including `pluck-core-01-wet.json`, and CTest covers FX bypass equivalence, delay sync/tail behavior, and wet finite-output safety.
 
 ## Context and Orientation
 

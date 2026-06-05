@@ -29,7 +29,7 @@ public:
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 2.0; }
+    double getTailLengthSeconds() const override { return 2.5; }
 
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
@@ -149,6 +149,23 @@ private:
         std::atomic<float>* directPulseKeytrack = nullptr;
         std::atomic<float>* directPulseLfo = nullptr;
         std::atomic<float>* directPulseModEnv = nullptr;
+        std::atomic<float>* fxEnabled = nullptr;
+        std::atomic<float>* fxSaturationEnabled = nullptr;
+        std::atomic<float>* fxSaturationMix = nullptr;
+        std::atomic<float>* fxSaturationDrive = nullptr;
+        std::atomic<float>* fxDelayEnabled = nullptr;
+        std::atomic<float>* fxDelayMix = nullptr;
+        std::atomic<float>* fxDelaySyncDivision = nullptr;
+        std::atomic<float>* fxDelayFeedback = nullptr;
+        std::atomic<float>* fxReverbEnabled = nullptr;
+        std::atomic<float>* fxReverbMix = nullptr;
+        std::atomic<float>* fxReverbDecay = nullptr;
+        std::atomic<float>* fxChorusEnabled = nullptr;
+        std::atomic<float>* fxChorusMix = nullptr;
+        std::atomic<float>* fxChorusRateHz = nullptr;
+        std::atomic<float>* fxChorusDepthMs = nullptr;
+        std::atomic<float>* qualityRealtimeMode = nullptr;
+        std::atomic<float>* qualityOfflineMode = nullptr;
         std::array<RawTransModSlot, synth::transModSlotCount> transMod {};
         std::atomic<float>* macroMotion = nullptr;
         std::atomic<float>* macroWidth = nullptr;
@@ -157,7 +174,7 @@ private:
     };
 
     void cacheParameterPointers();
-    synth::SynthParameters readParameters(float tempoBpm) const noexcept;
+    synth::SynthParameters readParameters(float tempoBpm, bool offlineRender) const noexcept;
     float currentTempoBpm() const noexcept;
     void handleMidiMessage(const juce::MidiMessage& message) noexcept;
     synth::RenderStats renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept;

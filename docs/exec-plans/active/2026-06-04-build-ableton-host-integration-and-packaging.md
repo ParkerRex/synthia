@@ -33,12 +33,12 @@ Synth is not useful until it loads and restores correctly in Ableton. After this
 - [x] Add local development install scripts.
 - [x] Add architecture/signing checks.
 - [x] Run early Ableton AU and VST3 scan/load/play/reopen smoke validation.
-- [ ] Run full Ableton automation and bounce validation after UI/preset workflow is in place.
+- [ ] Run full Ableton automation and bounce validation against the current UI/preset/FX build.
 - [ ] Document install, uninstall, and host troubleshooting.
 
 ## Surprises & Discoveries
 
-2026-06-05: Ableton is available on the next development laptop, so this slice can begin as an early host-smoke pass before the final UI/FX slices. Full release acceptance still waits for UI, FX/quality, packaging, and release hardening.
+2026-06-05: Ableton is available on the next development laptop, so this slice began as an early host-smoke pass before the final UI/FX slices. Full host validation can now run against the current UI/preset/FX build; release acceptance still waits for packaging and release hardening.
 
 2026-06-05: A `build-release` single-config CMake build writes plugin bundles under `build-release/SynthPlugin_artefacts/Release/`, while the first helper script versions assumed bundles lived directly under `SynthPlugin_artefacts/`. The scripts now resolve root and config-scoped layouts before checking or installing.
 
@@ -58,7 +58,7 @@ Pending implementation.
 
 ## Context and Orientation
 
-Full host-release acceptance depends on a working plugin, editor, presets, validation harness, and FX/quality state. An early Ableton smoke pass can start now because AU/VST3 bundles, dry-core DSP, factory presets, and standalone validation exist.
+Full host-release acceptance depends on a working plugin, editor, presets, validation harness, and FX/quality state. The next validation pass should exercise the current AU/VST3 bundles with UI, preset restore, automation, wet/dry behavior, and bounce checks.
 
 Ableton docs identify macOS plugin folders under `/Library/Audio/Plug-Ins/Components/` and `/Library/Audio/Plug-Ins/VST3/`, with per-user equivalents also available.
 

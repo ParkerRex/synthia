@@ -44,6 +44,8 @@ set(SYNTH_COMMON_SOURCES
     src/dsp/SynthEngine.cpp
     src/dsp/SynthEngine.h
     src/dsp/SynthParameters.h
+    src/dsp/fx/FxChain.cpp
+    src/dsp/fx/FxChain.h
     src/plugin/ParameterRegistry.cpp
     src/plugin/ParameterRegistry.h
     src/presets/PresetManager.cpp

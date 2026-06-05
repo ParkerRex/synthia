@@ -10,8 +10,8 @@ Current scaffold:
 - `SynthSmokeTest` is the first CTest target.
 - `SynthContractTest` validates parameter registry, preset files, and APVTS state round-trip.
 - `SynthVoiceCoreTest` validates envelope, LFO reset, voice allocation, and engine note release.
-- `SynthDspCoreTest` validates oscillator, filter, ramp, glide, velocity glide, direct routes, TransMod scalers, and voice/unison/random/performance modulation sources.
-- `SynthRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`.
+- `SynthDspCoreTest` validates oscillator, filter, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, and FX bypass/delay/tail safety.
+- `SynthRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`, including dry and wet factory pluck reports.
 
 ## Component Stack
 
@@ -111,6 +111,8 @@ Existing scaffold files:
 - `src/dsp/Ramp.cpp`
 - `src/dsp/SynthEngine.h`
 - `src/dsp/SynthEngine.cpp`
+- `src/dsp/fx/FxChain.h`
+- `src/dsp/fx/FxChain.cpp`
 - `src/presets/PresetValidator.h`
 - `src/presets/PresetValidator.cpp`
 - `src/voice/Voice.h`
@@ -148,13 +150,13 @@ Each parameter needs:
 
 Current registry status:
 
-- 144 parameter IDs.
-- Voice, oscillator, filter, amp, envelopes, LFO, ramp, direct modulation, FX, macros, and eight TransMod-style slots with physical destination depths are represented.
+- 156 parameter IDs.
+- Voice, oscillator, filter, amp, envelopes, LFO, ramp, direct modulation, FX, realtime/offline quality modes, macros, and eight TransMod-style slots with physical destination depths are represented.
 - Host state uses `AudioProcessorValueTreeState` with schema metadata.
 
 Current editor and preset status:
 
-- `PluginEditor` is a clean-room dark control surface with a preset header, diagnostics, panic, and a scrollable set of sections for Voice, Oscillator, Filter, Envelopes, LFO, Ramp, Direct Mod, Amp/Stereo, Macros, FX placeholder parameters, and all eight TransMod slots.
+- `PluginEditor` is a clean-room dark control surface with a preset header, diagnostics, panic, and a scrollable set of sections for Voice, Oscillator, Filter, Envelopes, LFO, Ramp, Direct Mod, Amp/Stereo, Macros, FX, Quality, and all eight TransMod slots.
 - Editor controls are constructed against `ParameterRegistry` IDs and use APVTS attachments for sliders, combo boxes, and toggles so UI edits reach the same host-automatable parameters as presets and host state.
 - `PresetManager` scans bundled factory presets with a source-directory development fallback, scans user presets from `~/Music/ParkerX/Synth/Presets`, validates preset JSON before load, prepares defaults-plus-overrides APVTS state for one-shot replacement, maps canonical `mod_slots` objects into flat TransMod parameters, and writes schema-valid user preset JSON.
 - Processor diagnostics expose sample rate, block size, active voices, MIDI event count, invalid sample count, peak, current preset, and binary architecture to the editor without filesystem or UI work on the audio thread.
@@ -167,7 +169,8 @@ Current voice-core status:
 - `OscillatorStack` renders clean-room polyBLEP saw/pulse, deterministic noise, sub waveforms, stack detune, and hard sync.
 - `Filter` renders semitone-domain L2/L4/B2/B4/H2/H4/Peak2/Notch2/Notch4 nonlinear responses with drive/resonance compensation and interpolated oversampling sub-steps.
 - `Voice` applies direct pitch/pulse/cutoff routes, ramp, glide, velocity glide, TransMod scalers, synced or Hz LFO rates, per-voice/mono LFO behavior, amp envelope, amp drive, level, pan spread, unison spread, analog variation, performance MIDI sources, and macro influence.
-- `SynthRender` can write oscillator, filter, modulation, voice, preset validation, dry-core factory pluck, LFO ablation, determinism, and core-suite summary reports using the requested preset and MIDI fixture.
+- `FxChain` applies bypassable post-voice saturation, chorus, tempo-synced delay, and simple reverb. It allocates delay buffers during `prepare` and does not allocate in sample processing. `quality.realtime_mode` and `quality.offline_mode` select conservative processing variations without changing audio-thread resource allocation.
+- `SynthRender` can write oscillator, filter, modulation, voice, preset validation, dry-core factory pluck, wet factory pluck, LFO ablation, determinism, and core-suite summary reports using the requested preset and MIDI fixture.
 
 ## DSP Priorities
 
@@ -177,7 +180,6 @@ Highest priority:
 
 Lower priority:
 
-- onboard FX,
 - full compound filter mode set,
 - preset browser UI,
 - extended modulation processors.

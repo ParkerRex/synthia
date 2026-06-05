@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SynthParameters.h"
+#include "fx/FxChain.h"
 #include "../voice/VoiceAllocator.h"
 
 #include <cstddef>
@@ -44,5 +45,6 @@ private:
     SynthParameters parameters;
     PerformanceState performance;
     VoiceAllocator voices { 32 };
+    FxChain fx;
 };
 } // namespace synth

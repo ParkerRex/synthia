@@ -138,10 +138,23 @@ std::vector<ParameterSpec> buildSpecs()
         floatParam("direct.pulse_mod_env", "Pulse Env Direct", "direct", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f),
 
         boolParam("fx.enabled", "FX Enabled", "fx", false),
+        boolParam("fx.saturation_enabled", "Saturation Enabled", "fx", true),
         floatParam("fx.saturation_mix", "Saturation Mix", "fx", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
+        floatParam("fx.saturation_drive", "Saturation Drive", "fx", "normalized", 0.0f, 1.0f, 0.35f, 0.0001f),
+        boolParam("fx.delay_enabled", "Delay Enabled", "fx", true),
         floatParam("fx.delay_mix", "Delay Mix", "fx", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
+        choiceParam("fx.delay_sync_division", "Delay Sync", "fx", {"1/16", "1/8", "1/8D", "1/4", "1/2"}, 1),
+        floatParam("fx.delay_feedback", "Delay Feedback", "fx", "normalized", 0.0f, 0.86f, 0.22f, 0.0001f),
+        boolParam("fx.reverb_enabled", "Reverb Enabled", "fx", true),
         floatParam("fx.reverb_mix", "Reverb Mix", "fx", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
+        floatParam("fx.reverb_decay", "Reverb Decay", "fx", "normalized", 0.0f, 1.0f, 0.35f, 0.0001f),
+        boolParam("fx.chorus_enabled", "Chorus Enabled", "fx", false),
         floatParam("fx.chorus_mix", "Chorus Mix", "fx", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
+        floatParam("fx.chorus_rate_hz", "Chorus Rate", "fx", "Hz", 0.02f, 8.0f, 0.35f, 0.0001f, 0.35f),
+        floatParam("fx.chorus_depth_ms", "Chorus Depth", "fx", "milliseconds", 0.1f, 24.0f, 5.0f, 0.01f, 0.35f),
+
+        choiceParam("quality.realtime_mode", "Realtime Quality", "quality", {"Eco", "Normal", "High"}, 1),
+        choiceParam("quality.offline_mode", "Offline Quality", "quality", {"Eco", "Normal", "High"}, 2),
 
         floatParam("macro.motion", "Motion", "macro", "normalized", 0.0f, 1.0f, 0.5f, 0.0001f),
         floatParam("macro.width", "Width", "macro", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),

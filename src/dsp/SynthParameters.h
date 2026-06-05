@@ -74,6 +74,22 @@ enum class RampCurve
     Snappy = 2
 };
 
+enum class QualityMode
+{
+    Eco = 0,
+    Normal = 1,
+    High = 2
+};
+
+enum class DelaySyncDivision
+{
+    Sixteenth = 0,
+    Eighth = 1,
+    DottedEighth = 2,
+    Quarter = 3,
+    Half = 4
+};
+
 enum class ModSource
 {
     None = 0,
@@ -180,6 +196,32 @@ struct MacroParameters
     float space = 0.0f;
 };
 
+struct FxParameters
+{
+    bool enabled = false;
+    bool saturationEnabled = true;
+    float saturationMix = 0.0f;
+    float saturationDrive = 0.35f;
+    bool delayEnabled = true;
+    float delayMix = 0.0f;
+    DelaySyncDivision delaySyncDivision = DelaySyncDivision::Eighth;
+    float delayFeedback = 0.22f;
+    bool reverbEnabled = true;
+    float reverbMix = 0.0f;
+    float reverbDecay = 0.35f;
+    bool chorusEnabled = false;
+    float chorusMix = 0.0f;
+    float chorusRateHz = 0.35f;
+    float chorusDepthMs = 5.0f;
+};
+
+struct QualityParameters
+{
+    QualityMode realtimeMode = QualityMode::Normal;
+    QualityMode offlineMode = QualityMode::High;
+    QualityMode activeMode = QualityMode::Normal;
+};
+
 struct RampParameters
 {
     bool enabled = false;
@@ -232,6 +274,8 @@ struct SynthParameters
     RampParameters ramp;
     TransModParameters transMod;
     MacroParameters macro;
+    FxParameters fx;
+    QualityParameters quality;
     PerformanceState performance;
     float tempoBpm = 128.0f;
 };

@@ -56,9 +56,23 @@
     "amp.level_db": -6.0,
     "amp.pan_spread": 0.65,
     "amp.analog": 0.08,
+    "fx.enabled": true,
+    "fx.saturation_enabled": true,
     "fx.saturation_mix": 0.05,
+    "fx.saturation_drive": 0.38,
+    "fx.delay_enabled": true,
     "fx.delay_mix": 0.12,
+    "fx.delay_sync_division": "1/8",
+    "fx.delay_feedback": 0.24,
+    "fx.reverb_enabled": true,
     "fx.reverb_mix": 0.08,
+    "fx.reverb_decay": 0.38,
+    "fx.chorus_enabled": true,
+    "fx.chorus_mix": 0.04,
+    "fx.chorus_rate_hz": 0.32,
+    "fx.chorus_depth_ms": 4.5,
+    "quality.realtime_mode": "Normal",
+    "quality.offline_mode": "High",
     "macro.motion": 0.5,
     "macro.width": 0.65,
     "macro.drive": 0.32,
@@ -109,7 +123,20 @@
       "id": "space",
       "display_name": "Space",
       "value": 0.12,
-      "assignments": []
+      "assignments": [
+        {
+          "target_id": "fx.delay_mix",
+          "min": 0.0,
+          "max": 0.35,
+          "curve": "linear"
+        },
+        {
+          "target_id": "fx.reverb_mix",
+          "min": 0.0,
+          "max": 0.45,
+          "curve": "linear"
+        }
+      ]
     }
   ],
   "metadata": {

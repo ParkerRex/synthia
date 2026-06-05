@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <string_view>
 #include <system_error>
 
 #if JUCE_MAC
@@ -344,7 +345,25 @@ juce::var currentMacroArray(const juce::AudioProcessorValueTreeState& parameters
         object->setProperty("id", macro.id);
         object->setProperty("display_name", macro.displayName);
         object->setProperty("value", floatValue(parameters, macro.parameterId));
-        object->setProperty("assignments", juce::Array<juce::var> {});
+        auto assignments = juce::Array<juce::var> {};
+        if (std::string_view(macro.id) == "space")
+        {
+            auto delayAssignment = std::make_unique<juce::DynamicObject>();
+            delayAssignment->setProperty("target_id", "fx.delay_mix");
+            delayAssignment->setProperty("min", 0.0);
+            delayAssignment->setProperty("max", 0.35);
+            delayAssignment->setProperty("curve", "linear");
+            assignments.add(juce::var(delayAssignment.release()));
+
+            auto reverbAssignment = std::make_unique<juce::DynamicObject>();
+            reverbAssignment->setProperty("target_id", "fx.reverb_mix");
+            reverbAssignment->setProperty("min", 0.0);
+            reverbAssignment->setProperty("max", 0.45);
+            reverbAssignment->setProperty("curve", "linear");
+            assignments.add(juce::var(reverbAssignment.release()));
+        }
+
+        object->setProperty("assignments", assignments);
         values.add(juce::var(object.release()));
     }
 

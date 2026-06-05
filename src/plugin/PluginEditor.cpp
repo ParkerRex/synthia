@@ -507,7 +507,14 @@ void SynthAudioProcessorEditor::buildSections()
     });
 
     addSection("FX", {
-        "fx.enabled", "fx.saturation_mix", "fx.delay_mix", "fx.reverb_mix", "fx.chorus_mix"
+        "fx.enabled", "fx.saturation_enabled", "fx.saturation_mix", "fx.saturation_drive",
+        "fx.delay_enabled", "fx.delay_mix", "fx.delay_sync_division", "fx.delay_feedback",
+        "fx.reverb_enabled", "fx.reverb_mix", "fx.reverb_decay",
+        "fx.chorus_enabled", "fx.chorus_mix", "fx.chorus_rate_hz", "fx.chorus_depth_ms"
+    });
+
+    addSection("Quality", {
+        "quality.realtime_mode", "quality.offline_mode"
     });
 
     transModSection = std::make_unique<TransModSectionComponent>(state);

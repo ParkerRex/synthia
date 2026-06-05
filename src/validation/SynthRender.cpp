@@ -31,6 +31,7 @@ struct Options
     bool modulationTest = false;
     bool presetRender = false;
     bool dry = false;
+    bool wet = false;
     std::string suite;
     std::filesystem::path output = "build/reports/smoke.json";
     std::filesystem::path report = "build/reports/render.json";
@@ -117,6 +118,10 @@ Options parseOptions(int argc, char* argv[])
         {
             options.dry = true;
         }
+        else if (arg == "--wet")
+        {
+            options.wet = true;
+        }
         else if (arg == "--notes" && i + 1 < argc)
         {
             options.notes = argv[++i];
@@ -141,6 +146,7 @@ Options parseOptions(int argc, char* argv[])
             std::cout << "  SynthRender --modulation-test --fixture <path> --output <path>\n";
             std::cout << "  SynthRender --suite core --output-dir <dir>\n";
             std::cout << "  SynthRender --preset <json> --fixture <path> --dry --output <wav> --report <json>\n";
+            std::cout << "  SynthRender --preset <json> --fixture <path> --wet --output <wav> --report <json>\n";
             std::exit(0);
         }
     }
@@ -833,6 +839,23 @@ void applyPresetValue(synth::SynthParameters& parameters, const std::string& id,
     else if (id == "direct.pulse_keytrack") parameters.direct.pulseKeytrack = numeric;
     else if (id == "direct.pulse_lfo") parameters.direct.pulseLfo = numeric;
     else if (id == "direct.pulse_mod_env") parameters.direct.pulseModEnv = numeric;
+    else if (id == "fx.enabled") parameters.fx.enabled = numeric >= 0.5f;
+    else if (id == "fx.saturation_enabled") parameters.fx.saturationEnabled = numeric >= 0.5f;
+    else if (id == "fx.saturation_mix") parameters.fx.saturationMix = numeric;
+    else if (id == "fx.saturation_drive") parameters.fx.saturationDrive = numeric;
+    else if (id == "fx.delay_enabled") parameters.fx.delayEnabled = numeric >= 0.5f;
+    else if (id == "fx.delay_mix") parameters.fx.delayMix = numeric;
+    else if (id == "fx.delay_sync_division") parameters.fx.delaySyncDivision = static_cast<synth::DelaySyncDivision>(choice);
+    else if (id == "fx.delay_feedback") parameters.fx.delayFeedback = numeric;
+    else if (id == "fx.reverb_enabled") parameters.fx.reverbEnabled = numeric >= 0.5f;
+    else if (id == "fx.reverb_mix") parameters.fx.reverbMix = numeric;
+    else if (id == "fx.reverb_decay") parameters.fx.reverbDecay = numeric;
+    else if (id == "fx.chorus_enabled") parameters.fx.chorusEnabled = numeric >= 0.5f;
+    else if (id == "fx.chorus_mix") parameters.fx.chorusMix = numeric;
+    else if (id == "fx.chorus_rate_hz") parameters.fx.chorusRateHz = numeric;
+    else if (id == "fx.chorus_depth_ms") parameters.fx.chorusDepthMs = numeric;
+    else if (id == "quality.realtime_mode") parameters.quality.realtimeMode = static_cast<synth::QualityMode>(choice);
+    else if (id == "quality.offline_mode") parameters.quality.offlineMode = static_cast<synth::QualityMode>(choice);
     else if (id == "ramp.enabled") parameters.ramp.enabled = numeric >= 0.5f;
     else if (id == "ramp.mode") parameters.ramp.mode = static_cast<synth::RampMode>(choice);
     else if (id == "ramp.delay_ms") parameters.ramp.delayMs = numeric;
@@ -1511,6 +1534,12 @@ enum class PresetRenderVariant
     MonoLfo
 };
 
+enum class RenderFxMode
+{
+    Dry,
+    Wet
+};
+
 const char* toString(PresetRenderVariant variant) noexcept
 {
     switch (variant)
@@ -1518,6 +1547,29 @@ const char* toString(PresetRenderVariant variant) noexcept
         case PresetRenderVariant::Default: return "default";
         case PresetRenderVariant::PerVoiceLfo: return "per_voice_lfo";
         case PresetRenderVariant::MonoLfo: return "mono_lfo";
+    }
+
+    return "unknown";
+}
+
+const char* toString(RenderFxMode mode) noexcept
+{
+    switch (mode)
+    {
+        case RenderFxMode::Dry: return "dry";
+        case RenderFxMode::Wet: return "wet";
+    }
+
+    return "unknown";
+}
+
+const char* toString(synth::QualityMode mode) noexcept
+{
+    switch (mode)
+    {
+        case synth::QualityMode::Eco: return "eco";
+        case synth::QualityMode::Normal: return "normal";
+        case synth::QualityMode::High: return "high";
     }
 
     return "unknown";
@@ -1534,6 +1586,10 @@ struct PresetRenderResult
     int sampleCount = 0;
     int fixtureEvents = 0;
     int invalidDuringRender = 0;
+    int tempoSyncedDelaySamples = 0;
+    float delayDivisionBeats = 0.0f;
+    float fxTailSeconds = 0.0f;
+    synth::QualityMode qualityMode = synth::QualityMode::Normal;
     float noteLocalLfoSpread = 0.0f;
     bool noteLocalMotionPassed = false;
     bool passed = false;
@@ -1541,7 +1597,8 @@ struct PresetRenderResult
 
 PresetRenderResult renderPresetAudio(const std::filesystem::path& presetPath,
                                      const std::filesystem::path& fixturePath,
-                                     PresetRenderVariant variant)
+                                     PresetRenderVariant variant,
+                                     RenderFxMode fxMode = RenderFxMode::Dry)
 {
     PresetRenderResult result;
     synth::SynthParameters parameters;
@@ -1558,6 +1615,18 @@ PresetRenderResult renderPresetAudio(const std::filesystem::path& presetPath,
         parameters.lfo.mono = false;
         parameters.lfo.gateMode = synth::LfoGateMode::PolyOn;
     }
+
+    parameters.quality.activeMode = parameters.quality.offlineMode;
+    if (fxMode == RenderFxMode::Dry)
+        parameters.fx.enabled = false;
+    else
+        parameters.fx.enabled = true;
+
+    result.qualityMode = parameters.quality.activeMode;
+    result.tempoSyncedDelaySamples = synth::tempoSyncedDelaySamples(result.sampleRate, parameters.tempoBpm,
+                                                                    parameters.fx.delaySyncDivision);
+    result.delayDivisionBeats = synth::delayDivisionBeats(parameters.fx.delaySyncDivision);
+    result.fxTailSeconds = synth::fxTailLengthSeconds(parameters.fx);
 
     std::vector<RenderEvent> events;
     if (!loadMidiFixture(fixturePath, result.sampleRate, events, result.error))
@@ -1641,7 +1710,7 @@ void writePresetRenderReport(const std::filesystem::path& reportPath,
                              const std::filesystem::path& presetPath,
                              const std::filesystem::path& fixturePath,
                              const std::filesystem::path& wavPath,
-                             bool dry,
+                             RenderFxMode fxMode,
                              PresetRenderVariant variant)
 {
     ensureParentDirectory(reportPath);
@@ -1649,15 +1718,22 @@ void writePresetRenderReport(const std::filesystem::path& reportPath,
     std::ofstream out(reportPath);
     out << "{\n";
     out << "  \"schema_version\": 1,\n";
-    out << "  \"suite\": \"preset-dry-render\",\n";
+    out << "  \"suite\": \"preset-" << toString(fxMode) << "-render\",\n";
     out << "  \"variant\": \"" << toString(variant) << "\",\n";
+    out << "  \"fx_mode\": \"" << toString(fxMode) << "\",\n";
     out << "  \"preset\": \"" << genericString(presetPath) << "\",\n";
     out << "  \"fixture\": \"" << genericString(fixturePath) << "\",\n";
     out << "  \"artifact_wav\": \"" << genericString(wavPath) << "\",\n";
     out << "  \"fixture_events\": " << result.fixtureEvents << ",\n";
-    out << "  \"dry\": " << boolString(dry) << ",\n";
+    out << "  \"dry\": " << boolString(fxMode == RenderFxMode::Dry) << ",\n";
+    out << "  \"wet\": " << boolString(fxMode == RenderFxMode::Wet) << ",\n";
     out << "  \"sample_rate\": " << result.sampleRate << ",\n";
     out << "  \"samples_rendered\": " << result.sampleCount << ",\n";
+    out << "  \"tempo_bpm\": 128,\n";
+    out << "  \"delay_division_beats\": " << result.delayDivisionBeats << ",\n";
+    out << "  \"tempo_synced_delay_samples\": " << result.tempoSyncedDelaySamples << ",\n";
+    out << "  \"fx_tail_seconds\": " << result.fxTailSeconds << ",\n";
+    out << "  \"quality_mode\": \"" << toString(result.qualityMode) << "\",\n";
     out << "  \"peak\": " << result.metrics.peak << ",\n";
     out << "  \"rms\": " << result.metrics.rms << ",\n";
     out << "  \"rms_dbfs\": " << result.metrics.rmsDbfs << ",\n";
@@ -1675,7 +1751,9 @@ void writePresetRenderReport(const std::filesystem::path& reportPath,
 
 int renderPreset(const Options& options)
 {
-    const auto result = renderPresetAudio(options.presetPath, options.fixturePath, PresetRenderVariant::Default);
+    const auto fxMode = options.wet && !options.dry ? RenderFxMode::Wet : RenderFxMode::Dry;
+    const auto result = renderPresetAudio(options.presetPath, options.fixturePath,
+                                          PresetRenderVariant::Default, fxMode);
     if (!result.ok)
     {
         std::cerr << result.error << "\n";
@@ -1684,7 +1762,7 @@ int renderPreset(const Options& options)
 
     writeWav16(options.output, result.left, result.right, result.sampleRate);
     writePresetRenderReport(options.report, result, options.presetPath, options.fixturePath,
-                            options.output, options.dry, PresetRenderVariant::Default);
+                            options.output, fxMode, PresetRenderVariant::Default);
     return result.passed ? 0 : 1;
 }
 
@@ -1955,8 +2033,33 @@ int writeCoreSuite(const Options& options)
         {
             writeWav16(wavPath, render.left, render.right, render.sampleRate);
             writePresetRenderReport(reportPath, render, presetPath, fixturePath, wavPath,
-                                    true, PresetRenderVariant::Default);
+                                    RenderFxMode::Dry, PresetRenderVariant::Default);
             addItem("pluck-core-01-dry", reportPath, render.passed ? 0 : 1);
+        }
+    }
+
+    {
+        const auto reportPath = outputDir / "pluck-core-01-wet.json";
+        const auto wavPath = artifactDir / "pluck-core-01-wet.wav";
+        const auto render = renderPresetAudio(presetPath, fixturePath,
+                                              PresetRenderVariant::Default,
+                                              RenderFxMode::Wet);
+        if (!render.ok)
+        {
+            writeFailureReport(reportPath, "preset-wet-render", render.error);
+            addItem("pluck-core-01-wet", reportPath, 1);
+        }
+        else
+        {
+            writeWav16(wavPath, render.left, render.right, render.sampleRate);
+            writePresetRenderReport(reportPath, render, presetPath, fixturePath, wavPath,
+                                    RenderFxMode::Wet, PresetRenderVariant::Default);
+            const auto expectedDelaySamples = synth::tempoSyncedDelaySamples(render.sampleRate, 128.0f,
+                                                                             synth::DelaySyncDivision::Eighth);
+            const auto wetPassed = render.passed
+                && render.fxTailSeconds > 0.5f
+                && std::abs(render.tempoSyncedDelaySamples - expectedDelaySamples) <= 1;
+            addItem("pluck-core-01-wet", reportPath, wetPassed ? 0 : 1);
         }
     }
 

@@ -18,6 +18,7 @@ void SynthEngine::prepare(double newSampleRate, int newMaxBlockSize)
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
     maxBlockSize = std::max(1, newMaxBlockSize);
     voices.prepare(sampleRate);
+    fx.prepare(sampleRate, maxBlockSize);
     reset();
 }
 
@@ -26,6 +27,7 @@ void SynthEngine::reset() noexcept
     performance = {};
     parameters.performance = performance;
     voices.panic();
+    fx.reset();
 }
 
 void SynthEngine::noteOn(int midiNote, float velocity) noexcept
@@ -150,6 +152,19 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
     parameters.macro.width = std::clamp(finiteOr(parameters.macro.width, defaults.macro.width), 0.0f, 1.0f);
     parameters.macro.drive = std::clamp(finiteOr(parameters.macro.drive, defaults.macro.drive), 0.0f, 1.0f);
     parameters.macro.space = std::clamp(finiteOr(parameters.macro.space, defaults.macro.space), 0.0f, 1.0f);
+    parameters.fx.saturationMix = std::clamp(finiteOr(parameters.fx.saturationMix, defaults.fx.saturationMix), 0.0f, 1.0f);
+    parameters.fx.saturationDrive = std::clamp(finiteOr(parameters.fx.saturationDrive, defaults.fx.saturationDrive), 0.0f, 1.0f);
+    parameters.fx.delayMix = std::clamp(finiteOr(parameters.fx.delayMix, defaults.fx.delayMix), 0.0f, 1.0f);
+    parameters.fx.delaySyncDivision = static_cast<DelaySyncDivision>(std::clamp(static_cast<int>(parameters.fx.delaySyncDivision), 0, 4));
+    parameters.fx.delayFeedback = std::clamp(finiteOr(parameters.fx.delayFeedback, defaults.fx.delayFeedback), 0.0f, 0.86f);
+    parameters.fx.reverbMix = std::clamp(finiteOr(parameters.fx.reverbMix, defaults.fx.reverbMix), 0.0f, 1.0f);
+    parameters.fx.reverbDecay = std::clamp(finiteOr(parameters.fx.reverbDecay, defaults.fx.reverbDecay), 0.0f, 1.0f);
+    parameters.fx.chorusMix = std::clamp(finiteOr(parameters.fx.chorusMix, defaults.fx.chorusMix), 0.0f, 1.0f);
+    parameters.fx.chorusRateHz = std::clamp(finiteOr(parameters.fx.chorusRateHz, defaults.fx.chorusRateHz), 0.02f, 8.0f);
+    parameters.fx.chorusDepthMs = std::clamp(finiteOr(parameters.fx.chorusDepthMs, defaults.fx.chorusDepthMs), 0.1f, 24.0f);
+    parameters.quality.realtimeMode = static_cast<QualityMode>(std::clamp(static_cast<int>(parameters.quality.realtimeMode), 0, 2));
+    parameters.quality.offlineMode = static_cast<QualityMode>(std::clamp(static_cast<int>(parameters.quality.offlineMode), 0, 2));
+    parameters.quality.activeMode = static_cast<QualityMode>(std::clamp(static_cast<int>(parameters.quality.activeMode), 0, 2));
     parameters.tempoBpm = std::clamp(finiteOr(parameters.tempoBpm, defaults.tempoBpm), 20.0f, 300.0f);
 }
 
@@ -161,8 +176,9 @@ RenderStats SynthEngine::process(float* left, float* right, int numSamples) noex
     for (int i = 0; i < stats.samplesRendered; ++i)
     {
         const auto frame = voices.renderSample(parameters);
-        auto l = frame.left;
-        auto r = frame.right;
+        const auto fxFrame = fx.process({ frame.left, frame.right }, parameters);
+        auto l = fxFrame.left;
+        auto r = fxFrame.right;
 
         if (!std::isfinite(l))
         {

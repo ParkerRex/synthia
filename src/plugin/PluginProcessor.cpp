@@ -84,7 +84,7 @@ void SynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
         return;
     }
 
-    auto parameterSnapshot = readParameters(currentTempoBpm());
+    auto parameterSnapshot = readParameters(currentTempoBpm(), isNonRealtime());
     const auto sequenceAfterRead = parameterStateSequence.load(std::memory_order_acquire);
     if (sequenceBeforeRead != sequenceAfterRead || (sequenceAfterRead & 1u) != 0u)
     {
@@ -264,6 +264,23 @@ void SynthAudioProcessor::cacheParameterPointers()
     raw.directPulseKeytrack = get("direct.pulse_keytrack");
     raw.directPulseLfo = get("direct.pulse_lfo");
     raw.directPulseModEnv = get("direct.pulse_mod_env");
+    raw.fxEnabled = get("fx.enabled");
+    raw.fxSaturationEnabled = get("fx.saturation_enabled");
+    raw.fxSaturationMix = get("fx.saturation_mix");
+    raw.fxSaturationDrive = get("fx.saturation_drive");
+    raw.fxDelayEnabled = get("fx.delay_enabled");
+    raw.fxDelayMix = get("fx.delay_mix");
+    raw.fxDelaySyncDivision = get("fx.delay_sync_division");
+    raw.fxDelayFeedback = get("fx.delay_feedback");
+    raw.fxReverbEnabled = get("fx.reverb_enabled");
+    raw.fxReverbMix = get("fx.reverb_mix");
+    raw.fxReverbDecay = get("fx.reverb_decay");
+    raw.fxChorusEnabled = get("fx.chorus_enabled");
+    raw.fxChorusMix = get("fx.chorus_mix");
+    raw.fxChorusRateHz = get("fx.chorus_rate_hz");
+    raw.fxChorusDepthMs = get("fx.chorus_depth_ms");
+    raw.qualityRealtimeMode = get("quality.realtime_mode");
+    raw.qualityOfflineMode = get("quality.offline_mode");
     for (int slot = 0; slot < synth::transModSlotCount; ++slot)
     {
         const auto prefix = "transmod." + std::to_string(slot + 1) + ".";
@@ -284,7 +301,7 @@ void SynthAudioProcessor::cacheParameterPointers()
     raw.macroSpace = get("macro.space");
 }
 
-synth::SynthParameters SynthAudioProcessor::readParameters(float tempoBpm) const noexcept
+synth::SynthParameters SynthAudioProcessor::readParameters(float tempoBpm, bool offlineRender) const noexcept
 {
     auto value = [](const std::atomic<float>* parameter, float fallback) noexcept {
         const auto loaded = parameter != nullptr ? parameter->load(std::memory_order_relaxed) : fallback;
@@ -351,6 +368,24 @@ synth::SynthParameters SynthAudioProcessor::readParameters(float tempoBpm) const
     snapshot.direct.pulseKeytrack = value(raw.directPulseKeytrack, 0.0f);
     snapshot.direct.pulseLfo = value(raw.directPulseLfo, 0.0f);
     snapshot.direct.pulseModEnv = value(raw.directPulseModEnv, 0.0f);
+    snapshot.fx.enabled = value(raw.fxEnabled, 0.0f) >= 0.5f;
+    snapshot.fx.saturationEnabled = value(raw.fxSaturationEnabled, 1.0f) >= 0.5f;
+    snapshot.fx.saturationMix = value(raw.fxSaturationMix, 0.0f);
+    snapshot.fx.saturationDrive = value(raw.fxSaturationDrive, 0.35f);
+    snapshot.fx.delayEnabled = value(raw.fxDelayEnabled, 1.0f) >= 0.5f;
+    snapshot.fx.delayMix = value(raw.fxDelayMix, 0.0f);
+    snapshot.fx.delaySyncDivision = static_cast<synth::DelaySyncDivision>(static_cast<int>(std::round(value(raw.fxDelaySyncDivision, 1.0f))));
+    snapshot.fx.delayFeedback = value(raw.fxDelayFeedback, 0.22f);
+    snapshot.fx.reverbEnabled = value(raw.fxReverbEnabled, 1.0f) >= 0.5f;
+    snapshot.fx.reverbMix = value(raw.fxReverbMix, 0.0f);
+    snapshot.fx.reverbDecay = value(raw.fxReverbDecay, 0.35f);
+    snapshot.fx.chorusEnabled = value(raw.fxChorusEnabled, 0.0f) >= 0.5f;
+    snapshot.fx.chorusMix = value(raw.fxChorusMix, 0.0f);
+    snapshot.fx.chorusRateHz = value(raw.fxChorusRateHz, 0.35f);
+    snapshot.fx.chorusDepthMs = value(raw.fxChorusDepthMs, 5.0f);
+    snapshot.quality.realtimeMode = static_cast<synth::QualityMode>(static_cast<int>(std::round(value(raw.qualityRealtimeMode, 1.0f))));
+    snapshot.quality.offlineMode = static_cast<synth::QualityMode>(static_cast<int>(std::round(value(raw.qualityOfflineMode, 2.0f))));
+    snapshot.quality.activeMode = offlineRender ? snapshot.quality.offlineMode : snapshot.quality.realtimeMode;
     for (int slot = 0; slot < synth::transModSlotCount; ++slot)
     {
         const auto& rawSlot = raw.transMod[static_cast<std::size_t>(slot)];

@@ -16,6 +16,7 @@ ctest --test-dir build --output-on-failure
 ./build/SynthRender --filter-test --output build/reports/filter.json
 ./build/SynthRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
 ./build/SynthRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
+./build/SynthRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --wet --output build/renders/pluck-core-01-wet.wav --report build/reports/pluck-core-01-wet.json
 ./build/SynthRender --suite core --output-dir build/reports/core
 ```
 
@@ -23,7 +24,7 @@ The current smoke render is intentionally note-less and proves initialization, f
 
 The current contract validation proves:
 
-- 144 unique parameter IDs,
+- 156 unique parameter IDs,
 - valid defaults and ranges,
 - APVTS state round-trip,
 - two clean-room factory preset JSON files,
@@ -52,7 +53,8 @@ The current DSP validation proves:
 - `Pluck Core 01` dry render loads the requested preset and MIDI fixture, writes a finite non-clipping WAV/report, and records note-local LFO spread during overlapping notes.
 - ramp timing, glide, velocity glide, direct keytrack/LFO/envelope routes, TransMod scaler multiplication to many physical destinations, performance MIDI sources, voice/unison/random source spread, and fixture trace ranges.
 - top-level `mod_slots` preset schema objects are applied by render loading, including schema-only modulation fixtures that omit flat APVTS-style `transmod.*` parameters.
-- `SynthRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, dry pluck, LFO ablation, and determinism reports in one command.
+- FX bypass stays null-equivalent to dry rendering when globally bypassed, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported, and wet output remains finite and non-clipping.
+- `SynthRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
 - `SynthRenderCoreSuite` runs the core suite under CTest.
 
 Preset render validation is expected to fail if the preset file is missing, the preset JSON is invalid, the MIDI fixture is missing, the fixture is not a valid MIDI file, or the fixture has no note events.
@@ -95,6 +97,7 @@ Current standalone core-suite artifacts:
 
 - `summary.json`: aggregate pass/fail for all core reports.
 - `pluck-core-01-dry.json`: dry factory pluck metrics plus WAV artifact path.
+- `pluck-core-01-wet.json`: wet factory pluck metrics plus WAV artifact path, FX mode, delay division, tempo-synced delay samples, tail length, and active quality mode.
 - `lfo-ablation.json`: compares per-voice LFO and mono LFO renders using note-local LFO spread and audio difference.
 - `determinism.json`: renders the dry pluck twice and compares `max_abs_diff`, `rms_diff`, and `peak_delta` against fixed tolerances.
 - `artifacts/*.wav`: retained dry/per-voice/mono render WAVs.
@@ -155,6 +158,7 @@ Implemented standalone metrics:
 - `spectral_centroid_hz`: bounded-window DFT centroid for coarse spectral regression.
 - `stereo_correlation`: left/right correlation, useful for spread regressions.
 - `note_local_lfo_spread`: spread of per-voice LFO values while notes overlap.
+- `fx_mode`, `delay_division_beats`, `tempo_synced_delay_samples`, `fx_tail_seconds`, and `quality_mode`: wet-render proof for the onboard FX path.
 - `mod_slot_schema_passed`: modulation harness check that canonical preset `mod_slots` objects are loaded into runtime TransMod slots.
 - `max_abs_diff`, `rms_diff`, `peak_delta`: deterministic repeat comparison metrics.
 
