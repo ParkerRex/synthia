@@ -87,6 +87,51 @@ Current core validation covers:
 - top-level preset `mod_slots` schema loading and strict depth validation,
 - deterministic render repeatability and LFO ablation metrics.
 
+## Developer Handoff
+
+Use this when continuing development on another Mac, especially one with Ableton installed.
+
+Clone the private repo:
+
+```bash
+git clone https://github.com/ParkerRex/synth.git
+cd synth
+```
+
+Configure, build, and run the local validation suite:
+
+```bash
+cmake -S . -B build -DSYNTH_ENABLE_TESTS=ON
+cmake --build build --config Debug
+ctest --test-dir build --output-on-failure
+./build/SynthRender --suite core --output-dir build/reports/core
+```
+
+Install the locally built plug-ins for Ableton:
+
+```bash
+mkdir -p "$HOME/Library/Audio/Plug-Ins/Components"
+mkdir -p "$HOME/Library/Audio/Plug-Ins/VST3"
+
+rsync -a --delete \
+  build/SynthPlugin_artefacts/AU/Synth.component \
+  "$HOME/Library/Audio/Plug-Ins/Components/"
+
+rsync -a --delete \
+  build/SynthPlugin_artefacts/VST3/Synth.vst3 \
+  "$HOME/Library/Audio/Plug-Ins/VST3/"
+```
+
+Ableton validation checklist:
+
+- Enable Audio Units and VST3 in Ableton's Plug-Ins settings.
+- Rescan plug-ins after each local install.
+- Load the AU and VST3 builds on separate MIDI tracks.
+- Play the `fixtures/midi/overlap-pluck.mid` phrase or an equivalent overlapping-note pluck pattern.
+- Save, close, reopen, and confirm state restore.
+- Check mono, mono-legato, poly, unison, glide, velocity glide, ramp, and TransMod behavior against the standalone render reports.
+- Record any host-specific failure with the Ableton version, macOS version, plug-in format, sample rate, buffer size, and exact preset/state.
+
 ## Repository Map
 
 - `SPEC.md`: durable product requirements.
