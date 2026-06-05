@@ -46,6 +46,8 @@ set(SYNTH_COMMON_SOURCES
     src/dsp/SynthParameters.h
     src/plugin/ParameterRegistry.cpp
     src/plugin/ParameterRegistry.h
+    src/presets/PresetManager.cpp
+    src/presets/PresetManager.h
     src/presets/PresetValidator.cpp
     src/presets/PresetValidator.h
     src/voice/Voice.cpp
@@ -79,7 +81,9 @@ target_compile_definitions(SynthPlugin
     PUBLIC
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
-        JUCE_VST3_CAN_REPLACE_VST2=0)
+        JUCE_VST3_CAN_REPLACE_VST2=0
+        SYNTH_PROJECT_VERSION="${PROJECT_VERSION}"
+        SYNTH_FACTORY_PRESET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/presets/factory")
 
 target_link_libraries(SynthPlugin
     PRIVATE
@@ -108,7 +112,8 @@ target_link_libraries(SynthRender
 target_compile_definitions(SynthRender
     PRIVATE
         JUCE_WEB_BROWSER=0
-        JUCE_USE_CURL=0)
+        JUCE_USE_CURL=0
+        SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
 if(SYNTH_ENABLE_TESTS)
     enable_testing()
@@ -129,7 +134,8 @@ if(SYNTH_ENABLE_TESTS)
     target_compile_definitions(SynthSmokeTest
         PRIVATE
             JUCE_WEB_BROWSER=0
-            JUCE_USE_CURL=0)
+            JUCE_USE_CURL=0
+            SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
     add_test(NAME SynthSmokeTest COMMAND SynthSmokeTest)
     set_tests_properties(SynthSmokeTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -150,7 +156,8 @@ if(SYNTH_ENABLE_TESTS)
     target_compile_definitions(SynthContractTest
         PRIVATE
             JUCE_WEB_BROWSER=0
-            JUCE_USE_CURL=0)
+            JUCE_USE_CURL=0
+            SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
     add_test(NAME SynthContractTest COMMAND SynthContractTest)
     set_tests_properties(SynthContractTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -171,7 +178,8 @@ if(SYNTH_ENABLE_TESTS)
     target_compile_definitions(SynthVoiceCoreTest
         PRIVATE
             JUCE_WEB_BROWSER=0
-            JUCE_USE_CURL=0)
+            JUCE_USE_CURL=0
+            SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
     add_test(NAME SynthVoiceCoreTest COMMAND SynthVoiceCoreTest)
     set_tests_properties(SynthVoiceCoreTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -192,7 +200,8 @@ if(SYNTH_ENABLE_TESTS)
     target_compile_definitions(SynthDspCoreTest
         PRIVATE
             JUCE_WEB_BROWSER=0
-            JUCE_USE_CURL=0)
+            JUCE_USE_CURL=0
+            SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
     add_test(NAME SynthDspCoreTest COMMAND SynthDspCoreTest)
     set_tests_properties(SynthDspCoreTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")

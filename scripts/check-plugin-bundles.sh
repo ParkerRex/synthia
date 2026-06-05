@@ -3,12 +3,38 @@ set -euo pipefail
 
 build_dir="${1:-build}"
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-artifact_dir="$root_dir/$build_dir/SynthPlugin_artefacts"
+artifact_root="$root_dir/$build_dir/SynthPlugin_artefacts"
 
 fail() {
   printf 'error: %s\n' "$*" >&2
   exit 1
 }
+
+resolve_artifact_dir() {
+  local config_dir
+  local config_dirs=(Release Debug RelWithDebInfo MinSizeRel "")
+
+  if [[ -n "${2:-}" ]]; then
+    config_dirs=("$2" Release Debug RelWithDebInfo MinSizeRel "")
+  fi
+
+  for config_dir in "${config_dirs[@]}"; do
+    [[ -n "$config_dir" ]] || {
+      printf '%s\n' "$1"
+      return
+    }
+
+    [[ -d "$1/$config_dir" ]] || continue
+    [[ -d "$1/$config_dir/Standalone/Synth.app" ]] || continue
+    [[ -d "$1/$config_dir/AU/Synth.component" ]] || continue
+    [[ -d "$1/$config_dir/VST3/Synth.vst3" ]] || continue
+
+    printf '%s\n' "$1/$config_dir"
+    return
+  done
+}
+
+artifact_dir="$(resolve_artifact_dir "$artifact_root" "${2:-}")"
 
 check_bundle() {
   local label="$1"

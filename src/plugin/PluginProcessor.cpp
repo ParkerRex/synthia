@@ -1,6 +1,23 @@
 #include "PluginProcessor.h"
 
 #include "PluginEditor.h"
+#include "../presets/PresetManager.h"
+
+#include <algorithm>
+
+namespace
+{
+juce::String binaryArchitecture()
+{
+#if defined(__arm64__) || defined(__aarch64__)
+    return "arm64";
+#elif defined(__x86_64__) || defined(_M_X64)
+    return "x86_64";
+#else
+    return "unknown";
+#endif
+}
+} // namespace
 
 SynthAudioProcessor::SynthAudioProcessor()
     : AudioProcessor(BusesProperties()
@@ -13,6 +30,8 @@ SynthAudioProcessor::SynthAudioProcessor()
 void SynthAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     engine.prepare(sampleRate, samplesPerBlock);
+    diagnosticSampleRate.store(sampleRate, std::memory_order_relaxed);
+    diagnosticBlockSize.store(samplesPerBlock, std::memory_order_relaxed);
 }
 
 void SynthAudioProcessor::releaseResources()
@@ -30,6 +49,9 @@ bool SynthAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) con
 void SynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
+    if (panicRequested.exchange(false, std::memory_order_acq_rel))
+        engine.panic();
+
     engine.setParameters(readParameters(currentTempoBpm()));
 
     for (int channel = 2; channel < buffer.getNumChannels(); ++channel)
@@ -37,21 +59,38 @@ void SynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
 
     auto renderedUntil = 0;
     const auto totalSamples = buffer.getNumSamples();
+    auto blockPeak = 0.0f;
+    auto blockInvalidSamples = 0;
+    auto blockActiveVoices = 0;
+
     for (const auto metadata : midiMessages)
     {
         const auto eventSample = std::clamp(metadata.samplePosition, 0, totalSamples);
-        renderSegment(buffer, renderedUntil, eventSample - renderedUntil);
+        const auto segmentStats = renderSegment(buffer, renderedUntil, eventSample - renderedUntil);
+        blockPeak = std::max(blockPeak, segmentStats.peak);
+        blockInvalidSamples += segmentStats.invalidSamples;
+        blockActiveVoices = segmentStats.activeVoices;
         renderedUntil = eventSample;
 
         handleMidiMessage(metadata.getMessage());
     }
 
-    renderSegment(buffer, renderedUntil, totalSamples - renderedUntil);
+    const auto finalStats = renderSegment(buffer, renderedUntil, totalSamples - renderedUntil);
+    blockPeak = std::max(blockPeak, finalStats.peak);
+    blockInvalidSamples += finalStats.invalidSamples;
+    blockActiveVoices = finalStats.activeVoices;
+
+    diagnosticPeak.store(blockPeak, std::memory_order_relaxed);
+    diagnosticInvalidSamples.fetch_add(blockInvalidSamples, std::memory_order_relaxed);
+    diagnosticActiveVoices.store(blockActiveVoices, std::memory_order_relaxed);
+    diagnosticBlockSize.store(totalSamples, std::memory_order_relaxed);
     midiMessages.clear();
 }
 
 void SynthAudioProcessor::handleMidiMessage(const juce::MidiMessage& message) noexcept
 {
+    diagnosticMidiEvents.fetch_add(1, std::memory_order_relaxed);
+
     if (message.isNoteOn(false))
         engine.noteOn(message.getNoteNumber(), message.getFloatVelocity());
     else if (message.isNoteOff(true))
@@ -72,32 +111,37 @@ void SynthAudioProcessor::handleMidiMessage(const juce::MidiMessage& message) no
         engine.setAftertouch(static_cast<float>(message.getChannelPressureValue()) / 127.0f);
 }
 
-void SynthAudioProcessor::renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept
+synth::RenderStats SynthAudioProcessor::renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept
 {
     if (numSamples <= 0)
-        return;
+        return {};
 
     if (buffer.getNumChannels() <= 0)
     {
-        engine.process(nullptr, nullptr, numSamples);
-        return;
+        return engine.process(nullptr, nullptr, numSamples);
     }
 
     if (buffer.getNumChannels() > 1)
     {
-        engine.process(buffer.getWritePointer(0, startSample),
-                       buffer.getWritePointer(1, startSample),
-                       numSamples);
-        return;
+        return engine.process(buffer.getWritePointer(0, startSample),
+                              buffer.getWritePointer(1, startSample),
+                              numSamples);
     }
 
     auto* mono = buffer.getWritePointer(0, startSample);
     auto remaining = numSamples;
     auto offset = 0;
+    synth::RenderStats stats;
+    stats.samplesRendered = numSamples;
+
     while (remaining > 0)
     {
         const auto chunk = std::min(remaining, scratchCapacity);
-        engine.process(scratchLeft.data(), scratchRight.data(), chunk);
+        const auto chunkStats = engine.process(scratchLeft.data(), scratchRight.data(), chunk);
+        stats.invalidSamples += chunkStats.invalidSamples;
+        stats.peak = std::max(stats.peak, chunkStats.peak);
+        stats.activeVoices = chunkStats.activeVoices;
+
         for (int i = 0; i < chunk; ++i)
             mono[offset + i] = 0.5f * (scratchLeft[static_cast<std::size_t>(i)]
                 + scratchRight[static_cast<std::size_t>(i)]);
@@ -105,6 +149,8 @@ void SynthAudioProcessor::renderSegment(juce::AudioBuffer<float>& buffer, int st
         offset += chunk;
         remaining -= chunk;
     }
+
+    return stats;
 }
 
 void SynthAudioProcessor::cacheParameterPointers()
@@ -304,11 +350,99 @@ juce::AudioProcessorEditor* SynthAudioProcessor::createEditor()
     return new SynthAudioProcessorEditor(*this);
 }
 
+std::vector<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetList() const
+{
+    std::vector<PresetListItem> items;
+
+    auto append = [&items](const std::vector<synth::PresetSummary>& presets) {
+        for (const auto& preset : presets)
+        {
+            PresetListItem item;
+            item.displayName = preset.displayName.empty() ? juce::String(preset.path.stem().string())
+                                                          : juce::String(preset.displayName);
+            item.file = juce::File(juce::String(preset.path.string()));
+            item.factory = preset.factory;
+            items.push_back(item);
+        }
+    };
+
+#if defined(SYNTH_FACTORY_PRESET_DIR)
+    append(synth::scanPresetDirectory(SYNTH_FACTORY_PRESET_DIR, true));
+#else
+    append(synth::scanPresetDirectory("presets/factory", true));
+#endif
+    append(synth::scanPresetDirectory(synth::defaultUserPresetDirectory(), false));
+    return items;
+}
+
+juce::File SynthAudioProcessor::getUserPresetDirectory() const
+{
+    return juce::File(juce::String(synth::defaultUserPresetDirectory().string()));
+}
+
+bool SynthAudioProcessor::loadPresetFile(const juce::File& file, juce::String& message)
+{
+    const auto result = synth::loadPresetIntoState(parameters, file.getFullPathName().toStdString());
+    message = result.message;
+    lastPresetStatus = message;
+    if (result.loaded)
+        currentPresetName = result.displayName.empty() ? file.getFileNameWithoutExtension()
+                                                       : juce::String(result.displayName);
+    return result.loaded;
+}
+
+bool SynthAudioProcessor::savePresetFile(const juce::File& file,
+                                         const juce::String& displayName,
+                                         juce::String& message)
+{
+    std::string error;
+    const auto saved = synth::writeCurrentPreset(parameters, file.getFullPathName().toStdString(),
+                                                 displayName.toStdString(), error);
+    if (saved)
+    {
+        currentPresetName = displayName.isNotEmpty() ? displayName : file.getFileNameWithoutExtension();
+        message = "Saved preset: " + currentPresetName;
+        lastPresetStatus = message;
+        parameters.state.setProperty("current_preset", currentPresetName, nullptr);
+        return true;
+    }
+
+    message = "Preset save failed: " + juce::String(error);
+    lastPresetStatus = message;
+    return false;
+}
+
+juce::String SynthAudioProcessor::getCurrentPresetName() const
+{
+    return currentPresetName;
+}
+
+SynthAudioProcessor::DiagnosticsSnapshot SynthAudioProcessor::getDiagnosticsSnapshot() const
+{
+    DiagnosticsSnapshot snapshot;
+    snapshot.sampleRate = diagnosticSampleRate.load(std::memory_order_relaxed);
+    snapshot.blockSize = diagnosticBlockSize.load(std::memory_order_relaxed);
+    snapshot.activeVoices = diagnosticActiveVoices.load(std::memory_order_relaxed);
+    snapshot.midiEvents = diagnosticMidiEvents.load(std::memory_order_relaxed);
+    snapshot.invalidSamples = diagnosticInvalidSamples.load(std::memory_order_relaxed);
+    snapshot.peak = diagnosticPeak.load(std::memory_order_relaxed);
+    snapshot.architecture = binaryArchitecture();
+    snapshot.currentPreset = currentPresetName;
+    snapshot.lastPresetStatus = lastPresetStatus;
+    return snapshot;
+}
+
+void SynthAudioProcessor::requestPanic() noexcept
+{
+    panicRequested.store(true, std::memory_order_release);
+}
+
 void SynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = parameters.copyState();
     state.setProperty("schema_version", 1, nullptr);
     state.setProperty("plugin_version", ProjectInfo::versionString, nullptr);
+    state.setProperty("current_preset", currentPresetName, nullptr);
 
     if (auto xml = state.createXml())
         copyXmlToBinary(*xml, destData);
@@ -322,7 +456,11 @@ void SynthAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
         {
             auto state = juce::ValueTree::fromXml(*xml);
             if (state.isValid())
+            {
+                currentPresetName = state.getProperty("current_preset", "Restored State").toString();
+                lastPresetStatus = "Host state restored";
                 parameters.replaceState(state);
+            }
         }
     }
 }

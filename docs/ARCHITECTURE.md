@@ -101,6 +101,8 @@ Existing scaffold files:
 - `src/plugin/PluginEditor.cpp`
 - `src/plugin/ParameterRegistry.h`
 - `src/plugin/ParameterRegistry.cpp`
+- `src/presets/PresetManager.h`
+- `src/presets/PresetManager.cpp`
 - `src/dsp/Envelope.h`
 - `src/dsp/Envelope.cpp`
 - `src/dsp/Lfo.h`
@@ -150,6 +152,13 @@ Current registry status:
 - Voice, oscillator, filter, amp, envelopes, LFO, ramp, direct modulation, FX, macros, and eight TransMod-style slots with physical destination depths are represented.
 - Host state uses `AudioProcessorValueTreeState` with schema metadata.
 
+Current editor and preset status:
+
+- `PluginEditor` is a clean-room dark control surface with a preset header, diagnostics, panic, and a scrollable set of sections for Voice, Oscillator, Filter, Envelopes, LFO, Ramp, Direct Mod, Amp/Stereo, Macros, FX placeholder parameters, and all eight TransMod slots.
+- Editor controls are constructed against `ParameterRegistry` IDs and use APVTS attachments for sliders, combo boxes, and toggles so UI edits reach the same host-automatable parameters as presets and host state.
+- `PresetManager` scans factory presets from the configured source preset directory, scans user presets from `~/Music/ParkerX/Synth/Presets`, validates preset JSON before load, applies presets to APVTS from defaults plus overrides, maps canonical `mod_slots` objects into flat TransMod parameters, and writes schema-valid user preset JSON.
+- Processor diagnostics expose sample rate, block size, active voices, MIDI event count, invalid sample count, peak, current preset, and binary architecture to the editor without filesystem or UI work on the audio thread.
+
 Current voice-core status:
 
 - `SynthEngine` consumes note-on, note-off, all-notes-off, and all-sound-off from the plugin processor.
@@ -164,7 +173,6 @@ Current voice-core status:
 
 Highest priority:
 
-- UI/preset workflow,
 - Ableton AU/VST3 proof.
 
 Lower priority:

@@ -1,10 +1,10 @@
 ---
 title: Build Editor UI And Preset Workflow
-status: active
+status: completed
 created_at: 2026-06-04
-completed_at: null
+completed_at: 2026-06-05
 summary: Build the clean-room plugin editor, parameter bindings, modulation slot editing, diagnostics, and user preset workflow.
-post_build_recap: null
+post_build_recap: Added a clean-room scrollable editor, APVTS-bound controls for the main synth groups and TransMod slots, validation-backed factory/user preset load-save-duplicate workflow, processor diagnostics, and standalone visual smoke evidence.
 read_when:
   - Implementing the Synth editor.
   - Changing preset picker, save, or modulation UI behavior.
@@ -26,15 +26,19 @@ The instrument needs a usable production UI that exposes the synth engine withou
 ## Progress
 
 - [x] 2026-06-04 EDT: Created this Program-linked ExecPlan from `planning-brief-1.md`.
-- [ ] Design and implement the clean-room editor layout.
-- [ ] Bind UI controls to the parameter registry.
-- [ ] Implement preset picker/save/duplicate workflow.
-- [ ] Implement TransMod slot editing.
-- [ ] Add diagnostics view and UI smoke tests.
+- [x] 2026-06-05 EDT: Designed and implemented a clean-room scrollable editor layout with header, preset controls, diagnostics, and sectioned synth controls.
+- [x] 2026-06-05 EDT: Bound editor controls to the parameter registry through APVTS slider, combo box, and button attachments.
+- [x] 2026-06-05 EDT: Implemented validation-backed factory/user preset listing, load, save-as, and duplicate workflow.
+- [x] 2026-06-05 EDT: Implemented eight TransMod slot editors with source, scaler, enable, and physical destination depth controls.
+- [x] 2026-06-05 EDT: Added processor diagnostics and preset-manager contract coverage; captured standalone UI smoke screenshot at `/tmp/synth-editor-smoke.png`.
 
 ## Surprises & Discoveries
 
-None yet. Record JUCE layout, scaling, accessibility, and host automation gesture issues here.
+2026-06-05: `build-release` single-config CMake output was already configured, so the slice used the release build for validation rather than creating a separate Debug build. This kept validation aligned with the Ableton host-smoke artifacts.
+
+2026-06-05: Preset load/save belongs behind the processor/APVTS boundary. A shared `PresetManager` now validates JSON, applies values to APVTS defaults-before-overrides, maps canonical `mod_slots` objects into flat TransMod parameters, and writes user presets back to schema-valid JSON.
+
+2026-06-05: The editor can bind directly from `ParameterRegistry` specs, which prevents UI labels/ranges/choices from drifting away from host automation IDs.
 
 ## Decision Log
 
@@ -44,7 +48,11 @@ Date: 2026-06-04.
 
 ## Outcomes & Retrospective
 
-Pending implementation.
+Completed on 2026-06-05. The placeholder "silent engine" editor is replaced by a usable dark, production-oriented control surface. The UI exposes Voice, Oscillator, Filter, Envelopes, LFO, Ramp, Direct Mod, Amp/Stereo, Macros, FX placeholders, and all eight TransMod slots. Factory presets can be listed and loaded; current state can be saved or duplicated as user JSON under the user preset directory. Diagnostics show sample rate, block size, active voices, peak, MIDI event count, invalid sample count, and binary architecture.
+
+Validation passed with `cmake --build build-release --config Release`, `ctest --test-dir build-release --output-on-failure`, `./build-release/SynthRender --validate-presets presets/factory --output build-release/reports/presets.json`, `./build-release/SynthRender --suite core --output-dir build-release/reports/core`, and `scripts/check-plugin-bundles.sh build-release`. Standalone UI launched and rendered the new editor in `/tmp/synth-editor-smoke.png`.
+
+Residual work remains in later slices: FX controls are bound to placeholder parameters until the FX/quality slice implements audio processing, and full Ableton automation/bounce validation remains in the host integration slice.
 
 ## Context and Orientation
 
@@ -118,4 +126,3 @@ Expected proof artifacts:
 ## Interfaces and Dependencies
 
 This slice consumes the parameter registry, preset system, modulation slots, validation harness, and dry-core DSP interfaces. Host packaging later depends on the editor being stable.
-

@@ -27,15 +27,22 @@ Synth is not useful until it loads and restores correctly in Ableton. After this
 
 - [x] 2026-06-04 EDT: Created this Program-linked ExecPlan from `planning-brief-1.md`.
 - [x] 2026-06-05 EDT: Added local bundle-check/install scripts and an Ableton smoke-note template for handoff validation.
-- [ ] Verify AU/VST3 bundle outputs and metadata.
+- [x] 2026-06-05 EDT: Verified release Standalone, AU, and VST3 bundles under `build-release`; all built as universal `x86_64 arm64` binaries with `com.parkerx.synth` metadata.
+- [x] 2026-06-05 EDT: Updated local bundle-check/install scripts to resolve CMake config artifact directories such as `SynthPlugin_artefacts/Release`.
+- [x] Verify AU/VST3 bundle outputs and metadata.
 - [x] Add local development install scripts.
-- [ ] Add architecture/signing checks.
-- [ ] Run Ableton AU and VST3 smoke validation.
+- [x] Add architecture/signing checks.
+- [x] Run early Ableton AU and VST3 scan/load/play/reopen smoke validation.
+- [ ] Run full Ableton automation and bounce validation after UI/preset workflow is in place.
 - [ ] Document install, uninstall, and host troubleshooting.
 
 ## Surprises & Discoveries
 
 2026-06-05: Ableton is available on the next development laptop, so this slice can begin as an early host-smoke pass before the final UI/FX slices. Full release acceptance still waits for UI, FX/quality, packaging, and release hardening.
+
+2026-06-05: A `build-release` single-config CMake build writes plugin bundles under `build-release/SynthPlugin_artefacts/Release/`, while the first helper script versions assumed bundles lived directly under `SynthPlugin_artefacts/`. The scripts now resolve root and config-scoped layouts before checking or installing.
+
+2026-06-05: Early Ableton Live 11 Suite smoke passed on macOS 26.5: VST3 appeared under `Plug-Ins > VST3 > ParkerX > Synth`, AU appeared after enabling Audio Units, both loaded on MIDI tracks, both produced audible output from MIDI notes, and both loaded again after Ableton quit/reopen of the saved set. Automation, bounce, preset recreation, and full behavior exercise remain for the UI/preset and later host-validation passes.
 
 Record Ableton scan, plugin cache, code signing, architecture, and state-restore issues here.
 

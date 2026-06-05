@@ -4,15 +4,15 @@ Use this file when validating Synth on a Mac with Ableton installed. Commit fill
 
 ## Environment
 
-- date:
-- machine:
-- macOS version:
-- Ableton version:
-- repo commit:
-- build directory:
-- sample rate:
-- buffer size:
-- plugin format tested: AU / VST3
+- date: 2026-06-05 EDT
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- repo commit: `9bb2942`
+- build directory: `build-release`
+- sample rate: not captured
+- buffer size: not captured
+- plugin format tested: AU and VST3
 
 ## Build Proof
 
@@ -27,46 +27,57 @@ scripts/install-local-plugins.sh build-release
 
 ## Ableton Setup
 
-- [ ] Enable Audio Units.
-- [ ] Enable VST3.
-- [ ] Rescan plug-ins after install.
-- [ ] Confirm `Synth` appears as AU.
-- [ ] Confirm `Synth` appears as VST3.
+- [x] Enable Audio Units.
+- [x] Enable VST3.
+- [x] Rescan plug-ins after install.
+- [x] Confirm `Synth` appears as AU.
+- [x] Confirm `Synth` appears as VST3.
 
 ## AU Smoke
 
-- [ ] Load AU on a MIDI track.
-- [ ] Play notes and confirm finite audible output.
+- [x] Load AU on a MIDI track.
+- [x] Play notes and confirm finite audible output.
 - [ ] Load or recreate `Pluck Core 01` state.
 - [ ] Exercise mono, mono-legato, poly, unison, glide, velocity glide, ramp, and TransMod routing.
 - [ ] Record and replay one parameter automation lane.
-- [ ] Save the Live set.
-- [ ] Close and reopen the Live set.
-- [ ] Confirm preset/state restore.
+- [x] Save the Live set.
+- [x] Close and reopen the Live set.
+- [x] Confirm preset/state restore.
 - [ ] Export a short bounce.
 
 Notes:
 
 ```text
+AU scanned after enabling Audio Units and rescanning. AU loaded on a MIDI track,
+opened the placeholder editor, played the test MIDI notes with audible output,
+and still loaded after Ableton quit/reopen of the saved set.
 
+Preset recreation, full modulation-mode exercise, automation, and bounce were
+not completed in this early host smoke pass.
 ```
 
 ## VST3 Smoke
 
-- [ ] Load VST3 on a MIDI track.
-- [ ] Play notes and confirm finite audible output.
+- [x] Load VST3 on a MIDI track.
+- [x] Play notes and confirm finite audible output.
 - [ ] Load or recreate `Pluck Core 01` state.
 - [ ] Exercise mono, mono-legato, poly, unison, glide, velocity glide, ramp, and TransMod routing.
 - [ ] Record and replay one parameter automation lane.
-- [ ] Save the Live set.
-- [ ] Close and reopen the Live set.
-- [ ] Confirm preset/state restore.
+- [x] Save the Live set.
+- [x] Close and reopen the Live set.
+- [x] Confirm preset/state restore.
 - [ ] Export a short bounce.
 
 Notes:
 
 ```text
+VST3 appeared under Plug-Ins > VST3 > ParkerX > Synth after adding the user
+VST3 folder, rescanning, and ad-hoc signing the installed bundle. VST3 loaded
+on a MIDI track, opened the placeholder editor, played the test MIDI notes with
+audible output, and still loaded after Ableton quit/reopen of the saved set.
 
+Preset recreation, full modulation-mode exercise, automation, and bounce were
+not completed in this early host smoke pass.
 ```
 
 ## Failures

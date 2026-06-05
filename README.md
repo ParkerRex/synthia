@@ -14,6 +14,7 @@ The repo builds a JUCE/CMake instrument scaffold with:
 - A dry-core DSP path with oscillator, filter, envelopes, LFO, ramp, glide, velocity glide, amp drive, pan/spread, and performance MIDI sources.
 - An 8-slot TransMod-style modulation layer with source/scaler routing and physical destination depths.
 - Factory presets, preset schema validation, MIDI fixture rendering, and JSON report generation.
+- A clean-room editor with registry-bound controls, factory/user preset load-save-duplicate workflow, TransMod slot editing, and diagnostics.
 - Core validation for oscillator/filter behavior, modulation routing, voice allocation, render determinism, and preset loading.
 
 The next required product validation step is host validation in Ableton: AU/VST3 scan, load, playback, automation, and state restore.

@@ -1,4 +1,5 @@
 #include "../../src/plugin/ParameterRegistry.h"
+#include "../../src/presets/PresetManager.h"
 #include "../../src/presets/PresetValidator.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -59,6 +60,48 @@ bool checkStateRoundTrip()
     return destination.parameters.state.hasProperty("schema_version")
         && destination.parameters.getRawParameterValue("filter.cutoff_semitones") != nullptr;
 }
+
+bool checkPresetManagerLoadAndSave()
+{
+    StateRoundTripProcessor processor;
+    const auto load = synth::loadPresetIntoState(processor.parameters, "presets/factory/pluck-core-01.json");
+    if (!load.loaded)
+    {
+        std::cerr << load.message << "\n";
+        return false;
+    }
+
+    const auto* cutoff = processor.parameters.getRawParameterValue("filter.cutoff_semitones");
+    if (cutoff == nullptr || std::abs(cutoff->load() - 58.0f) > 0.001f)
+    {
+        std::cerr << "Preset manager did not apply filter cutoff.\n";
+        return false;
+    }
+
+    const auto tempFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+        .getChildFile("synth-preset-manager-test.json");
+    tempFile.deleteFile();
+
+    std::string error;
+    if (!synth::writeCurrentPreset(processor.parameters, tempFile.getFullPathName().toStdString(),
+                                   "Preset Manager Test", error))
+    {
+        std::cerr << error << "\n";
+        return false;
+    }
+
+    const auto validation = synth::validatePresetFile(tempFile.getFullPathName().toStdString());
+    tempFile.deleteFile();
+    if (!validation.passed())
+    {
+        std::cerr << "Preset manager saved invalid preset.\n";
+        for (const auto& validationError : validation.errors)
+            std::cerr << "  " << validationError << "\n";
+        return false;
+    }
+
+    return true;
+}
 } // namespace
 
 int main()
@@ -100,6 +143,9 @@ int main()
         std::cerr << "APVTS state round-trip failed.\n";
         return 1;
     }
+
+    if (!checkPresetManagerLoadAndSave())
+        return 1;
 
     const auto presetResults = synth::validatePresetDirectory("presets/factory");
     for (const auto& result : presetResults)

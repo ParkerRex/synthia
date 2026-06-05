@@ -50,11 +50,11 @@ Project truth surfaces:
 
 ## Current State
 
-The repository currently contains a JUCE/CMake AU, VST3, and standalone plugin scaffold with APVTS state, clean-room factory presets, voice allocation, envelopes, LFO, ramp, glide, velocity glide, TransMod-style routing, oscillator stack, nonlinear filter, amp/stereo dry-core rendering, tests, and validation reports.
+The repository currently contains a JUCE/CMake AU, VST3, and standalone plugin scaffold with APVTS state, clean-room factory presets, a usable clean-room editor, user preset save/duplicate workflow, voice allocation, envelopes, LFO, ramp, glide, velocity glide, TransMod-style routing, oscillator stack, nonlinear filter, amp/stereo dry-core rendering, tests, and validation reports.
 
-The current planning brief is `planning-brief-1.md`. The planned product-order next slice is the editor UI and preset workflow because the dry core now has deterministic standalone validation and needs a usable clean-room control surface.
+The current planning brief is `planning-brief-1.md`. The planned product-order next slice is the FX/quality workflow because the dry core, editor, preset workflow, and early Ableton host smoke now have validation evidence.
 
-For the next development laptop with Ableton installed, the immediate pickup task is an early Ableton AU/VST3 smoke pass from `docs/exec-plans/active/2026-06-04-build-ableton-host-integration-and-packaging.md`. That host pass should record scan/load/play/state-restore evidence before deeper UI or FX work hides plugin-host issues.
+Ableton early host smoke passed on 2026-06-05. The remaining host-validation work is full automation and bounce validation after the FX/quality slice lands.
 
 ## Progress
 
@@ -71,7 +71,7 @@ For the next development laptop with Ableton installed, the immediate pickup tas
 - [x] 2026-06-04 EDT: Executed the full modulation slice. The repo now has ramp, glide, velocity glide, direct keytrack/LFO/envelope routes, eight TransMod-style slots with scalers and physical destination depths, performance MIDI sources, preset slot validation, and `SynthRender --modulation-test`.
 - [x] 2026-06-04 EDT: Executed the amp/stereo/factory pluck slice. The repo now renders `Pluck Core 01` dry to WAV/report with amp drive, pan spread, analog variation, and macro influence.
 - [x] 2026-06-04 EDT: Executed the validation harness slice. The repo now has `SynthRender --suite core`, core-suite CTest coverage, per-fixture JSON reports, WAV artifacts, LFO ablation, deterministic repeat/tolerance comparison, and documented metrics.
-- [ ] Execute the UI/preset workflow slice.
+- [x] 2026-06-05 EDT: Executed the UI/preset workflow slice. The repo now has a registry-bound clean-room editor, factory/user preset load-save-duplicate workflow, TransMod slot editing, diagnostics, and standalone UI smoke evidence.
 - [ ] Execute the FX/quality slice.
 - [ ] Execute the Ableton/packaging slice.
 - [ ] Execute release hardening and move this Program to completed.
@@ -97,21 +97,21 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-04-build-amp-stereo-analog-and-factory-pluck.md`
 - `docs/exec-plans/completed/2026-06-04-build-modulation-matrix-ramp-and-glide.md`
 - `docs/exec-plans/completed/2026-06-04-build-render-validation-harness-and-metrics.md`
+- `docs/exec-plans/completed/2026-06-04-build-editor-ui-and-preset-workflow.md`
 
-Initial active child ExecPlans:
+Active child ExecPlans:
 
-- `docs/exec-plans/active/2026-06-04-build-editor-ui-and-preset-workflow.md`
 - `docs/exec-plans/active/2026-06-04-build-onboard-fx-and-quality-modes.md`
 - `docs/exec-plans/active/2026-06-04-build-ableton-host-integration-and-packaging.md`
 - `docs/exec-plans/active/2026-06-04-build-release-hardening-and-documentation-closeout.md`
 
 ## Next Slice
 
-Planned product-order next slice: `docs/exec-plans/active/2026-06-04-build-editor-ui-and-preset-workflow.md`.
+Planned product-order next slice: `docs/exec-plans/active/2026-06-04-build-onboard-fx-and-quality-modes.md`.
 
-It is next because the standalone engine, presets, dry render, modulation, and render harness now have command-line proof, but the plugin still lacks a usable editor and preset workflow.
+It is next because the dry core and editor now have command-line and standalone proof, while FX parameters are still placeholders that do not process audio.
 
-Immediate Ableton-laptop pickup: run the early host-smoke path in `docs/exec-plans/active/2026-06-04-build-ableton-host-integration-and-packaging.md` and fill `docs/host-validation/ableton-smoke.md`.
+Host-validation follow-up: run full automation and bounce checks in `docs/exec-plans/active/2026-06-04-build-ableton-host-integration-and-packaging.md` after the FX/quality slice lands.
 
 ## Risks and Watchpoints
 

@@ -17,6 +17,12 @@ Current factory presets:
 - `presets/factory/init.json`
 - `presets/factory/pluck-core-01.json`
 
+Current user preset location:
+
+- `~/Music/ParkerX/Synth/Presets`
+
+The editor scans factory presets from the configured factory preset directory and user presets from the user preset location. Factory presets are treated as read-only; editor Save As and Duplicate write schema-valid user JSON presets.
+
 Current validation command:
 
 ```bash
@@ -48,6 +54,8 @@ Parameter values should be stored in physical/display domains when stable and cl
 - normalized values only when the parameter is intentionally abstract.
 
 The parameter registry owns conversion between physical values and host-normalized values.
+
+When a preset is loaded through the plugin editor, the processor resets APVTS parameters to registry defaults before applying preset overrides. This prevents values from a previous preset from leaking into presets that intentionally omit optional fields.
 
 ## Mod Slot Shape
 

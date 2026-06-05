@@ -7,6 +7,7 @@
 
 #include <array>
 #include <atomic>
+#include <vector>
 
 class SynthAudioProcessor final : public juce::AudioProcessor
 {
@@ -39,6 +40,34 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState& getValueTreeState() noexcept { return parameters; }
+
+    struct PresetListItem
+    {
+        juce::String displayName;
+        juce::File file;
+        bool factory = false;
+    };
+
+    struct DiagnosticsSnapshot
+    {
+        double sampleRate = 0.0;
+        int blockSize = 0;
+        int activeVoices = 0;
+        int midiEvents = 0;
+        int invalidSamples = 0;
+        float peak = 0.0f;
+        juce::String architecture;
+        juce::String currentPreset;
+        juce::String lastPresetStatus;
+    };
+
+    std::vector<PresetListItem> getPresetList() const;
+    juce::File getUserPresetDirectory() const;
+    bool loadPresetFile(const juce::File& file, juce::String& message);
+    bool savePresetFile(const juce::File& file, const juce::String& displayName, juce::String& message);
+    juce::String getCurrentPresetName() const;
+    DiagnosticsSnapshot getDiagnosticsSnapshot() const;
+    void requestPanic() noexcept;
 
 private:
     struct RawParameterPointers
@@ -130,7 +159,7 @@ private:
     synth::SynthParameters readParameters(float tempoBpm) const noexcept;
     float currentTempoBpm() const noexcept;
     void handleMidiMessage(const juce::MidiMessage& message) noexcept;
-    void renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept;
+    synth::RenderStats renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept;
 
     juce::AudioProcessorValueTreeState parameters;
     synth::SynthEngine engine;
@@ -138,6 +167,15 @@ private:
     static constexpr int scratchCapacity = 32768;
     std::array<float, scratchCapacity> scratchLeft {};
     std::array<float, scratchCapacity> scratchRight {};
+    std::atomic<double> diagnosticSampleRate { 0.0 };
+    std::atomic<int> diagnosticBlockSize { 0 };
+    std::atomic<int> diagnosticActiveVoices { 0 };
+    std::atomic<int> diagnosticMidiEvents { 0 };
+    std::atomic<int> diagnosticInvalidSamples { 0 };
+    std::atomic<float> diagnosticPeak { 0.0f };
+    std::atomic<bool> panicRequested { false };
+    juce::String currentPresetName { "Init" };
+    juce::String lastPresetStatus { "Init state" };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthAudioProcessor)
 };
