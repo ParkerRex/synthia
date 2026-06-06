@@ -91,6 +91,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed preset command model slice with backend Init, Reset, and seedable bounded Randomize state preparation plus processor APIs and contract tests.
 - [x] 2026-06-06 EDT: Executed randomized preset render validation with `SylenthAIRender --randomize-test`, core-suite integration, CTest coverage, and finite non-silent non-clipping proof for fixed seeds.
 - [x] 2026-06-06 EDT: Executed modulation route render proof with `SylenthAIRender --modulation-route-render-test`, core-suite integration, CTest coverage, audible route-write proof, and deterministic clear-slot restore.
+- [x] 2026-06-06 EDT: Executed preset workflow state-model slice with metadata-aware writes, no-clobber create-only safe-save checks, immutable dirty-state baseline fingerprints, A/B compare slot capture/recall helpers, and contract tests.
 - [x] Model-ready UI handoff and first local polish passes exist for preset browser, arp/step/chord, FX rack, and read-only modulation inspection.
 - [x] 2026-06-06 EDT: Created a Claude Code visual information architecture handoff to make the model-backed shell look materially closer to the Sylenth screenshot corpus without adding fake controls.
 - [ ] Complete or explicitly close deeper UI visual/control polish follow-ups.
@@ -120,6 +121,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-06-build-preset-command-model.md`
 - `docs/exec-plans/completed/2026-06-06-build-randomize-render-validation.md`
 - `docs/exec-plans/completed/2026-06-06-build-modulation-route-render-proof.md`
+- `docs/exec-plans/completed/2026-06-06-build-preset-workflow-state-model.md`
 - `docs/exec-plans/completed/2026-06-06-build-sylenth-patch-recreation-suite.md`
 - `docs/exec-plans/completed/2026-06-05-build-sylenth-layer-oscillator-backbone.md`
 - `docs/exec-plans/completed/2026-06-05-build-sylenth-layer-b-and-four-osc-rendering.md`
@@ -150,7 +152,7 @@ Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
 Product-order next Codex slice: complete the remaining Phase 1 Ableton host matrix against the current AU/VST3 build.
 
-Preset browser, arp/step/chord, FX rack, modulation inspection/write adapter with audio render proof, model-backed patch cost, backend preset commands, layer/slot rendering, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; per-route bypass/remove, per-control MIDI context menus, richer browser metadata editing, safe overwrite/dirty/A-B workflow, expanded modulation destinations, and per-layer filter/envelope/master parity remain later slices.
+Preset browser, arp/step/chord, FX rack, modulation inspection/write adapter with audio render proof, model-backed patch cost, backend preset commands, preset workflow state model, layer/slot rendering, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; per-route bypass/remove, per-control MIDI context menus, metadata editing UI, safe overwrite prompt, dirty indicator, A/B controls, expanded modulation destinations, and per-layer filter/envelope/master parity remain later slices.
 
 The remaining non-UI product proof is Ableton AU/VST3 automation record/playback, AU global-panel Forget proof, Ableton-side current preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic. Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, AU seeded controller value proof, AU in-editor MIDI Learn proof, and standalone patch recreation are already recorded.
 

@@ -123,6 +123,21 @@ float stateParameterValue(const juce::ValueTree& state, const char* id, float fa
     return fallback;
 }
 
+bool setStateParameterValue(juce::ValueTree& state, const char* id, float value)
+{
+    const auto parameterId = juce::String(id);
+    for (auto child : state)
+    {
+        if (child.hasType("PARAM") && child.getProperty("id").toString() == parameterId)
+        {
+            child.setProperty("value", value, nullptr);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool containsString(const std::vector<std::string>& values, const std::string& expected)
 {
     return std::find(values.begin(), values.end(), expected) != values.end();
@@ -675,6 +690,60 @@ bool checkPresetManagerLoadAndSave()
         return false;
     }
 
+    const auto cleanDirtyState = synth::comparePresetDirtyState(processor.parameters, load.fingerprint);
+    if (!cleanDirtyState.current.valid
+        || !cleanDirtyState.baseline.valid
+        || cleanDirtyState.dirty)
+    {
+        std::cerr << "Preset dirty state should be clean immediately after loading baseline fingerprint.\n";
+        return false;
+    }
+
+    StateRoundTripProcessor halfStepProcessor;
+    auto negativeHalfStepState = halfStepProcessor.parameters.copyState();
+    if (!setStateParameterValue(negativeHalfStepState, "amp.pan", -0.00005f))
+        return false;
+
+    halfStepProcessor.parameters.replaceState(negativeHalfStepState);
+    const auto negativeHalfStepFingerprint = synth::fingerprintPresetState(negativeHalfStepState);
+    const auto halfStepDirtyState = synth::comparePresetDirtyState(halfStepProcessor.parameters,
+                                                                   negativeHalfStepFingerprint);
+    if (halfStepDirtyState.dirty)
+    {
+        std::cerr << "Preset dirty fingerprint mismatched JUCE snapping for a negative half-step value.\n";
+        return false;
+    }
+
+    const auto compareSlotA = synth::capturePresetCompareSlot(processor.parameters, "A");
+    if (!setPhysicalParameter(processor.parameters, "filter.cutoff_semitones", 72.0f))
+        return false;
+    const auto flushedStateAfterEdit = processor.parameters.copyState();
+    (void) flushedStateAfterEdit;
+
+    const auto changedDirtyState = synth::comparePresetDirtyState(processor.parameters, load.fingerprint);
+    if (!changedDirtyState.dirty)
+    {
+        std::cerr << "Preset dirty state did not detect a parameter edit.\n";
+        return false;
+    }
+
+    const auto compareSlotB = synth::capturePresetCompareSlot(processor.parameters, "B");
+    const auto preparedSlotA = synth::preparePresetCompareSlotState(processor.parameters, compareSlotA);
+    const auto preparedSlotB = synth::preparePresetCompareSlotState(processor.parameters, compareSlotB);
+    if (!compareSlotA.captured
+        || !compareSlotB.captured
+        || !preparedSlotA.loaded
+        || !preparedSlotB.loaded
+        || preparedSlotA.displayName != "A"
+        || preparedSlotB.displayName != "B"
+        || std::abs(stateParameterValue(preparedSlotA.state, "filter.cutoff_semitones") - 58.0f) > 0.001f
+        || std::abs(stateParameterValue(preparedSlotB.state, "filter.cutoff_semitones") - 72.0f) > 0.001f
+        || !parameterValueMatches(processor.parameters, "filter.cutoff_semitones", 72.0f))
+    {
+        std::cerr << "Preset compare slot capture/prepare failed.\n";
+        return false;
+    }
+
     if (!parameterValueMatches(processor.parameters, "layer.1.enabled", 1.0f)
         || !parameterValueMatches(processor.parameters, "layer.2.enabled", 0.0f)
         || !parameterValueMatches(processor.parameters, "layer.1.osc.1.enabled", 1.0f)
@@ -757,6 +826,89 @@ bool checkPresetManagerLoadAndSave()
         return false;
     }
     tempFile.deleteFile();
+
+    const auto metadataFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+        .getChildFile("sylenth-ai-preset-metadata-test.json");
+    metadataFile.deleteFile();
+    synth::PresetWriteOptions writeOptions;
+    writeOptions.mode = synth::PresetWriteMode::CreateNew;
+    writeOptions.metadata.displayName = "Metadata Save Test";
+    writeOptions.metadata.author = "Lab";
+    writeOptions.metadata.description = "Metadata write contract.";
+    writeOptions.metadata.tags = { "lead", "bright" };
+    writeOptions.metadata.bank = "Lab Bank";
+    writeOptions.metadata.category = "Leads";
+    if (!synth::writeCurrentPreset(processor.parameters, metadataFile.getFullPathName().toStdString(),
+                                   writeOptions, error))
+    {
+        std::cerr << error << "\n";
+        return false;
+    }
+
+    writeOptions.metadata.displayName = "Should Not Overwrite";
+    if (synth::writeCurrentPreset(processor.parameters, metadataFile.getFullPathName().toStdString(),
+                                  writeOptions, error))
+    {
+        std::cerr << "CreateNew preset write should reject an existing destination.\n";
+        metadataFile.deleteFile();
+        return false;
+    }
+
+    const auto metadataPreset = juce::JSON::parse(metadataFile);
+    const auto* metadataObject = metadataPreset.getDynamicObject();
+    const auto metadataRoot = metadataObject != nullptr
+        ? metadataObject->getProperty(juce::Identifier("metadata"))
+        : juce::var();
+    const auto* metadataRootObject = metadataRoot.getDynamicObject();
+    const auto metadataBrowser = metadataRootObject != nullptr
+        ? metadataRootObject->getProperty(juce::Identifier("browser"))
+        : juce::var();
+    const auto* metadataBrowserObject = metadataBrowser.getDynamicObject();
+    const auto metadataTags = metadataObject != nullptr
+        ? metadataObject->getProperty(juce::Identifier("tags"))
+        : juce::var();
+    const auto* metadataTagArray = metadataTags.getArray();
+    auto writtenTags = std::vector<std::string> {};
+    if (metadataTagArray != nullptr)
+    {
+        for (const auto& tag : *metadataTagArray)
+            writtenTags.push_back(tag.toString().toStdString());
+    }
+
+    if (metadataObject == nullptr
+        || metadataObject->getProperty(juce::Identifier("display_name")).toString() != "Metadata Save Test"
+        || metadataObject->getProperty(juce::Identifier("author")).toString() != "Lab"
+        || metadataObject->getProperty(juce::Identifier("description")).toString() != "Metadata write contract."
+        || !containsString(writtenTags, "lead")
+        || !containsString(writtenTags, "bright")
+        || metadataBrowserObject == nullptr
+        || metadataBrowserObject->getProperty(juce::Identifier("bank")).toString() != "Lab Bank"
+        || metadataBrowserObject->getProperty(juce::Identifier("category")).toString() != "Leads")
+    {
+        std::cerr << "Preset metadata write options were not serialized correctly.\n";
+        metadataFile.deleteFile();
+        return false;
+    }
+
+    writeOptions.mode = synth::PresetWriteMode::OverwriteExisting;
+    writeOptions.metadata.displayName = "Metadata Overwrite Test";
+    if (!synth::writeCurrentPreset(processor.parameters, metadataFile.getFullPathName().toStdString(),
+                                   writeOptions, error))
+    {
+        std::cerr << error << "\n";
+        metadataFile.deleteFile();
+        return false;
+    }
+
+    const auto overwrittenPreset = juce::JSON::parse(metadataFile);
+    const auto* overwrittenObject = overwrittenPreset.getDynamicObject();
+    metadataFile.deleteFile();
+    if (overwrittenObject == nullptr
+        || overwrittenObject->getProperty(juce::Identifier("display_name")).toString() != "Metadata Overwrite Test")
+    {
+        std::cerr << "OverwriteExisting preset write did not replace existing destination.\n";
+        return false;
+    }
 
     const auto factoryPresets = synth::scanPresetDirectory("presets/factory", synth::PresetSource::Factory, {});
     const auto pluckPreset = std::find_if(factoryPresets.begin(), factoryPresets.end(), [](const auto& preset) {
