@@ -1,6 +1,6 @@
 # Ableton Smoke Validation
 
-Use this file when validating Synth on a Mac with Ableton installed. Commit filled-in notes only when they are useful project evidence; otherwise keep local scratch notes under `build/`.
+Use this file when validating sylenth-ai on a Mac with Ableton installed. Commit filled-in notes only when they are useful project evidence; otherwise keep local scratch notes under `build/`.
 
 Local install, uninstall, ad-hoc signing, AU validation, and Ableton rescan troubleshooting are documented in `docs/host-validation/local-install-troubleshooting.md`.
 
@@ -19,10 +19,10 @@ Local install, uninstall, ad-hoc signing, AU validation, and Ableton rescan trou
 ## Build Proof
 
 ```bash
-cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTH_ENABLE_TESTS=ON
+cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYLENTH_AI_ENABLE_TESTS=ON
 cmake --build build-release --config Release
 ctest --test-dir build-release --output-on-failure
-./build-release/SynthRender --suite core --output-dir build-release/reports/core
+./build-release/SylenthAIRender --suite core --output-dir build-release/reports/core
 scripts/check-plugin-bundles.sh build-release
 scripts/install-local-plugins.sh build-release
 ```
@@ -34,11 +34,11 @@ Review-fix validation was run from a Release build on top of `9c27c07` with loca
 ```bash
 /opt/homebrew/bin/cmake --build build-release --config Release
 /opt/homebrew/bin/ctest --test-dir build-release --output-on-failure
-./build-release/SynthRender --validate-presets presets/factory --output build-release/reports/presets-review.json
-./build-release/SynthRender --suite core --output-dir build-release/reports/core
+./build-release/SylenthAIRender --validate-presets presets/factory --output build-release/reports/presets-review.json
+./build-release/SylenthAIRender --suite core --output-dir build-release/reports/core
 scripts/check-plugin-bundles.sh build-release
 scripts/install-local-plugins.sh build-release Release
-auval -v aumu Syn1 PkRx
+auval -v aumu SyAI PkRx
 ```
 
 Results:
@@ -46,7 +46,7 @@ Results:
 - Release build, CTest, factory preset validation, and core suite passed.
 - Bundle check passed and verified `Contents/Resources/factory/init.json` and `pluck-core-01.json` in Standalone, AU, and VST3 bundles.
 - Installed AU and VST3 bundles under `~/Library/Audio/Plug-Ins`.
-- `auval -v aumu Syn1 PkRx` passed against the installed AU with AU Validation Tool `1.10.0`.
+- `auval -v aumu SyAI PkRx` passed against the installed AU with AU Validation Tool `1.10.0`.
 - No `vst3validator` or `pluginval` executable was available on this machine; VST3 scan/load/play, automation, state restore, and bounce still require the Ableton manual checklist below.
 
 ## Ableton Setup
@@ -54,8 +54,8 @@ Results:
 - [x] Enable Audio Units.
 - [x] Enable VST3.
 - [x] Rescan plug-ins after install.
-- [x] Confirm `Synth` appears as AU.
-- [x] Confirm `Synth` appears as VST3.
+- [ ] Confirm `sylenth-ai` appears as AU.
+- [ ] Confirm `sylenth-ai` appears as VST3.
 
 ## AU Smoke
 
@@ -95,7 +95,7 @@ not completed in this early host smoke pass.
 Notes:
 
 ```text
-VST3 appeared under Plug-Ins > VST3 > ParkerX > Synth after adding the user
+VST3 should appear under Plug-Ins > VST3 > ParkerX > sylenth-ai after adding the user
 VST3 folder, rescanning, and ad-hoc signing the installed bundle. VST3 loaded
 on a MIDI track, opened the placeholder editor, played the test MIDI notes with
 audible output, and still loaded after Ableton quit/reopen of the saved set.

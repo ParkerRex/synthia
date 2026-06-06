@@ -3,7 +3,8 @@ set -euo pipefail
 
 build_dir="${1:-build}"
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-artifact_root="$root_dir/$build_dir/SynthPlugin_artefacts"
+artifact_root="$root_dir/$build_dir/SylenthAIPlugin_artefacts"
+product_bundle="sylenth-ai"
 
 fail() {
   printf 'error: %s\n' "$*" >&2
@@ -25,9 +26,9 @@ resolve_artifact_dir() {
     }
 
     [[ -d "$1/$config_dir" ]] || continue
-    [[ -d "$1/$config_dir/Standalone/Synth.app" ]] || continue
-    [[ -d "$1/$config_dir/AU/Synth.component" ]] || continue
-    [[ -d "$1/$config_dir/VST3/Synth.vst3" ]] || continue
+    [[ -d "$1/$config_dir/Standalone/$product_bundle.app" ]] || continue
+    [[ -d "$1/$config_dir/AU/$product_bundle.component" ]] || continue
+    [[ -d "$1/$config_dir/VST3/$product_bundle.vst3" ]] || continue
 
     printf '%s\n' "$1/$config_dir"
     return
@@ -68,15 +69,15 @@ check_bundle() {
 }
 
 check_bundle "Standalone" \
-  "$artifact_dir/Standalone/Synth.app" \
-  "$artifact_dir/Standalone/Synth.app/Contents/MacOS/Synth"
+  "$artifact_dir/Standalone/$product_bundle.app" \
+  "$artifact_dir/Standalone/$product_bundle.app/Contents/MacOS/$product_bundle"
 
 check_bundle "AU" \
-  "$artifact_dir/AU/Synth.component" \
-  "$artifact_dir/AU/Synth.component/Contents/MacOS/Synth"
+  "$artifact_dir/AU/$product_bundle.component" \
+  "$artifact_dir/AU/$product_bundle.component/Contents/MacOS/$product_bundle"
 
 check_bundle "VST3" \
-  "$artifact_dir/VST3/Synth.vst3" \
-  "$artifact_dir/VST3/Synth.vst3/Contents/MacOS/Synth"
+  "$artifact_dir/VST3/$product_bundle.vst3" \
+  "$artifact_dir/VST3/$product_bundle.vst3/Contents/MacOS/$product_bundle"
 
 printf 'bundle checks completed for %s\n' "$build_dir"

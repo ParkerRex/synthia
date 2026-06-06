@@ -15,7 +15,7 @@ class StateRoundTripProcessor final : public juce::AudioProcessor
 {
 public:
     StateRoundTripProcessor()
-        : parameters(*this, nullptr, "SYNTH_STATE", synth::createParameterLayout())
+        : parameters(*this, nullptr, "SYLENTH_AI_STATE", synth::createParameterLayout())
     {
     }
 
@@ -67,7 +67,7 @@ bool checkStateRoundTrip()
         return false;
 
     const auto restoredState = juce::ValueTree::fromXml(*xml);
-    if (!restoredState.isValid() || !restoredState.hasType("SYNTH_STATE"))
+    if (!restoredState.isValid() || !restoredState.hasType("SYLENTH_AI_STATE"))
         return false;
 
     StateRoundTripProcessor destination;
@@ -238,7 +238,7 @@ bool checkPresetManagerLoadAndSave()
     }
 
     const auto scanInputFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("synth-preset-scan-input");
+        .getChildFile("sylenth-ai-preset-scan-input");
     scanInputFile.replaceWithText("not a directory");
     const auto scannedFile = synth::scanPresetDirectory(scanInputFile.getFullPathName().toStdString(), false);
     scanInputFile.deleteFile();
@@ -249,7 +249,7 @@ bool checkPresetManagerLoadAndSave()
     }
 
     const auto tempFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("synth-preset-manager-test.json");
+        .getChildFile("sylenth-ai-preset-manager-test.json");
     tempFile.deleteFile();
 
     std::string error;
@@ -288,7 +288,7 @@ bool checkPresetManagerLoadAndSave()
     tempFile.deleteFile();
 
     const auto extensionlessFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("synth-preset-manager-extension-test");
+        .getChildFile("sylenth-ai-preset-manager-extension-test");
     const auto extensionlessJsonFile = extensionlessFile.withFileExtension(".json");
     extensionlessFile.deleteFile();
     extensionlessJsonFile.deleteFile();

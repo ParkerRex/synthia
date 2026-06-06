@@ -1,19 +1,19 @@
 ---
-program_id: synth-clean-room-pluck-instrument
-title: Synth Clean-Room Pluck Instrument
+program_id: synth-pluck-core-foundation
+title: Synth Pluck Core Foundation
 status: superseded
 created_at: 2026-06-04
 completed_at: null
-summary: Coordinate the end-to-end build of a clean-room JUCE/CMake AU/VST3 pluck instrument from spec through release readiness.
+summary: Coordinate the end-to-end build of a lab-authored JUCE/CMake AU/VST3 pluck instrument from spec through release readiness.
 post_build_recap: null
 read_when:
   - Resuming the Synth build program.
   - Writing or revising child ExecPlans for the Synth plugin.
-  - Checking slice order, clean-room boundaries, or program-level validation.
+  - Checking slice order, source-use boundaries, or program-level validation.
   - Closing out the Synth release-readiness initiative.
 ---
 
-# Synth Clean-Room Pluck Instrument
+# Synth Pluck Core Foundation
 
 This Program is a historical initiative document for the earlier pluck-core scaffold. It is superseded by `docs/programs/active/2026-06-05-sylenth-lab-rebuild/program.md`.
 
@@ -21,7 +21,7 @@ This Program must be maintained in accordance with `docs/programs/PROGRAMS.md`.
 
 ## Purpose / Big Picture
 
-Synth should become a modern macOS/Ableton instrument for early-Strobe-v1-like analog plucks without copying third-party code, presets, names, UI, or binary behavior. When this Program is complete, a user should be able to build the repo, load the instrument in Ableton as AU or VST3, play the factory pluck, edit the sound in a clean-room UI, save/restore presets, and run deterministic render validation.
+Synth should become a modern macOS/Ableton instrument for early-Strobe-v1-like analog plucks without copying third-party code, presets, names, UI, or binary behavior. When this Program is complete, a user should be able to build the repo, load the instrument in Ableton as AU or VST3, play the factory pluck, edit the sound in a lab-authored UI, save/restore presets, and run deterministic render validation.
 
 The initiative matters because the target sound depends on several interacting systems: realtime plugin hosting, stable parameters, per-voice modulation, oscillator stack behavior, nonlinear filter drive, stereo voice spread, validation metrics, UI workflow, and host packaging. A Program keeps those slices aligned so the project does not drift into either a generic SH-101 clone or an unvalidated plugin shell.
 
@@ -29,14 +29,14 @@ The initiative matters because the target sound depends on several interacting s
 
 Packet artifacts:
 
-- `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/research-pass-spec-and-docs.md`
-- `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/normalized-pass-build-tracks.md`
-- `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/converged-decision-packet.md`
-- `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/dependency-graph.md`
-- `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/plan-split-recommendation.md`
-- `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/cross-repo-review.md`
-- `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md`
-- `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/current-planning-brief.txt`
+- `docs/programs/completed/2026-06-04-synth-pluck-core-foundation/research-pass-spec-and-docs.md`
+- `docs/programs/completed/2026-06-04-synth-pluck-core-foundation/normalized-pass-build-tracks.md`
+- `docs/programs/completed/2026-06-04-synth-pluck-core-foundation/converged-decision-packet.md`
+- `docs/programs/completed/2026-06-04-synth-pluck-core-foundation/dependency-graph.md`
+- `docs/programs/completed/2026-06-04-synth-pluck-core-foundation/plan-split-recommendation.md`
+- `docs/programs/completed/2026-06-04-synth-pluck-core-foundation/cross-repo-review.md`
+- `docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md`
+- `docs/programs/completed/2026-06-04-synth-pluck-core-foundation/current-planning-brief.txt`
 
 Project truth surfaces:
 
@@ -50,7 +50,7 @@ Project truth surfaces:
 
 ## Current State
 
-The repository currently contains a JUCE/CMake AU, VST3, and standalone plugin scaffold with APVTS state, clean-room factory presets, a usable clean-room editor, user preset save/duplicate workflow, voice allocation, envelopes, LFO, ramp, glide, velocity glide, TransMod-style routing, oscillator stack, nonlinear filter, amp/stereo dry-core rendering, bypassable onboard FX, realtime/offline quality settings, tests, and validation reports.
+The repository currently contains a JUCE/CMake AU, VST3, and standalone plugin scaffold with APVTS state, lab-authored factory presets, a usable lab-authored editor, user preset save/duplicate workflow, voice allocation, envelopes, LFO, ramp, glide, velocity glide, TransMod-style routing, oscillator stack, nonlinear filter, amp/stereo dry-core rendering, bypassable onboard FX, realtime/offline quality settings, tests, and validation reports.
 
 The current planning brief is `planning-brief-1.md`. The planned product-order next slice is the Ableton host integration and packaging workflow because dry core, editor, preset workflow, FX, quality settings, and early Ableton host smoke now have validation evidence.
 
@@ -71,7 +71,7 @@ Ableton early host smoke passed on 2026-06-05. The remaining host-validation wor
 - [x] 2026-06-04 EDT: Executed the full modulation slice. The repo now has ramp, glide, velocity glide, direct keytrack/LFO/envelope routes, eight TransMod-style slots with scalers and physical destination depths, performance MIDI sources, preset slot validation, and `SynthRender --modulation-test`.
 - [x] 2026-06-04 EDT: Executed the amp/stereo/factory pluck slice. The repo now renders `Pluck Core 01` dry to WAV/report with amp drive, pan spread, analog variation, and macro influence.
 - [x] 2026-06-04 EDT: Executed the validation harness slice. The repo now has `SynthRender --suite core`, core-suite CTest coverage, per-fixture JSON reports, WAV artifacts, LFO ablation, deterministic repeat/tolerance comparison, and documented metrics.
-- [x] 2026-06-05 EDT: Executed the UI/preset workflow slice. The repo now has a registry-bound clean-room editor, factory/user preset load-save-duplicate workflow, TransMod slot editing, diagnostics, and standalone UI smoke evidence.
+- [x] 2026-06-05 EDT: Executed the UI/preset workflow slice. The repo now has a registry-bound lab-authored editor, factory/user preset load-save-duplicate workflow, TransMod slot editing, diagnostics, and standalone UI smoke evidence.
 - [x] 2026-06-05 EDT: Executed the FX/quality slice. The repo now has bypassable saturation, tempo-synced delay, simple reverb, chorus, realtime/offline quality settings, FX UI controls, dry/wet render reports, and FX-focused CTest coverage.
 - [ ] Execute the Ableton/packaging slice.
 - [ ] Execute release hardening and move this Program to completed.
@@ -139,7 +139,7 @@ Program-level acceptance requires:
 - The dry-core factory pluck passes render validation.
 - AU and VST3 load in Ableton and restore state.
 - The UI exposes oscillator, filter, envelope, LFO, modulation, amp/stereo, FX, macros, presets, and diagnostics.
-- Factory presets are clean-room safe.
+- Factory presets are lab-authored.
 - Packaging, signing/notarization prep, and release docs exist.
 - All child ExecPlans have completed retrospectives and are moved to `docs/exec-plans/completed/`.
 - This Program has `completed_at`, `post_build_recap`, and a final retrospective before moving to `docs/programs/completed/`.

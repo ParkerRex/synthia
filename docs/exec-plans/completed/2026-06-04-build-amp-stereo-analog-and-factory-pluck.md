@@ -3,14 +3,14 @@ title: Build Amp Stereo Analog And Factory Pluck
 status: completed
 created_at: 2026-06-04
 completed_at: 2026-06-04
-summary: Complete the dry core with amp drive, voice/unison panning, analog variation, macros, and the first clean-room factory pluck preset.
+summary: Complete the dry core with amp drive, voice/unison panning, analog variation, macros, and the first lab-authored factory pluck preset.
 post_build_recap: Added per-voice amp envelope application, amp drive, level, pan spread, analog pitch/pan variation, macro influence, preset loading into the validation engine, and a dry WAV/report render for `Pluck Core 01`.
 read_when:
   - Building the dry-core pluck sound.
   - Tuning amp drive, stereo spread, analog variation, or macros.
   - Validating the first factory preset.
-program_id: synth-clean-room-pluck-instrument
-planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md
+program_id: synth-pluck-core-foundation
+planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
 ---
 
 # Build Amp Stereo Analog And Factory Pluck
@@ -21,7 +21,7 @@ This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
 ## Purpose / Big Picture
 
-After oscillator, filter, and modulation exist, Synth still needs the final per-voice amp/stereo behavior that makes the pluck feel alive. After this slice, the dry core should produce a clean-room factory preset named `Pluck Core 01`, with amp drive, pan spread, analog variation, macro assignments, and render proof that it works mostly dry.
+After oscillator, filter, and modulation exist, Synth still needs the final per-voice amp/stereo behavior that makes the pluck feel alive. After this slice, the dry core should produce a lab-authored factory preset named `Pluck Core 01`, with amp drive, pan spread, analog variation, macro assignments, and render proof that it works mostly dry.
 
 ## Progress
 
@@ -29,7 +29,7 @@ After oscillator, filter, and modulation exist, Synth still needs the final per-
 - [x] 2026-06-04 EDT: Implemented amp envelope application and amp drive.
 - [x] 2026-06-04 EDT: Implemented base pan, voice spread, and unison-spread contribution.
 - [x] 2026-06-04 EDT: Implemented subtle analog pitch/pan variation controls.
-- [x] 2026-06-04 EDT: Loaded the clean-room factory pluck preset and macros into render validation.
+- [x] 2026-06-04 EDT: Loaded the lab-authored factory pluck preset and macros into render validation.
 - [x] 2026-06-04 EDT: Rendered dry-core musical proof.
 
 ## Surprises & Discoveries
@@ -66,7 +66,7 @@ This plan does not add delay/reverb/chorus FX, final UI polish, Ableton packagin
 
 Implement amp envelope application, amp waveshaping, output level, and denormal protection. Add per-voice and per-unison panning with stable spread. Add analog variation controls for low-level noise, drift, and control slur, keeping defaults subtle.
 
-Create or update `presets/factory/pluck-core-01.json` using clean-room names. Assign macros for Motion, Width, Drive, and Space, even if Space remains low/no-op until FX lands.
+Create or update `presets/factory/pluck-core-01.json` using lab-authored names. Assign macros for Motion, Width, Drive, and Space, even if Space remains low/no-op until FX lands.
 
 Render the fixed overlapping pluck fixture with FX disabled and write metrics for loudness, clipping, stereo correlation, and modulation movement.
 

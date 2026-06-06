@@ -1,10 +1,10 @@
-# Synth Context
+# sylenth-ai Context
 
-Synth is a lab-built macOS/Ableton software instrument. Phase 1 rebuilds the Sylenth1 vintage VST experience for today's AU/VST3 hosts. Phase 2 adds AI-assisted sound and arpeggio generation. Phase 3 adds conversational VST control and reference-sound recreation.
+sylenth-ai is a lab-built macOS/Ableton software instrument. Phase 1 rebuilds the Sylenth1 vintage VST experience for today's AU/VST3 hosts. Phase 2 adds AI-assisted sound and arpeggio generation. Phase 3 adds conversational VST control and reference-sound recreation.
 
 ## Core Vocabulary
 
-- `Synth`: working project name, not necessarily final product name.
+- `sylenth-ai`: working project and plugin identity for the lab rebuild.
 - `Spec`: `SPEC.md`, the durable product contract.
 - `Lab`: the product context for rebuilding a vintage VST workflow and extending it with modern AI-native capabilities.
 - `Phase 1`: recreate the Sylenth-style instrument workflow and sound-design surface as a modern macOS/Ableton AU/VST3.

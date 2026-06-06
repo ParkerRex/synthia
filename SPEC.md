@@ -1,4 +1,4 @@
-# Synth Sylenth Lab Instrument Specification
+# sylenth-ai Instrument Specification
 
 Status: Draft v1 (research turn)
 
@@ -22,7 +22,7 @@ The Phase 1 target is a Sylenth-level instrument experience, grounded in `Sylent
 
 ## 1. Problem Statement
 
-Synth is a software instrument for producers, sound designers, and coding agents in a lab context. The product mission is to rebuild the Sylenth1-style virtual analog workflow that producers still love, make it run well on today's macOS/Ableton systems, and then add AI-native workflows that legacy VSTs never had.
+sylenth-ai is a software instrument for producers, sound designers, and coding agents in a lab context. The product mission is to rebuild the Sylenth1-style virtual analog workflow that producers still love, make it run well on today's macOS/Ableton systems, and then add AI-native workflows that legacy VSTs never had.
 
 The instrument solves these problems:
 
@@ -33,9 +33,9 @@ The instrument solves these problems:
 
 The product boundary:
 
-- Synth owns synthesis, modulation, preset state, host integration, rendering behavior, validation tools, UI/UX, AI-assisted generation, and conversational control.
-- Synth does not own DAW arrangement, mastering chains, external sample libraries, or user-provided copyrighted reference audio outside local analysis and preset-generation workflows.
-- Synth MAY include onboard FX and arpeggiator/chord-generation features, but the core synth MUST remain strong enough to validate without hiding weak oscillator/filter/envelope behavior behind effects.
+- sylenth-ai owns synthesis, modulation, preset state, host integration, rendering behavior, validation tools, UI/UX, AI-assisted generation, and conversational control.
+- sylenth-ai does not own DAW arrangement, mastering chains, external sample libraries, or user-provided copyrighted reference audio outside local analysis and preset-generation workflows.
+- sylenth-ai MAY include onboard FX and arpeggiator/chord-generation features, but the core synth MUST remain strong enough to validate without hiding weak oscillator/filter/envelope behavior behind effects.
 
 Success means:
 
@@ -72,7 +72,7 @@ Success means:
 
 - Bit-identical binary emulation of any third-party plugin.
 - Requiring a licensed Sylenth install at runtime.
-- Shipping third-party factory presets, samples, marks, or product assets as Synth-owned content.
+- Shipping third-party factory presets, samples, marks, or product assets as sylenth-ai-owned content.
 - Turning the product into a generic wavetable workstation before the Phase 1 Sylenth rebuild is complete.
 - VST2 support in the first release.
 - AAX support in the first release.
@@ -530,7 +530,7 @@ Rules:
 
 ### 4.2 Stable Identifiers and Normalization Rules
 
-- Product working name: `Synth`.
+- Product working name: `sylenth-ai`.
 - Factory preset IDs MUST be lower-kebab-case.
 - Parameter IDs MUST be stable after public release and MUST NOT encode UI placement.
 - Internal research preset names MAY reference research targets, but shipped display names MUST avoid unlicensed third-party names and marks.
@@ -982,13 +982,13 @@ Required metadata:
 
 Required build options:
 
-- `SYNTH_BUILD_AU`
-- `SYNTH_BUILD_VST3`
-- `SYNTH_BUILD_STANDALONE`
-- `SYNTH_ENABLE_TESTS`
-- `SYNTH_ENABLE_DEBUG_DIAGNOSTICS`
-- `SYNTH_ENABLE_COPY_AFTER_BUILD`
-- `SYNTH_STRICT_RELEASE_NAMES`
+- `SYLENTH_AI_BUILD_AU`
+- `SYLENTH_AI_BUILD_VST3`
+- `SYLENTH_AI_BUILD_STANDALONE`
+- `SYLENTH_AI_ENABLE_TESTS`
+- `SYLENTH_AI_ENABLE_DEBUG_DIAGNOSTICS`
+- `SYLENTH_AI_ENABLE_COPY_AFTER_BUILD`
+- `SYLENTH_AI_STRICT_RELEASE_NAMES`
 
 Defaults:
 

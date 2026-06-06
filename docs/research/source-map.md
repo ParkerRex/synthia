@@ -1,6 +1,6 @@
 # Research Source Map
 
-This file records source material and confidence levels for the Synth spec. It is evidence support, not a replacement for `../../SPEC.md`.
+This file records source material and confidence levels for the sylenth-ai spec. It is evidence support, not a replacement for `../../SPEC.md`.
 
 ## Current Verified Sources
 

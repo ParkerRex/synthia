@@ -74,6 +74,75 @@ float sanitize(float value) noexcept
 {
     return std::isfinite(value) ? value : 0.0f;
 }
+
+int layerOscillatorIndex(int layerIndex, int oscillatorIndex) noexcept
+{
+    return layerIndex * oscillatorSlotsPerLayer + oscillatorIndex;
+}
+
+bool isLegacyOscillatorSlot(int layerIndex, int oscillatorIndex) noexcept
+{
+    return layerIndex == 0 && oscillatorIndex == 0;
+}
+
+bool hasSoloLayer(const SynthParameters& parameters) noexcept
+{
+    for (const auto& layer : parameters.layers)
+    {
+        if (layer.enabled && layer.solo)
+            return true;
+    }
+
+    return false;
+}
+
+bool shouldRenderLayer(const LayerParameters& layer, bool soloActive) noexcept
+{
+    if (!layer.enabled || layer.mute)
+        return false;
+
+    return !soloActive || layer.solo;
+}
+
+bool shouldRenderOscillatorSlot(const LayerOscillatorParameters& oscillator) noexcept
+{
+    return oscillator.enabled && oscillator.voices > 0 && oscillator.level > 0.0f;
+}
+
+OscillatorParameters toSlotOscillatorParameters(const LayerOscillatorParameters& slot,
+                                                const SynthParameters& parameters) noexcept
+{
+    OscillatorParameters oscillator;
+    oscillator.pitchSemitones = static_cast<float>(slot.octave * 12 + slot.note);
+    oscillator.fineCents = slot.fineCents;
+    oscillator.stackCount = std::clamp(slot.voices, 1, 8);
+    oscillator.stackDetune = slot.detune;
+    oscillator.pulseWidth = parameters.osc.pulseWidth;
+    oscillator.subWave = parameters.osc.subWave;
+    oscillator.subOctave = 1;
+    oscillator.subPulseWidth = parameters.osc.subPulseWidth;
+
+    switch (slot.waveform)
+    {
+        case OscillatorSlotWaveform::Saw:
+            oscillator.sawLevel = 1.0f;
+            break;
+        case OscillatorSlotWaveform::Pulse:
+            oscillator.sawLevel = 0.0f;
+            oscillator.pulseLevel = 1.0f;
+            break;
+        case OscillatorSlotWaveform::Noise:
+            oscillator.sawLevel = 0.0f;
+            oscillator.noiseLevel = 1.0f;
+            break;
+        case OscillatorSlotWaveform::Sub:
+            oscillator.sawLevel = 0.0f;
+            oscillator.subLevel = 1.0f;
+            break;
+    }
+
+    return oscillator;
+}
 } // namespace
 
 void Voice::prepare(double newSampleRate)
@@ -91,6 +160,8 @@ void Voice::prepare(double newSampleRate)
     lfo.setRateHz(2.0f);
 
     oscillator.prepare(sampleRate);
+    for (auto& layerOscillator : layerOscillators)
+        layerOscillator.prepare(sampleRate);
     ramp.prepare(sampleRate);
     filter.prepare(sampleRate);
 }
@@ -154,6 +225,7 @@ void Voice::noteOn(int note, float normalizedVelocity, float randomValue,
             oscillator.reset(randomOnNote);
         else if (parameters.osc.phaseReset == 1 || parameters.osc.phaseReset == 2)
             oscillator.reset(0.0f);
+        resetLayerOscillators(parameters, randomOnNote);
         ramp.noteOn();
         filter.reset();
     }
@@ -188,6 +260,8 @@ void Voice::reset() noexcept
     modEnvelope.reset();
     lfo.resetPhase();
     ramp.reset();
+    for (auto& layerOscillator : layerOscillators)
+        layerOscillator.reset(0.0f);
     filter.reset();
     lastDirectSums = {};
     lastTransModSums = {};
@@ -258,10 +332,11 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
         + lastTransModSums.filterCutoffSemitones;
 
     const auto unisonBi = bipolarIndex(unisonIndex, unisonCount);
-    auto sample = oscillator.renderSample(effectiveNote, parameters,
-                                          oscPitchMod + randomOnNote * parameters.amp.analog * 0.07f
-                                              + unisonBi * parameters.amp.analog * 0.12f,
-                                          pulseMod);
+    const auto analogPitchMod = randomOnNote * parameters.amp.analog * 0.07f
+        + unisonBi * parameters.amp.analog * 0.12f;
+    const auto layerMix = renderLayerOscillators(parameters, effectiveNote, oscPitchMod,
+                                                 pulseMod, analogPitchMod, unisonBi);
+    auto sample = layerMix.sample;
     sample = filter.process(sample, effectiveNote, parameters, cutoffMod);
 
     const auto ampDrive = clampUnit(parameters.amp.drive + parameters.macro.drive * 0.35f);
@@ -273,10 +348,105 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     const auto voiceSpread = randomOnNote * parameters.amp.panSpread * 0.85f
         + unisonBi * parameters.amp.unisonSpread * 0.7f
         + randomOnNote * parameters.macro.width * 0.25f;
-    const auto pan = std::clamp(parameters.amp.pan + voiceSpread + lastTransModSums.pan, -1.0f, 1.0f);
+    const auto pan = std::clamp(parameters.amp.pan + voiceSpread + layerMix.pan + lastTransModSums.pan, -1.0f, 1.0f);
     const auto angle = (pan + 1.0f) * 0.5f * halfPi;
 
     return { sanitize(sample * std::cos(angle)), sanitize(sample * std::sin(angle)) };
+}
+
+void Voice::resetLayerOscillators(const SynthParameters& parameters, float fallbackPhase) noexcept
+{
+    const auto fallbackNormalizedPhase = (std::clamp(fallbackPhase, -1.0f, 1.0f) + 1.0f) * 0.5f;
+    for (int layerIndex = 0; layerIndex < layerCount; ++layerIndex)
+    {
+        const auto& layer = parameters.layers[static_cast<std::size_t>(layerIndex)];
+        for (int oscillatorIndex = 0; oscillatorIndex < oscillatorSlotsPerLayer; ++oscillatorIndex)
+        {
+            if (isLegacyOscillatorSlot(layerIndex, oscillatorIndex))
+                continue;
+
+            const auto& slot = layer.oscillators[static_cast<std::size_t>(oscillatorIndex)];
+            if (!slot.retrigger)
+                continue;
+
+            const auto phase = std::isfinite(slot.phaseDegrees)
+                ? slot.phaseDegrees / 360.0f
+                : fallbackNormalizedPhase;
+            layerOscillators[static_cast<std::size_t>(layerOscillatorIndex(layerIndex, oscillatorIndex))]
+                .resetToPhase(phase);
+        }
+    }
+}
+
+Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& parameters, float effectiveNote,
+                                                        float pitchModSemitones, float pulseWidthMod,
+                                                        float analogPitchMod, float unisonBi) noexcept
+{
+    const auto soloActive = hasSoloLayer(parameters);
+    auto activeSlotCount = 0;
+    for (const auto& layer : parameters.layers)
+    {
+        if (!shouldRenderLayer(layer, soloActive))
+            continue;
+
+        for (const auto& slot : layer.oscillators)
+        {
+            if (shouldRenderOscillatorSlot(slot))
+                ++activeSlotCount;
+        }
+    }
+
+    if (activeSlotCount <= 0)
+        return {};
+
+    LayerOscillatorMix mix;
+    auto panWeight = 0.0f;
+    auto weightedPan = 0.0f;
+    for (int layerIndex = 0; layerIndex < layerCount; ++layerIndex)
+    {
+        const auto& layer = parameters.layers[static_cast<std::size_t>(layerIndex)];
+        if (!shouldRenderLayer(layer, soloActive))
+            continue;
+
+        const auto layerGain = decibelsToGain(layer.levelDb);
+        for (int oscillatorIndex = 0; oscillatorIndex < oscillatorSlotsPerLayer; ++oscillatorIndex)
+        {
+            const auto& slot = layer.oscillators[static_cast<std::size_t>(oscillatorIndex)];
+            if (!shouldRenderOscillatorSlot(slot))
+                continue;
+
+            const auto gain = layerGain * clampUnit(slot.level);
+            auto slotSample = 0.0f;
+            if (isLegacyOscillatorSlot(layerIndex, oscillatorIndex))
+            {
+                slotSample = oscillator.renderSample(effectiveNote, parameters,
+                                                     pitchModSemitones + analogPitchMod,
+                                                     pulseWidthMod);
+            }
+            else
+            {
+                const auto oscillatorParameters = toSlotOscillatorParameters(slot, parameters);
+                slotSample = layerOscillators[static_cast<std::size_t>(layerOscillatorIndex(layerIndex, oscillatorIndex))]
+                    .renderSample(effectiveNote, oscillatorParameters,
+                                  pitchModSemitones + analogPitchMod,
+                                  pulseWidthMod);
+            }
+
+            if (slot.invert)
+                slotSample = -slotSample;
+
+            mix.sample += slotSample * gain;
+            const auto slotPan = std::clamp(layer.pan + slot.pan + unisonBi * slot.stereo * 0.65f,
+                                            -1.0f, 1.0f);
+            weightedPan += slotPan * std::abs(gain);
+            panWeight += std::abs(gain);
+        }
+    }
+
+    mix.sample *= 1.0f / std::sqrt(static_cast<float>(activeSlotCount));
+    mix.sample = sanitize(mix.sample);
+    mix.pan = panWeight > 0.0f ? std::clamp(weightedPan / panWeight, -1.0f, 1.0f) : 0.0f;
+    return mix;
 }
 
 float Voice::processGlide(const SynthParameters& parameters) noexcept

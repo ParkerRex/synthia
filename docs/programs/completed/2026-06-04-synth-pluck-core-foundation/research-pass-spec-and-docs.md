@@ -15,7 +15,7 @@ This pass records the durable inputs that define the Synth build program.
 
 ## Stable Findings
 
-Synth is a clean-room software instrument for early-Strobe-v1-like analog plucks. The product target is behavior, not a literal third-party clone.
+Synth is a lab-authored software instrument for early-Strobe-v1-like analog plucks. The product target is behavior, not a literal third-party clone.
 
 The first engineering risk is not the basic oscillator. The high-risk behavior is per-voice note-local modulation, semitone-domain filter movement, nonlinear filter drive/resonance interaction, and controlled stereo/voice variation.
 
@@ -23,7 +23,7 @@ The expected technology path is JUCE plus CMake with AU, VST3, and standalone ta
 
 The plugin must be realtime-safe. No implementation slice may normalize allocations, locks, file I/O, network I/O, or synchronous logging on the audio thread.
 
-The clean-room policy is a hard constraint across the whole program. Shipped code, names, UI, factory presets, and docs cannot copy or imply affiliation with third-party products, artists, or songs.
+The source-use policy is a hard constraint across the whole program. Shipped code, names, UI, factory presets, and docs cannot copy or imply affiliation with third-party products, artists, or songs.
 
 ## Track Implications
 

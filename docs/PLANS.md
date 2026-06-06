@@ -1,6 +1,6 @@
 # Plans
 
-This file routes long-running implementation work in Synth.
+This file routes long-running implementation work in sylenth-ai.
 
 Use `docs/programs/` for durable multi-slice initiatives that sit above several ExecPlans. Use `docs/exec-plans/` for one bounded implementation slice with its own validation loop.
 

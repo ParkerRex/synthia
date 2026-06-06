@@ -9,8 +9,8 @@ read_when:
   - Implementing note allocation or per-voice modulation.
   - Debugging stuck notes, envelope timing, or LFO retrigger behavior.
   - Preparing oscillator and filter slices.
-program_id: synth-clean-room-pluck-instrument
-planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md
+program_id: synth-pluck-core-foundation
+planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
 ---
 
 # Build Voice MIDI Envelope LFO Core

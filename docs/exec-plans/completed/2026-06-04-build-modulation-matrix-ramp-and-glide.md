@@ -9,8 +9,8 @@ read_when:
   - Implementing modulation routing.
   - Debugging voice variation, glide, ramp, or TransMod behavior.
   - Preparing factory pluck macros.
-program_id: synth-clean-room-pluck-instrument
-planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md
+program_id: synth-pluck-core-foundation
+planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
 ---
 
 # Build Modulation Matrix Ramp And Glide

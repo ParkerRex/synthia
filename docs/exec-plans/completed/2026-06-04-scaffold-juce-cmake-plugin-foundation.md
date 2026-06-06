@@ -9,8 +9,8 @@ read_when:
   - Starting Synth implementation.
   - Resuming the foundation scaffold.
   - Validating the first buildable plugin shell.
-program_id: synth-clean-room-pluck-instrument
-planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md
+program_id: synth-pluck-core-foundation
+planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
 ---
 
 # Scaffold JUCE CMake Plugin Foundation
@@ -58,7 +58,7 @@ Date: 2026-06-04.
 
 ## Outcomes & Retrospective
 
-The foundation slice is complete. The repo now has a buildable JUCE/CMake scaffold with AU, VST3, and standalone plugin targets, a silent realtime-safe engine stub, a minimal clean-room editor, a `SynthRender` validation CLI, and a CTest smoke test.
+The foundation slice is complete. The repo now has a buildable JUCE/CMake scaffold with AU, VST3, and standalone plugin targets, a silent realtime-safe engine stub, a minimal lab-authored editor, a `SynthRender` validation CLI, and a CTest smoke test.
 
 This slice intentionally produces silence. The next slice should replace the placeholder state path with the real parameter registry, host state, and preset contract.
 

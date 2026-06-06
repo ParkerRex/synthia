@@ -4,33 +4,49 @@ if(APPLE AND (NOT DEFINED CMAKE_OSX_ARCHITECTURES OR CMAKE_OSX_ARCHITECTURES STR
     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures" FORCE)
 endif()
 
-project(Synth
+project(SylenthAI
     VERSION 0.1.0
-    DESCRIPTION "Clean-room pluck instrument"
+    DESCRIPTION "Sylenth AI lab instrument"
     LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(SYNTH_ENABLE_TESTS "Build Synth tests" ON)
-option(SYNTH_ENABLE_COPY_AFTER_BUILD "Copy plugin bundles after build" OFF)
-set(SYNTH_JUCE_GIT_TAG "8.0.13" CACHE STRING "JUCE git tag used when SYNTH_JUCE_PATH is not set")
-set(SYNTH_JUCE_PATH "" CACHE PATH "Optional local JUCE checkout")
+option(SYLENTH_AI_ENABLE_TESTS "Build sylenth-ai tests" ON)
+option(SYLENTH_AI_ENABLE_COPY_AFTER_BUILD "Copy plugin bundles after build" OFF)
+set(SYLENTH_AI_JUCE_GIT_TAG "8.0.13" CACHE STRING "JUCE git tag used when SYLENTH_AI_JUCE_PATH is not set")
+set(SYLENTH_AI_JUCE_PATH "" CACHE PATH "Optional local JUCE checkout")
 
-if(SYNTH_JUCE_PATH)
-    add_subdirectory("${SYNTH_JUCE_PATH}" juce)
+if(DEFINED SYNTH_ENABLE_TESTS)
+    set(SYLENTH_AI_ENABLE_TESTS "${SYNTH_ENABLE_TESTS}" CACHE BOOL "Build sylenth-ai tests" FORCE)
+endif()
+
+if(DEFINED SYNTH_ENABLE_COPY_AFTER_BUILD)
+    set(SYLENTH_AI_ENABLE_COPY_AFTER_BUILD "${SYNTH_ENABLE_COPY_AFTER_BUILD}" CACHE BOOL "Copy plugin bundles after build" FORCE)
+endif()
+
+if(DEFINED SYNTH_JUCE_GIT_TAG AND SYLENTH_AI_JUCE_GIT_TAG STREQUAL "8.0.13")
+    set(SYLENTH_AI_JUCE_GIT_TAG "${SYNTH_JUCE_GIT_TAG}" CACHE STRING "JUCE git tag used when SYLENTH_AI_JUCE_PATH is not set" FORCE)
+endif()
+
+if(DEFINED SYNTH_JUCE_PATH AND SYLENTH_AI_JUCE_PATH STREQUAL "")
+    set(SYLENTH_AI_JUCE_PATH "${SYNTH_JUCE_PATH}" CACHE PATH "Optional local JUCE checkout" FORCE)
+endif()
+
+if(SYLENTH_AI_JUCE_PATH)
+    add_subdirectory("${SYLENTH_AI_JUCE_PATH}" juce)
 else()
     include(FetchContent)
     FetchContent_Declare(
         JUCE
         GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-        GIT_TAG ${SYNTH_JUCE_GIT_TAG}
+        GIT_TAG ${SYLENTH_AI_JUCE_GIT_TAG}
         GIT_SHALLOW TRUE)
     FetchContent_MakeAvailable(JUCE)
 endif()
 
-set(SYNTH_COMMON_SOURCES
+set(SYLENTH_AI_COMMON_SOURCES
     src/dsp/Envelope.cpp
     src/dsp/Envelope.h
     src/dsp/Filter.cpp
@@ -57,40 +73,41 @@ set(SYNTH_COMMON_SOURCES
     src/voice/VoiceAllocator.cpp
     src/voice/VoiceAllocator.h)
 
-juce_add_plugin(SynthPlugin
+juce_add_plugin(SylenthAIPlugin
     COMPANY_NAME "ParkerX"
-    BUNDLE_ID "com.parkerx.synth"
+    BUNDLE_ID "com.parkerx.sylenth-ai"
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
-    COPY_PLUGIN_AFTER_BUILD ${SYNTH_ENABLE_COPY_AFTER_BUILD}
+    COPY_PLUGIN_AFTER_BUILD ${SYLENTH_AI_ENABLE_COPY_AFTER_BUILD}
     PLUGIN_MANUFACTURER_CODE PkRx
-    PLUGIN_CODE Syn1
+    PLUGIN_CODE SyAI
     FORMATS AU VST3 Standalone
-    PRODUCT_NAME "Synth")
+    PRODUCT_NAME "sylenth-ai")
 
-target_sources(SynthPlugin
+target_sources(SylenthAIPlugin
     PRIVATE
-        ${SYNTH_COMMON_SOURCES}
+        ${SYLENTH_AI_COMMON_SOURCES}
         src/plugin/PluginEditor.cpp
         src/plugin/PluginEditor.h
         src/plugin/PluginProcessor.cpp
         src/plugin/PluginProcessor.h)
 
-foreach(SYNTH_PLUGIN_FORMAT_TARGET IN ITEMS SynthPlugin_AU SynthPlugin_VST3 SynthPlugin_Standalone)
-    juce_add_bundle_resources_directory(${SYNTH_PLUGIN_FORMAT_TARGET} "${CMAKE_CURRENT_SOURCE_DIR}/presets/factory")
+foreach(SYLENTH_AI_PLUGIN_FORMAT_TARGET IN ITEMS SylenthAIPlugin_AU SylenthAIPlugin_VST3 SylenthAIPlugin_Standalone)
+    juce_add_bundle_resources_directory(${SYLENTH_AI_PLUGIN_FORMAT_TARGET} "${CMAKE_CURRENT_SOURCE_DIR}/presets/factory")
 endforeach()
 
-target_compile_definitions(SynthPlugin
+target_compile_definitions(SylenthAIPlugin
     PUBLIC
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
+        SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
         SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
-target_link_libraries(SynthPlugin
+target_link_libraries(SylenthAIPlugin
     PRIVATE
         juce::juce_audio_utils
         juce::juce_dsp
@@ -99,13 +116,13 @@ target_link_libraries(SynthPlugin
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
 
-juce_generate_juce_header(SynthPlugin)
+juce_generate_juce_header(SylenthAIPlugin)
 
-add_executable(SynthRender
-    ${SYNTH_COMMON_SOURCES}
+add_executable(SylenthAIRender
+    ${SYLENTH_AI_COMMON_SOURCES}
     src/validation/SynthRender.cpp)
 
-target_link_libraries(SynthRender
+target_link_libraries(SylenthAIRender
     PRIVATE
         juce::juce_core
         juce::juce_audio_basics
@@ -114,20 +131,21 @@ target_link_libraries(SynthRender
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags)
 
-target_compile_definitions(SynthRender
+target_compile_definitions(SylenthAIRender
     PRIVATE
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
+        SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
         SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
-if(SYNTH_ENABLE_TESTS)
+if(SYLENTH_AI_ENABLE_TESTS)
     enable_testing()
 
-    add_executable(SynthSmokeTest
-        ${SYNTH_COMMON_SOURCES}
+    add_executable(SylenthAISmokeTest
+        ${SYLENTH_AI_COMMON_SOURCES}
         tests/smoke/SynthSmokeTest.cpp)
 
-    target_link_libraries(SynthSmokeTest
+    target_link_libraries(SylenthAISmokeTest
         PRIVATE
             juce::juce_core
             juce::juce_audio_basics
@@ -136,20 +154,21 @@ if(SYNTH_ENABLE_TESTS)
             juce::juce_recommended_config_flags
             juce::juce_recommended_warning_flags)
 
-    target_compile_definitions(SynthSmokeTest
+    target_compile_definitions(SylenthAISmokeTest
         PRIVATE
             JUCE_WEB_BROWSER=0
             JUCE_USE_CURL=0
+            SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
             SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
-    add_test(NAME SynthSmokeTest COMMAND SynthSmokeTest)
-    set_tests_properties(SynthSmokeTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME SylenthAISmokeTest COMMAND SylenthAISmokeTest)
+    set_tests_properties(SylenthAISmokeTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
-    add_executable(SynthContractTest
-        ${SYNTH_COMMON_SOURCES}
+    add_executable(SylenthAIContractTest
+        ${SYLENTH_AI_COMMON_SOURCES}
         tests/smoke/SynthContractTest.cpp)
 
-    target_link_libraries(SynthContractTest
+    target_link_libraries(SylenthAIContractTest
         PRIVATE
             juce::juce_core
             juce::juce_audio_basics
@@ -158,20 +177,21 @@ if(SYNTH_ENABLE_TESTS)
             juce::juce_recommended_config_flags
             juce::juce_recommended_warning_flags)
 
-    target_compile_definitions(SynthContractTest
+    target_compile_definitions(SylenthAIContractTest
         PRIVATE
             JUCE_WEB_BROWSER=0
             JUCE_USE_CURL=0
+            SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
             SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
-    add_test(NAME SynthContractTest COMMAND SynthContractTest)
-    set_tests_properties(SynthContractTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME SylenthAIContractTest COMMAND SylenthAIContractTest)
+    set_tests_properties(SylenthAIContractTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
-    add_executable(SynthVoiceCoreTest
-        ${SYNTH_COMMON_SOURCES}
+    add_executable(SylenthAIVoiceCoreTest
+        ${SYLENTH_AI_COMMON_SOURCES}
         tests/smoke/SynthVoiceCoreTest.cpp)
 
-    target_link_libraries(SynthVoiceCoreTest
+    target_link_libraries(SylenthAIVoiceCoreTest
         PRIVATE
             juce::juce_core
             juce::juce_audio_basics
@@ -180,20 +200,21 @@ if(SYNTH_ENABLE_TESTS)
             juce::juce_recommended_config_flags
             juce::juce_recommended_warning_flags)
 
-    target_compile_definitions(SynthVoiceCoreTest
+    target_compile_definitions(SylenthAIVoiceCoreTest
         PRIVATE
             JUCE_WEB_BROWSER=0
             JUCE_USE_CURL=0
+            SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
             SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
-    add_test(NAME SynthVoiceCoreTest COMMAND SynthVoiceCoreTest)
-    set_tests_properties(SynthVoiceCoreTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME SylenthAIVoiceCoreTest COMMAND SylenthAIVoiceCoreTest)
+    set_tests_properties(SylenthAIVoiceCoreTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
-    add_executable(SynthDspCoreTest
-        ${SYNTH_COMMON_SOURCES}
+    add_executable(SylenthAIDspCoreTest
+        ${SYLENTH_AI_COMMON_SOURCES}
         tests/smoke/SynthDspCoreTest.cpp)
 
-    target_link_libraries(SynthDspCoreTest
+    target_link_libraries(SylenthAIDspCoreTest
         PRIVATE
             juce::juce_core
             juce::juce_audio_basics
@@ -202,16 +223,17 @@ if(SYNTH_ENABLE_TESTS)
             juce::juce_recommended_config_flags
             juce::juce_recommended_warning_flags)
 
-    target_compile_definitions(SynthDspCoreTest
+    target_compile_definitions(SylenthAIDspCoreTest
         PRIVATE
             JUCE_WEB_BROWSER=0
             JUCE_USE_CURL=0
+            SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
             SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
-    add_test(NAME SynthDspCoreTest COMMAND SynthDspCoreTest)
-    set_tests_properties(SynthDspCoreTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME SylenthAIDspCoreTest COMMAND SylenthAIDspCoreTest)
+    set_tests_properties(SylenthAIDspCoreTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
-    add_test(NAME SynthRenderCoreSuite
-        COMMAND SynthRender --suite core --output-dir build/reports/ctest-core)
-    set_tests_properties(SynthRenderCoreSuite PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME SylenthAIRenderCoreSuite
+        COMMAND SylenthAIRender --suite core --output-dir build/reports/ctest-core)
+    set_tests_properties(SylenthAIRenderCoreSuite PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()

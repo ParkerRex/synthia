@@ -7,6 +7,8 @@
 #include "../dsp/Ramp.h"
 #include "../dsp/SynthParameters.h"
 
+#include <array>
+
 namespace synth
 {
 enum class VoiceState
@@ -77,8 +79,18 @@ private:
         float pan = 0.0f;
     };
 
+    struct LayerOscillatorMix
+    {
+        float sample = 0.0f;
+        float pan = 0.0f;
+    };
+
     float processGlide(const SynthParameters& parameters) noexcept;
     float processVelocityGlide(const SynthParameters& parameters) noexcept;
+    void resetLayerOscillators(const SynthParameters& parameters, float fallbackPhase) noexcept;
+    LayerOscillatorMix renderLayerOscillators(const SynthParameters& parameters, float effectiveNote,
+                                              float pitchModSemitones, float pulseWidthMod,
+                                              float analogPitchMod, float unisonBi) noexcept;
     float evalModSource(const SynthParameters& parameters, ModSource source, float lfoValue, float rampValue,
                         float modEnvValue, float ampEnvValue, float effectiveNote,
                         float velocityGlideValue) const noexcept;
@@ -109,6 +121,7 @@ private:
     Lfo lfo;
     Ramp ramp;
     OscillatorStack oscillator;
+    std::array<OscillatorStack, layerCount * oscillatorSlotsPerLayer> layerOscillators;
     Filter filter;
     ModulationSums lastDirectSums;
     ModulationSums lastTransModSums;

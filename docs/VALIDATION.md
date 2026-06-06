@@ -13,19 +13,19 @@ Phase 3 validation proves conversational editing: text prompts and reference-sou
 Current scaffold commands:
 
 ```bash
-cmake -S . -B build -DSYNTH_ENABLE_TESTS=ON
+cmake -S . -B build -DSYLENTH_AI_ENABLE_TESTS=ON
 cmake --build build --config Debug
 ctest --test-dir build --output-on-failure
-./build/SynthRender --smoke --output build/reports/smoke.json
-./build/SynthRender --list-parameters --output build/reports/parameters.json
-./build/SynthRender --validate-presets presets/factory --output build/reports/presets.json
-./build/SynthRender --voice-test --output build/reports/voice-core.json
-./build/SynthRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
-./build/SynthRender --filter-test --output build/reports/filter.json
-./build/SynthRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
-./build/SynthRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
-./build/SynthRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --wet --output build/renders/pluck-core-01-wet.wav --report build/reports/pluck-core-01-wet.json
-./build/SynthRender --suite core --output-dir build/reports/core
+./build/SylenthAIRender --smoke --output build/reports/smoke.json
+./build/SylenthAIRender --list-parameters --output build/reports/parameters.json
+./build/SylenthAIRender --validate-presets presets/factory --output build/reports/presets.json
+./build/SylenthAIRender --voice-test --output build/reports/voice-core.json
+./build/SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
+./build/SylenthAIRender --filter-test --output build/reports/filter.json
+./build/SylenthAIRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
+./build/SylenthAIRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
+./build/SylenthAIRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --wet --output build/renders/pluck-core-01-wet.wav --report build/reports/pluck-core-01-wet.json
+./build/SylenthAIRender --suite core --output-dir build/reports/core
 ```
 
 The current smoke render is intentionally note-less and proves initialization, finite output, report writing, and command shape.
@@ -36,7 +36,7 @@ The current contract validation proves:
 - valid defaults and ranges,
 - APVTS state round-trip,
 - old host-state default merge for new layer and oscillator-slot fields,
-- layer and oscillator-slot defaults, legacy preset defaulting, saved preset serialization, and current-render no-op behavior,
+- layer and oscillator-slot defaults, legacy preset defaulting, saved preset serialization, inactive-slot no-op behavior, audible A2/B1/B2 rendering, and layer mute/solo behavior,
 - two factory preset JSON files,
 - no unknown preset parameter IDs,
 - TransMod slot objects use valid slot IDs, source/scaler choices, depth domains, and destination IDs.
@@ -64,8 +64,8 @@ The current DSP validation proves:
 - ramp timing, glide, velocity glide, direct keytrack/LFO/envelope routes, TransMod scaler multiplication to many physical destinations, performance MIDI sources, voice/unison/random source spread, and fixture trace ranges.
 - top-level `mod_slots` preset schema objects are applied by render loading, including schema-only modulation fixtures that omit flat APVTS-style `transmod.*` parameters.
 - FX bypass stays null-equivalent to dry rendering when globally bypassed, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
-- `SynthRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
-- `SynthRenderCoreSuite` runs the core suite under CTest.
+- `SylenthAIRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
+- `SylenthAIRenderCoreSuite` runs the core suite under CTest.
 
 Preset render validation is expected to fail if the preset file is missing, the preset JSON is invalid, the MIDI fixture is missing, the fixture is not a valid MIDI file, or the fixture has no note events.
 

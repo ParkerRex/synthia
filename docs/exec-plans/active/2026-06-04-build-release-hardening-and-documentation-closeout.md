@@ -3,14 +3,14 @@ title: Build Release Hardening And Documentation Closeout
 status: superseded
 created_at: 2026-06-04
 completed_at: null
-summary: Close the program with performance validation, clean-room review, final docs, release checklist, and Program retrospective.
+summary: Close the program with performance validation, lab-authored review, final docs, release checklist, and Program retrospective.
 post_build_recap: null
 read_when:
-  - Preparing Synth for a public or private release.
-  - Closing the Synth build Program.
-  - Auditing final validation, docs, or clean-room safety.
-program_id: synth-clean-room-pluck-instrument
-planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md
+  - Preparing sylenth-ai for a public or private release.
+  - Closing the sylenth-ai build Program.
+  - Auditing final validation, docs, or rebuild alignment.
+program_id: synth-pluck-core-foundation
+planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
 ---
 
 # Build Release Hardening And Documentation Closeout
@@ -23,14 +23,14 @@ This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
 ## Purpose / Big Picture
 
-After all build slices land, Synth still needs a final pass that proves the product is ready to hand off. This slice consolidates performance validation, clean-room naming review, docs, release checklist, packaging proof, known limitations, and Program retrospective.
+After all build slices land, sylenth-ai still needs a final pass that proves the product is ready to hand off. This slice consolidates performance validation, rebuild alignment review, docs, release checklist, packaging proof, known limitations, and Program retrospective.
 
 ## Progress
 
 - [x] 2026-06-04 EDT: Created this Program-linked ExecPlan from `planning-brief-1.md`.
 - [ ] Run full validation matrix.
 - [ ] Run performance and host checks.
-- [ ] Perform clean-room naming/content review.
+- [ ] Perform rebuild alignment review.
 - [ ] Finalize docs and release checklist.
 - [ ] Update completed child plans and Program retrospective.
 
@@ -54,7 +54,7 @@ This slice depends on all prior child ExecPlans. It should not start until the p
 
 ### In Scope
 
-This plan may update `README.md`, `SPEC.md`, `CONTEXT.md`, `docs/*`, release notes, validation reports, host validation docs, packaging docs, clean-room audit notes, and Program/ExecPlan closeout sections.
+This plan may update `README.md`, `SPEC.md`, `CONTEXT.md`, `docs/*`, release notes, validation reports, host validation docs, packaging docs, source-alignment audit notes, and Program/ExecPlan closeout sections.
 
 ### Out Of Scope
 
@@ -64,7 +64,7 @@ This plan does not add major new DSP, UI, or packaging features. It may fix rele
 
 Run the full command validation suite, release build, plugin bundle checks, and Ableton smoke checklist. Add performance reports for sample rates, buffer sizes, voice counts, unison counts, oversampling, UI open/closed, and silence tails.
 
-The current available standalone suite is `--suite core`. Add `--suite full` and `scripts/check-clean-room.sh` during this slice before using them as release gates.
+The current available standalone suite is `--suite core`. Add `--suite full` and `scripts/check-source-alignment.sh` during this slice before using them as release gates.
 
 Audit shipped names, preset names, UI text, bundle IDs, and docs against `SPEC.md` and `docs/research/source-map.md`. Remove internal research aliases from release-facing artifacts.
 
@@ -76,7 +76,7 @@ Close child ExecPlans with retrospectives as they complete. Update `program.md` 
 
 Milestone 1 runs full validation and performance checks.
 
-Milestone 2 completes clean-room and release documentation review.
+Milestone 2 completes lab-authored and release documentation review.
 
 Milestone 3 records known limitations and future follow-up plans.
 
@@ -86,29 +86,29 @@ Milestone 4 completes Program and ExecPlan closeout.
 
 Work from the repo root:
 
-    cd /Users/parkerrex/Developer/synth
+    cd /Users/parkerrex/Developer/sylenth-ai
 
 Run full validation:
 
-    cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTH_ENABLE_TESTS=ON
+    cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYLENTH_AI_ENABLE_TESTS=ON
     cmake --build build-release --config Release
     ctest --test-dir build-release --output-on-failure
-    ./build-release/SynthRender --suite core --output-dir build-release/reports/core
+    ./build-release/SylenthAIRender --suite core --output-dir build-release/reports/core
     scripts/check-plugin-bundles.sh build-release
 
 Run the Ableton smoke checklist and update the release docs.
 
 ## Validation and Acceptance
 
-Acceptance requires full validation reports, performance report, Ableton smoke proof, clean-room check passing, install/uninstall docs, known limitations, release checklist, all child plan closeouts, and Program retrospective.
+Acceptance requires full validation reports, performance report, Ableton smoke proof, source-alignment check passing, install/uninstall docs, known limitations, release checklist, all child plan closeouts, and Program retrospective.
 
 ### Test Commands
 
-    cd /Users/parkerrex/Developer/synth
-    cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTH_ENABLE_TESTS=ON
+    cd /Users/parkerrex/Developer/sylenth-ai
+    cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYLENTH_AI_ENABLE_TESTS=ON
     cmake --build build-release --config Release
     ctest --test-dir build-release --output-on-failure
-    ./build-release/SynthRender --suite core --output-dir build-release/reports/core
+    ./build-release/SylenthAIRender --suite core --output-dir build-release/reports/core
     scripts/check-plugin-bundles.sh build-release
 
 Manual verification: complete the Ableton AU/VST3 smoke checklist and record screenshots or notes in the host validation doc.
@@ -124,7 +124,7 @@ Expected proof artifacts:
 - full validation report
 - performance report
 - Ableton smoke notes
-- clean-room audit result
+- source-alignment audit result
 - release checklist
 - Program retrospective
 

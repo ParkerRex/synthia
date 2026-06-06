@@ -1,6 +1,6 @@
 # Architecture
 
-Synth is planned as a JUCE/CMake C++ instrument with AU, VST3, and standalone targets.
+sylenth-ai is planned as a JUCE/CMake C++ instrument with AU, VST3, and standalone targets.
 
 ## Product Phases
 
@@ -12,14 +12,14 @@ Phase 3 adds conversational VST control. Text requests and reference-sound analy
 
 Current scaffold:
 
-- `CMakeLists.txt` configures JUCE `8.0.13` through CMake `FetchContent`, unless `SYNTH_JUCE_PATH` points at a local checkout.
-- `SynthPlugin` builds shared plugin code plus AU, VST3, and Standalone formats.
-- `SynthRender` is the command-line validation executable.
-- `SynthSmokeTest` is the first CTest target.
-- `SynthContractTest` validates parameter registry, layer/oscillator-slot defaults, preset files, and APVTS state round-trip.
-- `SynthVoiceCoreTest` validates envelope, LFO reset, voice allocation, and engine note release.
-- `SynthDspCoreTest` validates oscillator, filter, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, and FX bypass, delay/tail, panic-clear, and reverb-state safety.
-- `SynthRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`, including dry and wet factory pluck reports.
+- `CMakeLists.txt` configures JUCE `8.0.13` through CMake `FetchContent`, unless `SYLENTH_AI_JUCE_PATH` points at a local checkout.
+- `SylenthAIPlugin` builds shared plugin code plus AU, VST3, and Standalone formats with host-facing product name `sylenth-ai`.
+- `SylenthAIRender` is the command-line validation executable.
+- `SylenthAISmokeTest` is the first CTest target.
+- `SylenthAIContractTest` validates parameter registry, layer/oscillator-slot defaults, preset files, and APVTS state round-trip.
+- `SylenthAIVoiceCoreTest` validates envelope, LFO reset, voice allocation, and engine note release.
+- `SylenthAIDspCoreTest` validates oscillator, filter, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, layer slot rendering, and FX bypass, delay/tail, panic-clear, and reverb-state safety.
+- `SylenthAIRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`, including dry and wet factory pluck reports.
 
 ## Component Stack
 
@@ -172,7 +172,7 @@ Current editor and preset status:
 
 - `PluginEditor` is a compact, fixed-shell control surface modeled on the Sylenth workflow: a header (preset prev/next/load/save/duplicate, output meter, active voices, derived patch-load estimate, panic, and an always-visible SR/block/peak/MIDI/invalid/architecture diagnostics footer), a persistent Layer A/B selector exposing the `layer.*` mix state, and a `Sound` / `Modulation` / `Effects` tabbed workspace. The `Sound` tab keeps the live core controls visible without scrolling at the default window size (oscillator slots, core oscillator, filter, amp/mod envelopes, LFO, ramp, voice, amp/stereo, macros); `Modulation` holds the destination-grouped direct routes plus the eight TransMod slots; `Effects` is a per-module FX rack with master/quality. Controls are drawn with an original rotary/switch/combo look and grid-packed into stable cells with formatted value readouts. Render-boundary honesty is encoded in the UI: the legacy flat `osc.*` path that currently produces sound is badged `LIVE`, while the `layer.*` / `layer.N.osc.M.*` slot state is badged `STATE` and Layer B reads `STAGED - not yet rendered`, so editing staged state never implies it is audible.
 - Editor controls are constructed against `ParameterRegistry` IDs and use APVTS attachments for sliders, combo boxes, and toggles so UI edits reach the same host-automatable parameters as presets and host state.
-- `PresetManager` scans bundled factory presets with a source-directory development fallback, scans user presets from `~/Music/ParkerX/Synth/Presets`, validates preset JSON before load, prepares defaults-plus-overrides APVTS state for one-shot replacement, maps canonical `mod_slots` objects into flat TransMod parameters, and writes schema-valid user preset JSON.
+- `PresetManager` scans bundled factory presets with a source-directory development fallback, scans user presets from `~/Music/ParkerX/sylenth-ai/Presets`, also reads legacy `~/Music/ParkerX/Synth/Presets` presets during the rename transition, validates preset JSON before load, prepares defaults-plus-overrides APVTS state for one-shot replacement, maps canonical `mod_slots` objects into flat TransMod parameters, and writes schema-valid user preset JSON.
 - Processor diagnostics expose sample rate, block size, active voices, MIDI event count, invalid sample count, peak, current preset, and binary architecture to the editor without filesystem or UI work on the audio thread.
 
 Current layer and oscillator-slot status:
@@ -182,7 +182,7 @@ Current layer and oscillator-slot status:
 - Layer A oscillator 1 defaults to the primary enabled slot with one saw voice at full level. The other three slots default disabled with zero voices.
 - `PluginProcessor` caches the namespaced `layer.*` atomics and publishes them into the realtime parameter snapshot.
 - `SynthEngine::setParameters` clamps the layer and slot state at the audio boundary.
-- Current audio rendering still uses the legacy flat `osc.*`, filter, envelope, modulation, amp, and FX path. The namespaced layer and slot state is the host/preset/UI contract for the next Layer B and four-slot rendering slice.
+- Current audio rendering uses Layer A/B mix state and A1/A2/B1/B2 oscillator slots. Layer A oscillator 1 remains the compatibility gate for the legacy flat `osc.*` source; A2/B1/B2 render through preallocated oscillator stacks mapped from `layer.N.osc.M.*`. One filter, envelope pair, amp, modulation, and FX path are still shared until the later per-layer filter/envelope slice.
 
 Current voice-core status:
 
@@ -193,14 +193,14 @@ Current voice-core status:
 - `Filter` renders semitone-domain L2/L4/B2/B4/H2/H4/Peak2/Notch2/Notch4 nonlinear responses with drive/resonance compensation and interpolated oversampling sub-steps.
 - `Voice` applies direct pitch/pulse/cutoff routes, ramp, glide, velocity glide, TransMod scalers, synced or Hz LFO rates, per-voice/mono LFO behavior, amp envelope, amp drive, level, pan spread, unison spread, analog variation, performance MIDI sources, and macro influence.
 - `FxChain` applies bypassable post-voice saturation, chorus, tempo-synced delay, and simple reverb. It allocates delay buffers during `prepare` and does not allocate in sample processing. `quality.realtime_mode` and `quality.offline_mode` select conservative processing variations without changing audio-thread resource allocation.
-- `SynthRender` can write oscillator, filter, modulation, voice, preset validation, dry-core factory pluck, wet factory pluck, LFO ablation, determinism, and core-suite summary reports using the requested preset and MIDI fixture.
+- `SylenthAIRender` can write oscillator, filter, modulation, voice, preset validation, dry-core factory pluck, wet factory pluck, LFO ablation, determinism, and core-suite summary reports using the requested preset and MIDI fixture.
 
 ## DSP Priorities
 
 Highest priority:
 
 - Phase 1 Sylenth rebuild roadmap and Ableton AU/VST3 proof.
-- Layer B rendering, four oscillator-slot DSP, and layer mixer/master plan on top of the delivered layer/slot state contract.
+- Per-layer filters/envelopes, layer mixer/master polish, and deeper oscillator-slot parity on top of the delivered layer/slot renderer.
 - Preset browser, arpeggiator, effects, and modulation UX that support the Sylenth-level workflow.
 
 Lower priority:

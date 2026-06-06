@@ -40,7 +40,7 @@ juce::String binaryArchitecture()
 SynthAudioProcessor::SynthAudioProcessor()
     : AudioProcessor(BusesProperties()
           .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      parameters(*this, nullptr, "SYNTH_STATE", synth::createParameterLayout())
+      parameters(*this, nullptr, "SYLENTH_AI_STATE", synth::createParameterLayout())
 {
     cacheParameterPointers();
 }
@@ -525,6 +525,7 @@ std::vector<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetL
 
     append(synth::scanPresetDirectory(synth::factoryPresetDirectory(), true));
     append(synth::scanPresetDirectory(synth::defaultUserPresetDirectory(), false));
+    append(synth::scanPresetDirectory(synth::legacyUserPresetDirectory(), false));
     return items;
 }
 
@@ -626,7 +627,7 @@ void SynthAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary(data, sizeInBytes))
     {
-        if (xml->hasTagName("SYNTH_STATE"))
+        if (xml->hasTagName("SYLENTH_AI_STATE") || xml->hasTagName("SYNTH_STATE"))
         {
             auto state = juce::ValueTree::fromXml(*xml);
             if (state.isValid())

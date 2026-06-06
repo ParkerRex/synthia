@@ -25,6 +25,16 @@ void OscillatorStack::prepare(double newSampleRate) noexcept
 void OscillatorStack::reset(float randomOnNote) noexcept
 {
     const auto basePhase = wrapUnit((randomOnNote + 1.0f) * 0.5f);
+    resetState(basePhase);
+}
+
+void OscillatorStack::resetToPhase(float normalizedPhase) noexcept
+{
+    resetState(wrapUnit(normalizedPhase));
+}
+
+void OscillatorStack::resetState(float basePhase) noexcept
+{
     for (int i = 0; i < maxStackCount; ++i)
         phases[static_cast<std::size_t>(i)] = wrapUnit(basePhase + 0.173f * static_cast<float>(i));
 
@@ -36,7 +46,12 @@ void OscillatorStack::reset(float randomOnNote) noexcept
 float OscillatorStack::renderSample(float midiNote, const SynthParameters& parameters,
                                     float pitchModSemitones, float pulseWidthMod) noexcept
 {
-    const auto& osc = parameters.osc;
+    return renderSample(midiNote, parameters.osc, pitchModSemitones, pulseWidthMod);
+}
+
+float OscillatorStack::renderSample(float midiNote, const OscillatorParameters& osc,
+                                    float pitchModSemitones, float pulseWidthMod) noexcept
+{
     const auto stackCount = std::clamp(osc.stackCount, 1, maxStackCount);
     const auto basePitch = midiNote
         + osc.pitchSemitones

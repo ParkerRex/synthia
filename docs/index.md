@@ -1,6 +1,6 @@
 # Documentation Index
 
-This directory holds implementation-facing documentation for Synth. `../SPEC.md` remains the source of truth for product requirements.
+This directory holds implementation-facing documentation for sylenth-ai. `../SPEC.md` remains the source of truth for product requirements.
 
 ## Start Here
 

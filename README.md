@@ -1,8 +1,8 @@
-# Synth
+# sylenth-ai
 
-![Synth lab software instrument hero](docs/assets/readme-hero.png)
+![sylenth-ai lab software instrument hero](docs/assets/readme-hero.png)
 
-Synth is a lab-built macOS software instrument project. The product goal is to rebuild everyone's favorite vintage VST, Sylenth1, optimized for today's macOS/Ableton workflow, then extend that foundation with AI-assisted sound design and conversational editing.
+sylenth-ai is a lab-built macOS software instrument project. The product goal is to rebuild everyone's favorite vintage VST, Sylenth1, optimized for today's macOS/Ableton workflow, then extend that foundation with AI-assisted sound design and conversational editing.
 
 ## Product Roadmap
 
@@ -10,7 +10,7 @@ Phase 1: recreate the Sylenth experience. The first milestone is a modern AU/VST
 
 Phase 2: add AI-assisted sound and arpeggio creation. The plugin should be able to randomize and generate useful sounds, chord movement, and arpeggio ideas with the musical intent of tools like Xfer Records' Cthulhu, while keeping all generated state as normal editable presets and parameters.
 
-Phase 3: make the VST conversational. Users should be able to ask for changes in plain language, for example "make the bass wubbier," or provide a reference sound and ask Synth to recreate the character with editable synth, modulation, arp, and FX settings.
+Phase 3: make the VST conversational. Users should be able to ask for changes in plain language, for example "make the bass wubbier," or provide a reference sound and ask sylenth-ai to recreate the character with editable synth, modulation, arp, and FX settings.
 
 ## Current State
 
@@ -32,7 +32,7 @@ The next required product validation step is Phase 1 host validation in Ableton:
 Configure:
 
 ```bash
-cmake -S . -B build -DSYNTH_ENABLE_TESTS=ON
+cmake -S . -B build -DSYLENTH_AI_ENABLE_TESTS=ON
 ```
 
 Build:
@@ -49,36 +49,36 @@ ctest --test-dir build --output-on-failure
 
 Build artifacts are written under:
 
-- `build/SynthPlugin_artefacts/Standalone/Synth.app`
-- `build/SynthPlugin_artefacts/AU/Synth.component`
-- `build/SynthPlugin_artefacts/VST3/Synth.vst3`
+- `build/SylenthAIPlugin_artefacts/Standalone/sylenth-ai.app`
+- `build/SylenthAIPlugin_artefacts/AU/sylenth-ai.component`
+- `build/SylenthAIPlugin_artefacts/VST3/sylenth-ai.vst3`
 
-The default build fetches JUCE `8.0.13`. Set `SYNTH_JUCE_PATH=/path/to/JUCE` during configure to use a local JUCE checkout.
+The default build fetches JUCE `8.0.13`. Set `SYLENTH_AI_JUCE_PATH=/path/to/JUCE` during configure to use a local JUCE checkout. The previous `SYNTH_*` CMake options are still accepted as compatibility aliases.
 
 ## Validation
 
 Run the full standalone core suite:
 
 ```bash
-./build/SynthRender --suite core --output-dir build/reports/core
+./build/SylenthAIRender --suite core --output-dir build/reports/core
 ```
 
 Focused validation commands:
 
 ```bash
-./build/SynthRender --smoke --output build/reports/smoke.json
-./build/SynthRender --list-parameters --output build/reports/parameters.json
-./build/SynthRender --validate-presets presets/factory --output build/reports/presets.json
-./build/SynthRender --voice-test --output build/reports/voice-core.json
-./build/SynthRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
-./build/SynthRender --filter-test --output build/reports/filter.json
-./build/SynthRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
+./build/SylenthAIRender --smoke --output build/reports/smoke.json
+./build/SylenthAIRender --list-parameters --output build/reports/parameters.json
+./build/SylenthAIRender --validate-presets presets/factory --output build/reports/presets.json
+./build/SylenthAIRender --voice-test --output build/reports/voice-core.json
+./build/SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
+./build/SylenthAIRender --filter-test --output build/reports/filter.json
+./build/SylenthAIRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
 ```
 
 Render the factory dry-core pluck:
 
 ```bash
-./build/SynthRender \
+./build/SylenthAIRender \
   --preset presets/factory/pluck-core-01.json \
   --fixture fixtures/midi/overlap-pluck.mid \
   --dry \
@@ -89,7 +89,7 @@ Render the factory dry-core pluck:
 Render the factory wet pluck:
 
 ```bash
-./build/SynthRender \
+./build/SylenthAIRender \
   --preset presets/factory/pluck-core-01.json \
   --fixture fixtures/midi/overlap-pluck.mid \
   --wet \
@@ -115,17 +115,17 @@ Use this when continuing development on another Mac, especially one with Ableton
 Clone the private repo:
 
 ```bash
-git clone https://github.com/ParkerRex/synth.git
-cd synth
+git clone https://github.com/ParkerRex/sylenth-ai.git
+cd sylenth-ai
 ```
 
 Build and validate locally:
 
 ```bash
-cmake -S . -B build -DSYNTH_ENABLE_TESTS=ON
+cmake -S . -B build -DSYLENTH_AI_ENABLE_TESTS=ON
 cmake --build build --config Debug
 ctest --test-dir build --output-on-failure
-./build/SynthRender --suite core --output-dir build/reports/core
+./build/SylenthAIRender --suite core --output-dir build/reports/core
 scripts/check-plugin-bundles.sh build
 ```
 
@@ -166,8 +166,8 @@ In Ableton:
 
 - Enable Audio Units and VST3 in Ableton's Plug-Ins settings.
 - Rescan plug-ins after running `scripts/install-local-plugins.sh build`.
-- Confirm `Synth` appears in the AU plug-in list.
-- Confirm `Synth` appears in the VST3 plug-in list.
+- Confirm `sylenth-ai` appears in the AU plug-in list.
+- Confirm `sylenth-ai` appears in the VST3 plug-in list.
 - Load the AU build on a MIDI track.
 - Load the VST3 build on a separate MIDI track.
 - Play `fixtures/midi/overlap-pluck.mid` or an equivalent overlapping-note pluck pattern.

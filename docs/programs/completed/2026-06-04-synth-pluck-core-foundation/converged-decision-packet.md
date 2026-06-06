@@ -4,7 +4,7 @@ This packet records the accepted direction for the Synth implementation program.
 
 ## Product Direction
 
-Build Synth as a clean-room JUCE/CMake software instrument with AU, VST3, and standalone targets. The target is a Strobe-v1-like, SH-101-inspired analog pluck workflow, not a literal clone or brand replica.
+Build Synth as a lab-authored JUCE/CMake software instrument with AU, VST3, and standalone targets. The target is a Strobe-v1-like, SH-101-inspired analog pluck workflow, not a literal clone or brand replica.
 
 ## Architecture Direction
 
@@ -51,5 +51,5 @@ This order keeps tests close to the code that needs them and prevents UI or pack
 
 ## Validation Decision
 
-Every slice must have a narrow command-based proof. The whole program is not complete until Ableton AU and VST3 loading, host state restore, deterministic render fixtures, DSP metrics, performance checks, and clean-room naming checks pass.
+Every slice must have a narrow command-based proof. The whole program is not complete until Ableton AU and VST3 loading, host state restore, deterministic render fixtures, DSP metrics, performance checks, and lab-authored naming checks pass.
 

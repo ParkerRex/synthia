@@ -1,6 +1,6 @@
 # ExecPlan Contract
 
-This contract is adapted from the Worker ExecPlan lane for this Synth project.
+This contract is adapted from the Worker ExecPlan lane for this sylenth-ai project.
 
 An ExecPlan is a self-contained Markdown plan for one bounded implementation slice. Treat the reader as a capable engineer with no memory of prior chats.
 
@@ -67,4 +67,3 @@ Use these sections in order:
 ## Living Plan Rule
 
 Keep `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` current while implementing. If reality changes, update the plan before continuing.
-

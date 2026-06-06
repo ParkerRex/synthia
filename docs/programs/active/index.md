@@ -6,4 +6,4 @@ Current Program:
 
 Superseded historical Program folders retained for context:
 
-- `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/`
+- `docs/programs/completed/2026-06-04-synth-pluck-core-foundation/`

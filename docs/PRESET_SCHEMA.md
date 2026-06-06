@@ -19,14 +19,16 @@ Current factory presets:
 
 Current user preset location:
 
-- `~/Music/ParkerX/Synth/Presets`
+- `~/Music/ParkerX/sylenth-ai/Presets`
+
+The preset browser also scans the legacy `~/Music/ParkerX/Synth/Presets` path so local presets saved before the project rename remain visible. New user preset writes go to the `sylenth-ai` path.
 
 The editor scans factory presets from bundled plugin resources when running from an installed AU, VST3, or Standalone bundle, falling back to the source `presets/factory` directory for development tools. User presets are scanned from the user preset location. Factory presets are treated as read-only; editor Save As and Duplicate write schema-valid user JSON presets.
 
 Current validation command:
 
 ```bash
-./build/SynthRender --validate-presets presets/factory --output build/reports/presets.json
+./build/SylenthAIRender --validate-presets presets/factory --output build/reports/presets.json
 ```
 
 ## Required Top-Level Fields
@@ -103,9 +105,9 @@ Defaults preserve the current sound path:
 - Layer A oscillator 1 is enabled with `voices = 1`, `waveform = Saw`, and `level = 1.0`.
 - The other three oscillator slots are disabled with `voices = 0` and `level = 0.0`.
 
-The existing flat `osc.*`, `filter.*`, envelope, modulation, amp, and FX parameters remain host-stable and still drive current audio rendering. The namespaced `layer.*` fields are preset/host-state contracts for UI handoff and future Layer B/four-slot rendering. Legacy presets that omit `layer.*` fields load by registry defaults; host states that predate these fields are merged over registry defaults before restore. Newly saved user presets include the layer and oscillator-slot fields.
+The existing flat `osc.*`, `filter.*`, envelope, modulation, amp, and FX parameters remain host-stable. Layer A oscillator 1 gates and mixes the legacy `osc.*` compatibility source; A2/B1/B2 render from `layer.N.osc.M.*` slot fields through the current oscillator stack foundation. Legacy presets that omit `layer.*` fields load by registry defaults; host states that predate these fields are merged over registry defaults before restore. Newly saved user presets include the layer and oscillator-slot fields.
 
-Legacy presets are not inferred into equivalent oscillator-slot state yet. For example, a preset that renders from flat stack, pulse, sub, and detune parameters will still show the default Layer A slot backbone until the future layer renderer/migration slice maps or replaces the flat oscillator model. UI should treat these fields as editable backbone state, not as an authoritative visualization of the current flat oscillator audio path.
+Legacy presets are not fully inferred into equivalent oscillator-slot state yet. For example, a preset that renders from flat stack, pulse, sub, and detune parameters will still show the default Layer A slot backbone unless it explicitly stores layer fields. UI should treat Layer A oscillator 1 as the compatibility source for the flat oscillator path, not as a complete visualization of every legacy `osc.*` field.
 
 Layer display names are not automatable parameters. If custom names are added later, they should live in preset metadata or UI-local state with an explicit migration rule.
 

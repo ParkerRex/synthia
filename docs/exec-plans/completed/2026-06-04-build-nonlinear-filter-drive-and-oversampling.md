@@ -4,13 +4,13 @@ status: completed
 created_at: 2026-06-04
 completed_at: 2026-06-04
 summary: Implement the semitone-domain nonlinear multimode filter, drive/resonance interaction, self-oscillation, and oversampling support.
-post_build_recap: Added a clean-room nonlinear cascade-style filter with semitone cutoff mapping, L2/L4/B2/B4/H2/H4 outputs, drive/resonance feedback compensation, oversampling-factor processing hooks, filter unit tests, and `SynthRender --filter-test`.
+post_build_recap: Added a lab-authored nonlinear cascade-style filter with semitone cutoff mapping, L2/L4/B2/B4/H2/H4 outputs, drive/resonance feedback compensation, oversampling-factor processing hooks, filter unit tests, and `SynthRender --filter-test`.
 read_when:
   - Implementing or tuning filter behavior.
   - Debugging cutoff movement, resonance, drive, self-oscillation, or oversampling.
   - Preparing the dry-core pluck preset.
-program_id: synth-clean-room-pluck-instrument
-planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md
+program_id: synth-pluck-core-foundation
+planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
 ---
 
 # Build Nonlinear Filter Drive And Oversampling

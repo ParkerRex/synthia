@@ -9,8 +9,8 @@ read_when:
   - Implementing Synth parameter or preset behavior.
   - Changing host state serialization.
   - Adding or migrating factory presets.
-program_id: synth-clean-room-pluck-instrument
-planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md
+program_id: synth-pluck-core-foundation
+planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
 ---
 
 # Build Parameter State And Preset Contract
@@ -21,7 +21,7 @@ This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
 ## Purpose / Big Picture
 
-Every DSP and UI slice needs stable parameter IDs, units, defaults, smoothing rules, and serialization behavior. After this slice, Synth should have a central parameter registry, host state round-trip, JSON preset schema, migration hooks, and clean-room factory preset storage. Later work can add sound modules without inventing ad hoc parameters.
+Every DSP and UI slice needs stable parameter IDs, units, defaults, smoothing rules, and serialization behavior. After this slice, Synth should have a central parameter registry, host state round-trip, JSON preset schema, migration hooks, and lab-authored factory preset storage. Later work can add sound modules without inventing ad hoc parameters.
 
 ## Progress
 
@@ -47,7 +47,7 @@ Rationale: Stable IDs are hard to change after host automation and presets exist
 Date: 2026-06-04.
 
 Decision: Preset files may be sparse in this slice.
-Rationale: The full registry exists, but real DSP and UI are not implemented yet. Sparse clean-room factory presets keep the stored values meaningful while defaults remain in the registry.
+Rationale: The full registry exists, but real DSP and UI are not implemented yet. Sparse lab-authored factory presets keep the stored values meaningful while defaults remain in the registry.
 Date: 2026-06-04.
 
 Decision: Use JUCE `var`/`JSON` for preset validation.
@@ -56,7 +56,7 @@ Date: 2026-06-04.
 
 ## Outcomes & Retrospective
 
-The parameter/state/preset slice is complete. Synth now has a broad v1 parameter inventory, APVTS host state, clean-room factory preset files, command-line parameter and preset reports, and a contract test that validates state round-trip and preset correctness.
+The parameter/state/preset slice is complete. Synth now has a broad v1 parameter inventory, APVTS host state, lab-authored factory preset files, command-line parameter and preset reports, and a contract test that validates state round-trip and preset correctness.
 
 Migration hooks are represented by schema versioning and validator structure, but no historical migration is needed yet because schema version 1 is the first schema.
 
@@ -78,7 +78,7 @@ Define the full v1 parameter inventory early enough for automation and presets. 
 
 Implement host state serialization using JUCE-supported state storage. The state must include schema version and all plugin settings required to restore without external preset files.
 
-Implement JSON preset parsing and writing with explicit error classes. Add migrations even if only version 1 exists, so future changes have a place to go. Add `presets/factory/init.json` and `presets/factory/pluck-core-01.json` with clean-room safe display names.
+Implement JSON preset parsing and writing with explicit error classes. Add migrations even if only version 1 exists, so future changes have a place to go. Add `presets/factory/init.json` and `presets/factory/pluck-core-01.json` with lab-authored display names.
 
 Update `docs/PRESET_SCHEMA.md` if actual field names differ from the current sketch.
 
@@ -90,7 +90,7 @@ Milestone 2 adds host state round-trip tests.
 
 Milestone 3 adds preset parse/write/validate/migrate tests.
 
-Milestone 4 adds clean-room factory preset files and docs sync.
+Milestone 4 adds lab-authored factory preset files and docs sync.
 
 ## Concrete Steps
 

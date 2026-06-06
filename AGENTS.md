@@ -1,6 +1,6 @@
-# Synth Agent Guide
+# sylenth-ai Agent Guide
 
-Synth is a JUCE/CMake software instrument for macOS Ableton validation. Keep agent work practical, test-backed, and aligned with the product docs.
+sylenth-ai is a JUCE/CMake software instrument for macOS Ableton validation. Keep agent work practical, test-backed, and aligned with the product docs.
 
 ## Read First
 
@@ -37,7 +37,7 @@ Keep parameter IDs stable and centralized in the parameter registry. UI labels m
 Configure:
 
 ```bash
-cmake -S . -B build -DSYNTH_ENABLE_TESTS=ON
+cmake -S . -B build -DSYLENTH_AI_ENABLE_TESTS=ON
 ```
 
 Build:
@@ -55,25 +55,25 @@ ctest --test-dir build --output-on-failure
 Run the standalone core validation suite:
 
 ```bash
-./build/SynthRender --suite core --output-dir build/reports/core
+./build/SylenthAIRender --suite core --output-dir build/reports/core
 ```
 
 Focused render checks:
 
 ```bash
-./build/SynthRender --smoke --output build/reports/smoke.json
-./build/SynthRender --list-parameters --output build/reports/parameters.json
-./build/SynthRender --validate-presets presets/factory --output build/reports/presets.json
-./build/SynthRender --voice-test --output build/reports/voice-core.json
-./build/SynthRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
-./build/SynthRender --filter-test --output build/reports/filter.json
-./build/SynthRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
+./build/SylenthAIRender --smoke --output build/reports/smoke.json
+./build/SylenthAIRender --list-parameters --output build/reports/parameters.json
+./build/SylenthAIRender --validate-presets presets/factory --output build/reports/presets.json
+./build/SylenthAIRender --voice-test --output build/reports/voice-core.json
+./build/SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
+./build/SylenthAIRender --filter-test --output build/reports/filter.json
+./build/SylenthAIRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
 ```
 
 Dry-core factory pluck render:
 
 ```bash
-./build/SynthRender \
+./build/SylenthAIRender \
   --preset presets/factory/pluck-core-01.json \
   --fixture fixtures/midi/overlap-pluck.mid \
   --dry \
@@ -100,8 +100,8 @@ Required checks:
 
 When installing local builds for Ableton, copy from:
 
-- `build/SynthPlugin_artefacts/AU/Synth.component`
-- `build/SynthPlugin_artefacts/VST3/Synth.vst3`
+- `build/SylenthAIPlugin_artefacts/AU/sylenth-ai.component`
+- `build/SylenthAIPlugin_artefacts/VST3/sylenth-ai.vst3`
 
 Record host failures with Ableton version, macOS version, plugin format, sample rate, buffer size, preset/state, and reproduction steps.
 
@@ -112,5 +112,5 @@ Record host failures with Ableton version, macOS version, plugin format, sample 
 - Before committing, check `git status -sb` and make sure only intended files are staged.
 - Do not revert or overwrite unrelated user or agent changes.
 - Add regression coverage for DSP bugs when the behavior can be rendered or measured.
-- For reviews, lead with bugs, realtime-safety risks, clean-room risks, host-state regressions, and missing validation.
+- For reviews, lead with bugs, realtime-safety risks, rebuild-alignment risks, host-state regressions, and missing validation.
 - For user-visible behavior changes, update the relevant durable doc before or with code changes.

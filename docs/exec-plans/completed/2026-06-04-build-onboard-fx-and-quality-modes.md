@@ -9,8 +9,8 @@ read_when:
   - Implementing onboard FX.
   - Changing oversampling or quality settings.
   - Validating dry versus wet render behavior.
-program_id: synth-clean-room-pluck-instrument
-planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md
+program_id: synth-pluck-core-foundation
+planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
 ---
 
 # Build Onboard FX And Quality Modes

@@ -137,16 +137,16 @@ Options parseOptions(int argc, char* argv[])
         else if (arg == "--help" || arg == "-h")
         {
             std::cout << "Usage:\n";
-            std::cout << "  SynthRender --smoke --output <path>\n";
-            std::cout << "  SynthRender --list-parameters --output <path>\n";
-            std::cout << "  SynthRender --validate-presets <dir> --output <path>\n";
-            std::cout << "  SynthRender --voice-test --output <path>\n";
-            std::cout << "  SynthRender --osc-test --notes C1,C3,C5,C7 --output <path>\n";
-            std::cout << "  SynthRender --filter-test --output <path>\n";
-            std::cout << "  SynthRender --modulation-test --fixture <path> --output <path>\n";
-            std::cout << "  SynthRender --suite core --output-dir <dir>\n";
-            std::cout << "  SynthRender --preset <json> --fixture <path> --dry --output <wav> --report <json>\n";
-            std::cout << "  SynthRender --preset <json> --fixture <path> --wet --output <wav> --report <json>\n";
+            std::cout << "  SylenthAIRender --smoke --output <path>\n";
+            std::cout << "  SylenthAIRender --list-parameters --output <path>\n";
+            std::cout << "  SylenthAIRender --validate-presets <dir> --output <path>\n";
+            std::cout << "  SylenthAIRender --voice-test --output <path>\n";
+            std::cout << "  SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output <path>\n";
+            std::cout << "  SylenthAIRender --filter-test --output <path>\n";
+            std::cout << "  SylenthAIRender --modulation-test --fixture <path> --output <path>\n";
+            std::cout << "  SylenthAIRender --suite core --output-dir <dir>\n";
+            std::cout << "  SylenthAIRender --preset <json> --fixture <path> --dry --output <wav> --report <json>\n";
+            std::cout << "  SylenthAIRender --preset <json> --fixture <path> --wet --output <wav> --report <json>\n";
             std::exit(0);
         }
     }

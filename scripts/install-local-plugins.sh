@@ -3,7 +3,8 @@ set -euo pipefail
 
 build_dir="${1:-build}"
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-artifact_root="$root_dir/$build_dir/SynthPlugin_artefacts"
+artifact_root="$root_dir/$build_dir/SylenthAIPlugin_artefacts"
+product_bundle="sylenth-ai"
 
 fail() {
   printf 'error: %s\n' "$*" >&2
@@ -25,8 +26,8 @@ resolve_artifact_dir() {
     }
 
     [[ -d "$1/$config_dir" ]] || continue
-    [[ -d "$1/$config_dir/AU/Synth.component" ]] || continue
-    [[ -d "$1/$config_dir/VST3/Synth.vst3" ]] || continue
+    [[ -d "$1/$config_dir/AU/$product_bundle.component" ]] || continue
+    [[ -d "$1/$config_dir/VST3/$product_bundle.vst3" ]] || continue
 
     printf '%s\n' "$1/$config_dir"
     return
@@ -36,8 +37,8 @@ resolve_artifact_dir() {
 artifact_dir="$(resolve_artifact_dir "$artifact_root" "${2:-}")"
 [[ -n "$artifact_dir" ]] || fail "could not resolve plugin artifact directory under $artifact_root"
 
-au_src="$artifact_dir/AU/Synth.component"
-vst3_src="$artifact_dir/VST3/Synth.vst3"
+au_src="$artifact_dir/AU/$product_bundle.component"
+vst3_src="$artifact_dir/VST3/$product_bundle.vst3"
 au_dest="$HOME/Library/Audio/Plug-Ins/Components"
 vst3_dest="$HOME/Library/Audio/Plug-Ins/VST3"
 
@@ -53,8 +54,8 @@ sign_installed_bundle() {
   local label="$1"
   local bundle="$2"
 
-  if [[ "${SYNTH_SKIP_ADHOC_SIGN:-0}" == "1" ]]; then
-    printf '%s codesign: skipped by SYNTH_SKIP_ADHOC_SIGN=1\n' "$label"
+  if [[ "${SYLENTH_AI_SKIP_ADHOC_SIGN:-${SYNTH_SKIP_ADHOC_SIGN:-0}}" == "1" ]]; then
+    printf '%s codesign: skipped by SYLENTH_AI_SKIP_ADHOC_SIGN=1\n' "$label"
     return
   fi
 
@@ -68,10 +69,12 @@ sign_installed_bundle() {
   printf '%s codesign: ad-hoc signed for local host scanning\n' "$label"
 }
 
-sign_installed_bundle "AU" "$au_dest/Synth.component"
-sign_installed_bundle "VST3" "$vst3_dest/Synth.vst3"
+rm -rf "$au_dest/Synth.component" "$vst3_dest/Synth.vst3"
 
-printf 'installed AU: %s/Synth.component\n' "$au_dest"
-printf 'installed VST3: %s/Synth.vst3\n' "$vst3_dest"
+sign_installed_bundle "AU" "$au_dest/$product_bundle.component"
+sign_installed_bundle "VST3" "$vst3_dest/$product_bundle.vst3"
+
+printf 'installed AU: %s/%s.component\n' "$au_dest" "$product_bundle"
+printf 'installed VST3: %s/%s.vst3\n' "$vst3_dest" "$product_bundle"
 printf 'rescan plug-ins in Ableton before validation.\n'
-printf 'AU validation command: auval -v aumu Syn1 PkRx\n'
+printf 'AU validation command: auval -v aumu SyAI PkRx\n'

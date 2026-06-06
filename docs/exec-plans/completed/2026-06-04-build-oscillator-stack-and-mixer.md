@@ -4,13 +4,13 @@ status: completed
 created_at: 2026-06-04
 completed_at: 2026-06-04
 summary: Implement band-limited saw/pulse, noise, sub oscillator, hard sync, stack detune, and waveform mixer validation.
-post_build_recap: Added a clean-room polyBLEP oscillator stack with saw, pulse, deterministic noise, sub waveforms, stack detune, hard sync behavior, mixer compensation, engine audio output, oscillator tests, and `SynthRender --osc-test`.
+post_build_recap: Added a lab-authored polyBLEP oscillator stack with saw, pulse, deterministic noise, sub waveforms, stack detune, hard sync behavior, mixer compensation, engine audio output, oscillator tests, and `SynthRender --osc-test`.
 read_when:
   - Implementing oscillator or mixer DSP.
   - Debugging aliasing, detune, pulse width, or sub tuning.
   - Preparing filter and pluck-core work.
-program_id: synth-clean-room-pluck-instrument
-planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md
+program_id: synth-pluck-core-foundation
+planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
 ---
 
 # Build Oscillator Stack And Mixer
@@ -34,7 +34,7 @@ The target oscillator is simple but must be clean, tunable, and stable. After th
 
 ## Surprises & Discoveries
 
-PolyBLEP saw and pulse were enough for the current validation target. Hard sync is a clean-room, simple phase reset path; deeper sync tone shaping can be revisited after modulation and UI are complete.
+PolyBLEP saw and pulse were enough for the current validation target. Hard sync is a lab-authored, simple phase reset path; deeper sync tone shaping can be revisited after modulation and UI are complete.
 
 ## Decision Log
 
@@ -48,7 +48,7 @@ Completed. `build/reports/oscillator.json` validates C1, C3, C5, and C7 tuning i
 
 ## Context and Orientation
 
-This slice depends on the voice/MIDI/envelope/LFO core and the parameter registry. It should add real pitch-producing audio before the filter exists. Use the clean-room policy: standard oscillator techniques are allowed, copied proprietary algorithms are not.
+This slice depends on the voice/MIDI/envelope/LFO core and the parameter registry. It should add real pitch-producing audio before the filter exists. Use the source-use policy: standard oscillator techniques are allowed, copied proprietary algorithms are not.
 
 ### In Scope
 

@@ -1,12 +1,12 @@
 # Planning Brief 1: Build Synth End To End
 
-This is the immutable first planning brief for the Synth clean-room pluck instrument Program.
+This is the immutable first planning brief for the Synth lab-authored pluck instrument Program.
 
 ## Program
 
-Program ID: `synth-clean-room-pluck-instrument`
+Program ID: `synth-pluck-core-foundation`
 
-Program path: `docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/program.md`
+Program path: `docs/programs/completed/2026-06-04-synth-pluck-core-foundation/program.md`
 
 ## Source Requirements
 
@@ -22,7 +22,7 @@ Use these local source-of-truth docs:
 
 ## Build Outcome
 
-The end state is a clean-room JUCE/CMake software instrument that builds AU, VST3, and standalone targets on macOS, implements the dry-core Strobe-v1-like pluck architecture, exposes a usable editor, validates renders through a standalone harness, loads in Ableton, and has packaging/release readiness docs.
+The end state is a lab-authored JUCE/CMake software instrument that builds AU, VST3, and standalone targets on macOS, implements the dry-core Strobe-v1-like pluck architecture, exposes a usable editor, validates renders through a standalone harness, loads in Ableton, and has packaging/release readiness docs.
 
 ## Child Plan Split
 

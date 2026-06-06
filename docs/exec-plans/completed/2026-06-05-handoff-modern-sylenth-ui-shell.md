@@ -1,10 +1,10 @@
 ---
 title: Handoff Modern Sylenth UI Shell
-status: active
+status: completed
 created_at: 2026-06-05
-completed_at: null
+completed_at: 2026-06-05
 summary: Claude Code handoff plan for the Phase 1 modern Sylenth UI shell, layout system, visual hierarchy, and screenshot/manual QA.
-post_build_recap: null
+post_build_recap: Claude Code delivered the modern fixed-shell UI in PluginEditor only, with real APVTS bindings, Layer A/B and slot render-boundary labels, screenshots, and passing Debug/CTest validation.
 read_when:
   - Preparing UI work for Claude Code.
   - Designing the Phase 1 shell, layout, header, A/B layer surface, oscillator/filter/envelope panels, or visual style.
@@ -12,7 +12,7 @@ read_when:
 program_id: sylenth-lab-rebuild
 planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
 handoff_target: Claude Code
-handoff_status: ready_for_handoff
+handoff_status: completed
 ---
 
 # Handoff Modern Sylenth UI Shell

@@ -110,7 +110,7 @@ Outputs:
 
 ## Track 9: UI And Preset Workflow
 
-Purpose: expose the instrument through a compact clean-room editor and user preset workflow.
+Purpose: expose the instrument through a compact lab-authored editor and user preset workflow.
 
 Dependencies: parameter/state contract and dry core.
 

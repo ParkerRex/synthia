@@ -813,10 +813,11 @@ void SynthAudioProcessorEditor::setSelectedLayer(int layerIndex)
     styleFlatButton(layerAButton, selectedLayer == 0 ? activeColour : inactiveColour);
     styleFlatButton(layerBButton, selectedLayer == 1 ? activeColour : inactiveColour);
 
-    // Render-boundary truth: layer mix and slot state are editable state until the layer renderer lands.
-    layerStatusPill.setText(selectedLayer == 0 ? "STATE - mix not rendered" : "STAGED - not yet rendered",
+    // Render-boundary truth: layer mix and four slot outputs are audible, while A1
+    // still uses the legacy flat osc.* controls as its compatibility source.
+    layerStatusPill.setText(selectedLayer == 0 ? "LIVE - compat path" : "LIVE - layer mix",
                             juce::dontSendNotification);
-    layerStatusPill.setColour(juce::Label::textColourId, staged);
+    layerStatusPill.setColour(juce::Label::textColourId, live);
 
     // Rebuild per-layer mix controls for the selected layer.
     layerControls.clear();
@@ -833,7 +834,8 @@ void SynthAudioProcessorEditor::setSelectedLayer(int layerIndex)
     }
 
     // Rebuild the two oscillator-slot panels for the selected layer. These bind to real
-    // layer.N.osc.M.* state but are badged STATE because per-slot rendering is not live.
+    // layer.N.osc.M.* state. A1 gates and mixes the legacy osc.* compatibility source;
+    // the other slots render through the current oscillator stack foundation.
     for (int slot = 0; slot < synth::oscillatorSlotsPerLayer; ++slot)
     {
         if (slotPanels[static_cast<std::size_t>(slot)] != nullptr)
@@ -850,7 +852,7 @@ void SynthAudioProcessorEditor::setSelectedLayer(int layerIndex)
             oscPrefix + "level", oscPrefix + "phase_degrees", oscPrefix + "detune",
             oscPrefix + "stereo", oscPrefix + "pan", oscPrefix + "retrigger",
             oscPrefix + "invert"
-        }, "STATE", staged, slotStrip);
+        }, "LIVE", live, slotStrip);
         soundPage.addAndMakeVisible(*panel);
         slotPanels[static_cast<std::size_t>(slot)] = std::move(panel);
     }
@@ -1163,7 +1165,7 @@ void SynthAudioProcessorEditor::savePresetAs()
     const auto suggestedFile = audioProcessor.getUserPresetDirectory()
         .getChildFile(fileSafeName(presetName) + ".json");
 
-    fileChooser = std::make_unique<juce::FileChooser>("Save Synth preset", suggestedFile, "*.json");
+    fileChooser = std::make_unique<juce::FileChooser>("Save sylenth-ai preset", suggestedFile, "*.json");
     juce::Component::SafePointer<SynthAudioProcessorEditor> safeEditor { this };
     fileChooser->launchAsync(juce::FileBrowserComponent::saveMode
                              | juce::FileBrowserComponent::canSelectFiles

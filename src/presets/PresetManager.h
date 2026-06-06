@@ -29,6 +29,7 @@ struct PresetLoadResult
 std::vector<PresetSummary> scanPresetDirectory(const std::filesystem::path& directory, bool factory);
 std::filesystem::path factoryPresetDirectory();
 std::filesystem::path defaultUserPresetDirectory();
+std::filesystem::path legacyUserPresetDirectory();
 std::string presetIdFromDisplayName(const std::string& displayName);
 
 PresetLoadResult preparePresetState(juce::AudioProcessorValueTreeState& parameters,

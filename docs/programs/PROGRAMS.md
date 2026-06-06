@@ -1,6 +1,6 @@
 # Program Contract
 
-This contract is adapted from the Worker Program lane for this Synth project.
+This contract is adapted from the Worker Program lane for this sylenth-ai project.
 
 ## Required Program Folder
 
@@ -59,4 +59,3 @@ Use these sections in order:
 ## Completion Rule
 
 Do not move a Program to `completed/` until all required child slices have landed, validation evidence exists, and `Outcomes & Retrospective` records what actually happened.
-

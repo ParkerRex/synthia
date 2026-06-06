@@ -3,14 +3,14 @@ title: Build Editor UI And Preset Workflow
 status: completed
 created_at: 2026-06-04
 completed_at: 2026-06-05
-summary: Build the clean-room plugin editor, parameter bindings, modulation slot editing, diagnostics, and user preset workflow.
-post_build_recap: Added a clean-room scrollable editor, APVTS-bound controls for the main synth groups and TransMod slots, validation-backed factory/user preset load-save-duplicate workflow, processor diagnostics, and standalone visual smoke evidence.
+summary: Build the lab-authored plugin editor, parameter bindings, modulation slot editing, diagnostics, and user preset workflow.
+post_build_recap: Added a lab-authored scrollable editor, APVTS-bound controls for the main synth groups and TransMod slots, validation-backed factory/user preset load-save-duplicate workflow, processor diagnostics, and standalone visual smoke evidence.
 read_when:
   - Implementing the Synth editor.
   - Changing preset picker, save, or modulation UI behavior.
-  - Validating clean-room visual workflow.
-program_id: synth-clean-room-pluck-instrument
-planning_brief: docs/programs/active/2026-06-04-synth-clean-room-pluck-instrument/planning-brief-1.md
+  - Validating lab-authored visual workflow.
+program_id: synth-pluck-core-foundation
+planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
 ---
 
 # Build Editor UI And Preset Workflow
@@ -21,12 +21,12 @@ This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
 ## Purpose / Big Picture
 
-The instrument needs a usable production UI that exposes the synth engine without copying historical panels or trade dress. After this slice, users should be able to load the plugin, edit oscillator/filter/envelope/LFO/modulation/amp controls, select and save presets, see diagnostics, and work with the factory pluck from a clean-room interface.
+The instrument needs a usable production UI that exposes the synth engine without copying historical panels or trade dress. After this slice, users should be able to load the plugin, edit oscillator/filter/envelope/LFO/modulation/amp controls, select and save presets, see diagnostics, and work with the factory pluck from a lab-authored interface.
 
 ## Progress
 
 - [x] 2026-06-04 EDT: Created this Program-linked ExecPlan from `planning-brief-1.md`.
-- [x] 2026-06-05 EDT: Designed and implemented a clean-room scrollable editor layout with header, preset controls, diagnostics, and sectioned synth controls.
+- [x] 2026-06-05 EDT: Designed and implemented a lab-authored scrollable editor layout with header, preset controls, diagnostics, and sectioned synth controls.
 - [x] 2026-06-05 EDT: Bound editor controls to the parameter registry through APVTS slider, combo box, and button attachments.
 - [x] 2026-06-05 EDT: Implemented validation-backed factory/user preset listing, load, save-as, and duplicate workflow.
 - [x] 2026-06-05 EDT: Implemented eight TransMod slot editors with source, scaler, enable, and physical destination depth controls.
@@ -43,7 +43,7 @@ The instrument needs a usable production UI that exposes the synth engine withou
 ## Decision Log
 
 Decision: The UI must be production-oriented, not a retro panel clone.
-Rationale: The clean-room policy forbids copying protected layouts and the product should serve real workflow rather than nostalgia.
+Rationale: The source-use policy forbids copying protected layouts and the product should serve real workflow rather than nostalgia.
 Date: 2026-06-04.
 
 ## Outcomes & Retrospective
@@ -72,7 +72,7 @@ Build the editor around the actual parameter registry. Create compact sections f
 
 Implement preset selection, save-as, duplicate, and validation errors. Ensure host state remains independent of external preset files.
 
-Add screenshot/manual smoke support if automated UI tests are limited by JUCE tooling. Update docs with the editor structure and clean-room naming rules.
+Add screenshot/manual smoke support if automated UI tests are limited by JUCE tooling. Update docs with the editor structure and lab-authored naming rules.
 
 ## Milestones
 

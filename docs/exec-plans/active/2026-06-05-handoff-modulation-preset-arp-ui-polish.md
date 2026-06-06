@@ -122,7 +122,7 @@ Milestone 4 records screenshot/manual QA and updates this plan's progress.
 
 Work from the repo root:
 
-    cd /Users/parkerrex/Developer/synth
+    cd /Users/parkerrex/Developer/sylenth-ai
 
 Before each partial handoff, verify the relevant model exists:
 
@@ -132,7 +132,7 @@ After Claude Code returns a patch, run:
 
     cmake --build build --config Debug
     ctest --test-dir build --output-on-failure
-    ./build/SynthRender --suite core --output-dir build/reports/core
+    ./build/SylenthAIRender --suite core --output-dir build/reports/core
 
 Then record screenshots/manual QA for the handed-off surface.
 
@@ -149,10 +149,10 @@ Acceptance requires:
 
 ### Test Commands
 
-    cd /Users/parkerrex/Developer/synth
+    cd /Users/parkerrex/Developer/sylenth-ai
     cmake --build build --config Debug
     ctest --test-dir build --output-on-failure
-    ./build/SynthRender --suite core --output-dir build/reports/core
+    ./build/SylenthAIRender --suite core --output-dir build/reports/core
 
 Manual verification: open the standalone target or plugin UI, exercise the handed-off surface, and record screenshots/notes in this plan or a linked QA note.
 
