@@ -91,7 +91,8 @@ Results:
 - A normal Preferences > Plug-Ins > Rescan updated `PluginScanner.txt`; Ableton found `sylenth-ai` at `~/Library/Audio/Plug-Ins/VST3/sylenth-ai.vst3` with `device-class-id` ending `?n=sylenth-ai`.
 - Ableton's browser then showed `Plug-Ins > VST3 > ParkerX > sylenth-ai`.
 - Double-clicking the browser entry created the current VST3. Ableton logged `Vst3: Going to create: sylenth-ai`, loaded ParkerX `sylenth-ai` v0.1.0 with class id `{ABCDEF01-9182-FAEB-506B-527853794149}`, reported 2427 parameters, and logged `Vst3: Created: sylenth-ai`.
-- Playback against the existing MIDI clip ran with the editor open. The editor showed 4 active voices, a `-13.8 dB` load/output estimate, and the Ableton track meters were active.
+- Playback against the existing MIDI clip ran with the created VST3 device present and Ableton track meters active.
+- Correction from the 2026-06-06 transport/device pass: earlier screenshots from this smoke pass also showed a visible `sylenth-ai` standalone app window. That standalone window is not hosted-editor proof. Hosted editor open/close remains unproven in Ableton and stays in the remaining host-validation gaps.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 
@@ -104,10 +105,11 @@ Remaining host-validation gaps after this VST3 smoke pass:
 
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.
+- Current preset recreation and modulation exercise.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
 - Transport stop/all-notes-off/panic proof.
-- UI open/close while transport is running.
+- Hosted UI open/close while transport is running.
 
 ## Ableton Current-Build Restore Smoke - 2026-06-06
 
@@ -139,10 +141,47 @@ Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.
+- Current preset recreation and modulation exercise.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
 - Transport stop/all-notes-off/panic proof.
-- UI open/close while transport is running.
+- Hosted UI open/close while transport is running.
+
+## Ableton Current-Build Transport/Device Smoke - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: `/Users/parkerrex/Desktop/testing-synth Project/testing-synth.als`
+- plugin format tested in this pass: VST3
+
+Results:
+
+- The test set restored the current VST3 again at 02:43:21. Ableton logged ParkerX `sylenth-ai` v0.1.0, 2427 parameters, and `Vst3: Restored: sylenth-ai`.
+- The separate standalone `sylenth-ai` process was closed before the clean transport screenshots; only Ableton Live was running for the host proof.
+- Keyboard transport start ran the restored VST3 clip with active track/device meters and 44100 Hz / 512-sample audio state visible.
+- Keyboard transport stop halted playback with the restored VST3 device still present and no crash or visible host error.
+- Attempting to open the hosted editor from the visible Ableton device controls did not create a hosted `sylenth-ai` window or process. Hosted UI open/close while transport runs remains unproven.
+
+Evidence screenshots are local build artifacts under `build/reports/ableton/`:
+
+- `transport-vst3-running-no-standalone.png`
+- `transport-vst3-stopped-no-standalone.png`
+- `host-editor-open-attempt.png`
+- `host-editor-open-attempt-2.png`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- Learned CC mapping proof in Ableton.
+- AU transport stop proof.
+- Current preset recreation and modulation exercise.
+- Offline bounce comparison.
+- Sample-rate and buffer-size changes.
+- All-notes-off/panic proof.
+- Hosted UI open/close while transport is running.
 
 ## Historical Ableton Setup - 2026-06-05
 

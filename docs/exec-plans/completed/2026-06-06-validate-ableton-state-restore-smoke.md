@@ -4,7 +4,7 @@ status: completed
 created_at: 2026-06-06
 completed_at: 2026-06-06
 summary: Extend current-build Ableton proof with AU create/restore, VST3 restore, and VST3 post-restore playback evidence.
-post_build_recap: Ableton Live 11 created the current sylenth-ai AU, restored it after saving and reopening the test set, then created and restored the current sylenth-ai VST3 after a second save/reopen pass. VST3 post-restore transport playback showed active meters at 44100 Hz / 512 samples. Automation, learned CC, bounce, sample-rate/buffer-size, panic, and UI open/close checks remain open.
+post_build_recap: Ableton Live 11 created the current sylenth-ai AU, restored it after saving and reopening the test set, then created and restored the current sylenth-ai VST3 after a second save/reopen pass. VST3 post-restore transport playback showed active meters at 44100 Hz / 512 samples. Automation, learned CC, bounce, sample-rate/buffer-size, panic, and hosted UI open/close checks remain open.
 read_when:
   - Reviewing current-build Ableton state restore proof.
   - Continuing host automation, controller, bounce, or buffer-size validation.
@@ -22,9 +22,9 @@ This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
 ## Purpose / Big Picture
 
-The previous smoke pass proved current VST3 scan, creation, editor open, and playback after the rename. This slice extends host proof to current AU creation and AU/VST3 save/reopen restore in Ableton Live 11.
+The previous smoke pass proved current VST3 scan, creation, and playback after the rename. This slice extends host proof to current AU creation and AU/VST3 save/reopen restore in Ableton Live 11.
 
-It remains a bounded host smoke slice. It does not claim automation, controller mapping, bounce, sample-rate/buffer-size, panic, or UI open/close coverage.
+It remains a bounded host smoke slice. It does not claim automation, controller mapping, bounce, sample-rate/buffer-size, panic, or hosted UI open/close coverage.
 
 ## Progress
 
@@ -45,7 +45,7 @@ Decision: Record AU and VST3 restore as separate current-build passes.
 Rationale: The host log is authoritative, and separate restore passes avoid overclaiming simultaneous AU/VST3 state in one saved set.
 Date: 2026-06-06.
 
-Decision: Leave automation, controller, bounce, sample-rate, buffer-size, panic, and UI open/close as the next host matrix slice.
+Decision: Leave automation, controller, bounce, sample-rate, buffer-size, panic, and hosted UI open/close as the next host matrix slice.
 Rationale: Those checks require more deliberate Ableton workflow automation and should not be hidden inside a scan/restore smoke note.
 Date: 2026-06-06.
 
@@ -76,7 +76,7 @@ Read first:
 - Offline bounce.
 - Sample-rate and buffer-size changes.
 - Panic/all-notes-off proof.
-- UI open/close while transport is running.
+- Hosted UI open/close while transport is running.
 
 ## Plan of Work
 
@@ -137,7 +137,7 @@ Relevant inspection command:
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
 - Transport stop/all-notes-off/panic proof.
-- UI open/close while transport is running.
+- Hosted UI open/close while transport is running.
 
 ## Idempotence and Recovery
 

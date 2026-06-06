@@ -12,7 +12,7 @@ Required tracks:
 - Arp/step/chord workflow: host-synced rate, mode, gate, octave/wrap, velocity, hold/tie, 16-step lanes, deterministic output.
 - FX rack: distortion/saturation, phaser, chorus/flanger, EQ, delay, reverb, compressor, bypass, mix, tail reporting.
 - UI shell and polish: original modern UI informed by screenshots/manual, implemented through Claude Code handoff after engine/state contracts exist.
-- Ableton proof: AU/VST3 scan/load/play, automation, save/reopen, bounce, sample-rate/buffer-size changes, UI open/close while playing.
+- Ableton proof: AU/VST3 scan/load/play, automation, save/reopen, bounce, sample-rate/buffer-size changes, hosted UI open/close while playing.
 
 ## Phase 2: AI Sound And Arp Generation
 
@@ -33,4 +33,3 @@ Required tracks:
 - User confirmation or A/B review before destructive replacement.
 - Reported diffs explaining changed controls and musical intent.
 - Strict separation from realtime audio processing.
-

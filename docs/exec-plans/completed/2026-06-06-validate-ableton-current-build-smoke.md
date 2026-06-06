@@ -4,7 +4,7 @@ status: completed
 created_at: 2026-06-06
 completed_at: 2026-06-06
 summary: Revalidate the current renamed sylenth-ai Release build, install AU/VST3 bundles, prove AU validation, and prove Ableton VST3 scan/load/play with the renamed bundle.
-post_build_recap: Fresh Release build, CTest, core suite, bundle checks, local install, uninstall dry-run, and AU validation passed. Ableton Live 11 rescanned the renamed VST3, created ParkerX sylenth-ai v0.1.0, opened the editor, and played an existing MIDI clip with active voices and meters. At this slice's completion, full AU/VST3 automation, controller proof, state restore, bounce, sample-rate, and buffer-size validation remained open; state restore was later covered by `2026-06-06-validate-ableton-state-restore-smoke.md`.
+post_build_recap: Fresh Release build, CTest, core suite, bundle checks, local install, uninstall dry-run, and AU validation passed. Ableton Live 11 rescanned the renamed VST3, created ParkerX sylenth-ai v0.1.0, and played an existing MIDI clip with active Ableton meters. At this slice's completion, full AU/VST3 automation, controller proof, hosted editor open/close, state restore, bounce, sample-rate, and buffer-size validation remained open; state restore was later covered by `2026-06-06-validate-ableton-state-restore-smoke.md`.
 read_when:
   - Reviewing Ableton smoke proof after the sylenth-ai rename.
   - Continuing full Phase 1 host validation.
@@ -22,9 +22,9 @@ This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
 ## Purpose / Big Picture
 
-The repo needed current host evidence for the renamed AU/VST3 build, not stale proof from the pre-rename `Synth` bundle. This slice proves that the current Release build still packages, installs, validates as AU, scans as VST3 in Ableton, instantiates under the `sylenth-ai` name, opens the editor, and plays MIDI.
+The repo needed current host evidence for the renamed AU/VST3 build, not stale proof from the pre-rename `Synth` bundle. This slice proves that the current Release build still packages, installs, validates as AU, scans as VST3 in Ableton, instantiates under the `sylenth-ai` name, and plays MIDI.
 
-It intentionally does not claim the full Phase 1 Ableton matrix. At this slice's completion, automation, learned CC mapping, save/reopen state restore, bounce, sample-rate, buffer-size, and panic/all-notes-off checks remained in the host-validation backlog. The follow-on restore slice later resolved current-build AU creation and AU/VST3 save/reopen restore.
+It intentionally does not claim the full Phase 1 Ableton matrix. At this slice's completion, automation, learned CC mapping, hosted UI open/close, save/reopen state restore, bounce, sample-rate, buffer-size, and panic/all-notes-off checks remained in the host-validation backlog. The follow-on restore slice later resolved current-build AU creation and AU/VST3 save/reopen restore.
 
 ## Progress
 
@@ -35,7 +35,7 @@ It intentionally does not claim the full Phase 1 Ableton matrix. At this slice's
 - [x] Ran uninstall dry-run against the installed local bundles.
 - [x] Ran `auval -v aumu SyAI PkRx`.
 - [x] Triggered Ableton Preferences > Plug-Ins > Rescan and confirmed the scanner found `sylenth-ai.vst3`.
-- [x] Created the renamed VST3 in Ableton and captured editor/playback screenshots.
+- [x] Created the renamed VST3 in Ableton and captured playback screenshots.
 - [x] Updated `docs/host-validation/ableton-smoke.md`.
 
 ## Surprises & Discoveries
@@ -46,10 +46,12 @@ The Release configure used a fresh `build-release-phase1-ableton` directory. The
 
 `auval` passed but repeated the known non-fatal `Delay Feedback` maximum-value retention warning.
 
+The follow-on transport/device pass found that the visible `sylenth-ai` editor window in earlier screenshots was the standalone app, not a hosted Ableton plug-in editor. This smoke pass is therefore VST3 scan/create/play proof, not hosted-editor proof.
+
 ## Decision Log
 
 Decision: Treat this as a bounded current-build smoke pass, not full Phase 1 host validation.
-Rationale: VST3 scan/create/play was proven against the renamed current build, while current-build AU instantiation, automation, controller proof, state restore, bounce, sample-rate, buffer-size, and panic behavior still needed separate host checks at this point. Current-build AU instantiation and AU/VST3 state restore were later covered by `2026-06-06-validate-ableton-state-restore-smoke.md`.
+Rationale: VST3 scan/create/play was proven against the renamed current build, while current-build AU instantiation, automation, controller proof, hosted UI open/close, state restore, bounce, sample-rate, buffer-size, and panic behavior still needed separate host checks at this point. Current-build AU instantiation and AU/VST3 state restore were later covered by `2026-06-06-validate-ableton-state-restore-smoke.md`.
 Date: 2026-06-06.
 
 Decision: Use Ableton's normal rescan path before considering cache resets.
@@ -58,7 +60,7 @@ Date: 2026-06-06.
 
 ## Outcomes & Retrospective
 
-Completed as a current-build smoke pass. Host packaging and basic Ableton VST3 scan/load/play behavior are healthy after the rename. The broader host behavior matrix still needed current-build AU instantiation, automation gestures, MIDI controller mapping, state restore, offline bounce, sample-rate/buffer-size changes, and panic/transport behavior at this point. A later restore slice resolved current-build AU instantiation and AU/VST3 state restore.
+Completed as a current-build smoke pass. Host packaging and basic Ableton VST3 scan/load/play behavior are healthy after the rename. The broader host behavior matrix still needed current-build AU instantiation, automation gestures, MIDI controller mapping, hosted UI open/close, state restore, offline bounce, sample-rate/buffer-size changes, and panic/transport behavior at this point. A later restore slice resolved current-build AU instantiation and AU/VST3 state restore.
 
 ## Context and Orientation
 
@@ -74,7 +76,7 @@ Read first:
 - Current Release build validation.
 - Local AU/VST3 install and uninstall dry-run.
 - AU command validation.
-- Ableton VST3 rescan, create, editor-open, and playback proof.
+- Ableton VST3 rescan, create, and playback proof.
 - Documentation of remaining host-validation gaps.
 
 ### Out Of Scope For This Slice
@@ -82,11 +84,11 @@ Read first:
 - Distribution signing or notarization.
 - Clean-machine installer validation.
 - Current-build AU Ableton instantiation.
-- Automation, MIDI controller mapping, state restore, bounce, sample-rate, buffer-size, panic, or all-notes-off proof.
+- Automation, MIDI controller mapping, hosted UI open/close, state restore, bounce, sample-rate, buffer-size, panic, or all-notes-off proof.
 
 ## Plan of Work
 
-Use a fresh Release build directory to avoid stale source paths from the rename. Validate the command-line build and bundles, install the local AU/VST3 bundles, run AU validation, then drive Ableton through a normal plug-in rescan. After the renamed VST3 appears, create it on the existing MIDI track, open the editor, run transport playback, and record the result in the host-validation notes.
+Use a fresh Release build directory to avoid stale source paths from the rename. Validate the command-line build and bundles, install the local AU/VST3 bundles, run AU validation, then drive Ableton through a normal plug-in rescan. After the renamed VST3 appears, create it on the existing MIDI track, run transport playback, and record the result in the host-validation notes.
 
 ## Milestones
 
@@ -118,7 +120,7 @@ Run command validation, install, and AU validation:
     scripts/uninstall-local-plugins.sh --dry-run
     auval -v aumu SyAI PkRx
 
-In Ableton Live 11 Suite, open Preferences > Plug-Ins, run Rescan, select `Plug-Ins > VST3 > ParkerX > sylenth-ai`, create the device on a MIDI track, open the editor, run transport playback, and capture local screenshots under `build/reports/ableton/`.
+In Ableton Live 11 Suite, open Preferences > Plug-Ins, run Rescan, select `Plug-Ins > VST3 > ParkerX > sylenth-ai`, create the device on a MIDI track, run transport playback, and capture local screenshots under `build/reports/ableton/`.
 
 ## Validation and Acceptance
 
@@ -128,7 +130,7 @@ Acceptance for this bounded slice required:
 - Bundle check verifies universal Standalone/AU/VST3 artifacts and resources.
 - Local install and uninstall dry-run work against the current bundle names.
 - AU validation succeeds with `auval -v aumu SyAI PkRx`.
-- Ableton rescans the renamed VST3, creates `sylenth-ai`, opens the editor, and plays MIDI with active voices/meters.
+- Ableton rescans the renamed VST3, creates `sylenth-ai`, and plays MIDI with active host meters.
 
 ### Test Commands
 
@@ -152,7 +154,7 @@ Manual Ableton evidence was captured under `build/reports/ableton/`.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
 - Transport stop/all-notes-off/panic proof.
-- UI open/close while transport is running.
+- Hosted UI open/close while transport is running.
 
 ## Idempotence and Recovery
 
