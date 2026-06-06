@@ -150,7 +150,7 @@ Manual Ableton evidence was captured under `build/reports/ableton/`.
 
 - Resolved by `2026-06-06-validate-ableton-state-restore-smoke.md`: current-build AU instantiation and AU/VST3 save/reopen restore.
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
 - Transport stop/all-notes-off/panic proof.

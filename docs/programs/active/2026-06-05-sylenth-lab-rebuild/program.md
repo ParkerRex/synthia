@@ -80,6 +80,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed hosted UI lifecycle attempt: proved the hosted AU editor can close while transport is running; a later control pass corrected the failed-reopen conclusion as an automation-targeting miss.
 - [x] 2026-06-06 EDT: Executed hosted AU editor reopen control: restored the original resizable editor, rebuilt/reinstalled, passed CTest/bundle checks/auval, and proved hosted AU editor open/close/reopen while transport runs with a precise CoreGraphics click on Ableton's device-header wrench.
 - [x] 2026-06-06 EDT: Executed VST3 hosted editor lifecycle proof: dragged the current VST3 into a fresh Ableton set, verified VST3 create logs, and proved hosted VST3 editor open/close/reopen while transport runs.
+- [x] 2026-06-06 EDT: Executed VST3 learned-CC capture/persistence proof: routed a temporary CoreMIDI source into Ableton, armed MIDI Learn for `filter.resonance`, captured CC71, persisted the expected controller-map sidecar, and kept AU/controller value-application plus automation replay open.
 - [ ] Hand off UI information architecture and visual polish plans to Claude Code after state contracts are ready.
 - [ ] Complete the remaining Phase 1 Ableton validation matrix against the Sylenth-level build.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
@@ -118,6 +119,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-vst3-hosted-editor-lifecycle.md`
+- `docs/exec-plans/completed/2026-06-06-validate-ableton-vst3-controller-learn-proof.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
@@ -127,7 +129,7 @@ Product-order next Codex slice: complete the remaining Phase 1 Ableton host matr
 
 Preset browser, arp/step/chord, FX rack, modulation inspection, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; drag/drop modulation writing, per-route bypass/remove, per-control MIDI context menus, and richer browser metadata editing remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore, VST3 transport run/stop, VST3 offline bounce artifact creation, AU transport run/stop, and AU/VST3 hosted editor open/close/reopen while transport runs: automation, learned CC mapping, preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic.
+The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore, VST3 transport run/stop, VST3 offline bounce artifact creation, AU transport run/stop, AU/VST3 hosted editor open/close/reopen while transport runs, and VST3 learned-CC capture/persistence proof: automation, AU learned CC mapping, controller value-application proof, preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic.
 
 ## Risks and Watchpoints
 
@@ -147,7 +149,7 @@ Pending implementation.
 Program-level acceptance requires:
 
 - Phase 1 A/B layers, four oscillator slots, arp/step workflow, FX rack, preset browser, MIDI/controller workflow, UI shell, and modulation UX are implemented and validated.
-- AU and VST3 load in Ableton, automate, save/reopen, restore state, prove learned controller mapping, exercise current presets/modulation, export offline bounce artifacts, compare offline bounce against realtime render, handle sample-rate/buffer-size changes, pass all-notes-off/panic checks, and survive hosted UI close/reopen while playing with the Phase 1 build.
+- AU and VST3 load in Ableton, automate, save/reopen, restore state, prove learned controller mapping for both formats, exercise current presets/modulation, export offline bounce artifacts, compare offline bounce against realtime render, handle sample-rate/buffer-size changes, pass all-notes-off/panic checks, and survive hosted UI close/reopen while playing with the Phase 1 build.
 - Claude Code UI handoff plans are completed or explicitly closed with screenshots/manual QA notes.
 - Phase 2 AI generation can create finite, valid, editable preset/arp/modulation state.
 - Phase 3 conversational/reference workflows can produce reversible edits with clear reports.

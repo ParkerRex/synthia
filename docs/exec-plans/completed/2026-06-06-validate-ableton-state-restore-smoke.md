@@ -133,7 +133,7 @@ Relevant inspection command:
 ### Follow-Up Host Matrix
 
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
 - Transport stop/all-notes-off/panic proof.

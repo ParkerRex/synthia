@@ -104,7 +104,7 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps after this VST3 smoke pass:
 
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
@@ -140,7 +140,7 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps after this restore smoke pass:
 
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
@@ -175,7 +175,7 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Host-validation gaps after this slice:
 
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
 - AU transport run/stop proof was later covered by `Ableton Current-Build AU Transport Smoke - 2026-06-06`.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
@@ -215,7 +215,7 @@ Export-setting screenshots are local build artifacts under `build/reports/ableto
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -254,7 +254,7 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -291,7 +291,7 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -332,7 +332,7 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -373,7 +373,55 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
+- Current preset recreation and modulation exercise.
+- Offline bounce versus realtime comparison.
+- Sample-rate and buffer-size changes.
+- All-notes-off/panic proof.
+
+## Ableton Current-Build VST3 Controller Learn Proof - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: fresh Ableton `Untitled` validation set
+- plugin format tested in this pass: VST3
+- build under test: installed local `build-release-phase1-ableton` VST3 from the previous validation pass
+
+Results:
+
+- A temporary CoreMIDI source named `SylenthAI Codex CC Source` was created before Ableton launch.
+- Ableton logged `MidiInDevice [Name="SylenthAI Codex CC Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
+- The current `sylenth-ai` VST3 was loaded by dragging the top browser result into the MIDI track device area. Ableton logged `Vst3: Going to create: sylenth-ai` and `Vst3: Created: sylenth-ai`.
+- `All Ins` did not pass the first validation source into the plugin. Explicitly selecting `SylenthAI Codex CC Source` on track 1 made the hosted plugin footer MIDI count advance and moved the Ableton meters.
+- In the hosted editor, the MIDI CONTROL panel selected `FILTER / Resonance`, armed Learn, captured incoming CC71, and displayed `Mapped CC71 to filter.resonance`.
+- The user-level sidecar was absent before this proof, then the plugin wrote `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json` with:
+
+```json
+{"schema_version": 1, "mappings": [{"cc": 71, "parameter_id": "filter.resonance"}]}
+```
+
+- The proof sidecar was copied to `build/reports/ableton/midi-controller-map-vst3-proof.json`, then the temporary user-level sidecar was removed to avoid polluting future validation.
+- A short Arrangement record attempt from the CC/note stream produced live MIDI input and learned-assignment persistence, but Arrangement view showed no captured clip or envelope. AU/VST3 automation record/playback remains open, and a visible post-learn controller value-application proof remains open.
+
+Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
+
+- `live-relaunched-with-virtual-midi-source.png`
+- `controller-proof-vst3-loaded-with-virtual-source.png`
+- `midi-input-menu-open.png`
+- `midi-input-source-selected-enter.png`
+- `midi-after-second-virtual-source.png`
+- `midi-learn-vst3-resonance-mapped.png`
+- `midi-controller-map-vst3-proof.json`
+- `arrangement-after-editor-closed.png`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- AU learned CC mapping proof in Ableton.
+- Visible post-learn controller value-application proof.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.

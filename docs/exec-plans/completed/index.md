@@ -27,3 +27,4 @@
 - `2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`
 - `2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md`
 - `2026-06-06-validate-ableton-vst3-hosted-editor-lifecycle.md`
+- `2026-06-06-validate-ableton-vst3-controller-learn-proof.md`

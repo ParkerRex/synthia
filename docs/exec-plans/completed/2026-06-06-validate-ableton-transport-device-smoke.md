@@ -137,7 +137,7 @@ Acceptance required:
 ### Follow-Up Host Matrix
 
 - AU and VST3 automation record/playback.
-- Learned CC mapping proof in Ableton.
+- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
 - Resolved by `2026-06-06-validate-ableton-offline-bounce-smoke.md`: offline bounce artifact creation. Still open: offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
