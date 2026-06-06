@@ -78,12 +78,32 @@ juce::String formatValue(const synth::ParameterSpec& spec, double value)
     return juce::String(snapToDisplayedZero(value, 0.01), 2);
 }
 
+juce::String formatGridValue(const synth::ParameterSpec& spec, double value)
+{
+    if (!std::isfinite(value))
+        value = 0.0;
+
+    if (spec.unit == "normalized" || spec.unit == "percent")
+        return juce::String(juce::roundToInt(value * 100.0)) + "%";
+
+    if (spec.unit == "semitones")
+    {
+        const auto semitones = juce::roundToInt(value);
+        return (semitones > 0 ? "+" : "") + juce::String(semitones);
+    }
+
+    if (spec.unit == "voices" || spec.unit == "steps" || spec.unit == "octaves")
+        return juce::String(juce::roundToInt(value));
+
+    return formatValue(spec, value);
+}
+
 double parseValueText(const synth::ParameterSpec& spec, const juce::String& textValue)
 {
     const auto trimmedText = textValue.trim().toLowerCase();
     const auto number = trimmedText.retainCharacters("-0123456789.").getDoubleValue();
 
-    if (spec.unit == "percent")
+    if (spec.unit == "percent" || spec.unit == "normalized")
         return trimmedText.containsChar('%') || std::abs(number) > 1.0 ? number / 100.0 : number;
 
     if (spec.unit == "milliseconds")
@@ -261,6 +281,15 @@ public:
 };
 
 // ============================================================================
+// LayoutSection: common contract for fixed-height editor sections.
+// ============================================================================
+class SynthAudioProcessorEditor::LayoutSection : public juce::Component
+{
+public:
+    virtual int preferredHeight(int width) const = 0;
+};
+
+// ============================================================================
 // ParameterControl: one APVTS-bound control inside a fixed cell.
 // ============================================================================
 class SynthAudioProcessorEditor::ParameterControl final : public juce::Component
@@ -401,7 +430,7 @@ private:
 // ============================================================================
 // Panel: titled frame that grid-packs controls into stable rows.
 // ============================================================================
-class SynthAudioProcessorEditor::Panel final : public juce::Component
+class SynthAudioProcessorEditor::Panel final : public LayoutSection
 {
 public:
     Panel(juce::AudioProcessorValueTreeState& state,
@@ -425,7 +454,7 @@ public:
         }
     }
 
-    int preferredHeight(int width) const
+    int preferredHeight(int width) const override
     {
         return computeLayout(width, false);
     }
@@ -519,6 +548,393 @@ private:
 };
 
 // ============================================================================
+// SequencerPanel: dense real controls for arp steps and chord voices.
+// ============================================================================
+class SynthAudioProcessorEditor::SequencerPanel final : public LayoutSection
+{
+public:
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
+
+    explicit SequencerPanel(juce::AudioProcessorValueTreeState& state)
+        : valueTreeState(state)
+    {
+        for (const auto* id : {
+                 "arp.enabled", "arp.mode", "arp.rate", "arp.gate",
+                 "arp.octaves", "arp.hold", "arp.swing", "arp.step_count"
+             })
+        {
+            if (const auto* spec = synth::findParameterSpec(id))
+            {
+                auto control = std::make_unique<ParameterControl>(valueTreeState, *spec, "Arp ");
+                addAndMakeVisible(*control);
+                topControls.push_back(std::move(control));
+            }
+        }
+
+        for (int step = 1; step <= synth::arpStepCount; ++step)
+        {
+            const auto index = static_cast<std::size_t>(step - 1);
+            const auto prefix = "arp.step." + std::to_string(step) + ".";
+            configureToggle(steps[index].enabled, prefix + "enabled", "Step " + juce::String(step) + " on");
+            configureSlider(steps[index].pitch, prefix + "pitch_semitones", "Step " + juce::String(step) + " pitch");
+            configureSlider(steps[index].velocity, prefix + "velocity", "Step " + juce::String(step) + " velocity");
+            configureSlider(steps[index].gate, prefix + "gate", "Step " + juce::String(step) + " gate");
+            configureToggle(steps[index].tie, prefix + "tie", "Step " + juce::String(step) + " tie");
+        }
+
+        for (int voice = 1; voice <= synth::chordVoiceCount; ++voice)
+        {
+            const auto index = static_cast<std::size_t>(voice - 1);
+            const auto prefix = "chord.voice." + std::to_string(voice) + ".";
+            configureToggle(chordVoices[index].enabled, prefix + "enabled", "Chord voice " + juce::String(voice) + " on");
+            configureSlider(chordVoices[index].pitch, prefix + "pitch_semitones", "Chord voice " + juce::String(voice) + " pitch");
+            configureSlider(chordVoices[index].velocity, prefix + "velocity", "Chord voice " + juce::String(voice) + " velocity");
+        }
+
+        if (const auto* spec = synth::findParameterSpec("chord.enabled"))
+            chordTopControls.push_back(makeTopControl(*spec, "Chord "));
+        if (const auto* spec = synth::findParameterSpec("chord.voice_count"))
+            chordTopControls.push_back(makeTopControl(*spec, "Chord "));
+    }
+
+    int preferredHeight(int width) const override
+    {
+        return computeLayoutHeight(width);
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
+        g.setColour(panelBg);
+        g.fillRoundedRectangle(bounds, 6.0f);
+        g.setColour(strokeSoft);
+        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+
+        auto headerArea = getLocalBounds().removeFromTop(headerHeight);
+        g.setColour(panelHeader);
+        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
+        g.fillRect(headerArea.removeFromBottom(8));
+
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        g.setColour(text);
+        g.setFont(uiFont(12.0f, true));
+        g.drawText("ARP / STEP / CHORD", titleArea, juce::Justification::centredLeft, true);
+
+        auto badgeArea = titleArea.removeFromRight(54).withSizeKeepingCentre(54, 16);
+        g.setColour(live.withAlpha(0.18f));
+        g.fillRoundedRectangle(badgeArea.toFloat(), 8.0f);
+        g.setColour(live);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText("LIVE", badgeArea, juce::Justification::centred, false);
+
+        paintGridLabels(g);
+    }
+
+    void resized() override
+    {
+        layoutControls(getWidth());
+    }
+
+private:
+    struct GridSlider
+    {
+        juce::Slider slider;
+        std::unique_ptr<SliderAttachment> attachment;
+    };
+
+    struct GridToggle
+    {
+        juce::ToggleButton toggle;
+        std::unique_ptr<ButtonAttachment> attachment;
+    };
+
+    struct StepControls
+    {
+        GridToggle enabled;
+        GridSlider pitch;
+        GridSlider velocity;
+        GridSlider gate;
+        GridToggle tie;
+    };
+
+    struct ChordVoiceControls
+    {
+        GridToggle enabled;
+        GridSlider pitch;
+        GridSlider velocity;
+    };
+
+    std::unique_ptr<ParameterControl> makeTopControl(const synth::ParameterSpec& spec,
+                                                     const juce::String& stripPrefix)
+    {
+        auto control = std::make_unique<ParameterControl>(valueTreeState, spec, stripPrefix);
+        addAndMakeVisible(*control);
+        return control;
+    }
+
+    void configureToggle(GridToggle& control, const std::string& id, const juce::String& tooltip)
+    {
+        if (synth::findParameterSpec(id) == nullptr)
+            return;
+
+        control.toggle.setClickingTogglesState(true);
+        control.toggle.setTooltip(tooltip);
+        control.attachment = std::make_unique<ButtonAttachment>(valueTreeState, id, control.toggle);
+        addAndMakeVisible(control.toggle);
+    }
+
+    void configureSlider(GridSlider& control, const std::string& id, const juce::String& tooltip)
+    {
+        if (const auto* found = synth::findParameterSpec(id))
+        {
+            const auto spec = *found;
+            control.slider.setSliderStyle(juce::Slider::LinearBar);
+            control.slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 48, 14);
+            control.slider.setColour(juce::Slider::backgroundColourId, fieldBg);
+            control.slider.setColour(juce::Slider::trackColourId, accent.withAlpha(0.72f));
+            control.slider.setColour(juce::Slider::textBoxTextColourId, text);
+            control.slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
+            control.slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+            control.slider.setTooltip(tooltip);
+            control.slider.setNumDecimalPlacesToDisplay(0);
+            control.attachment = std::make_unique<SliderAttachment>(valueTreeState, id, control.slider);
+            control.slider.textFromValueFunction = [spec](double value) { return formatGridValue(spec, value); };
+            control.slider.valueFromTextFunction = [spec](const juce::String& textValue) {
+                return parseValueText(spec, textValue);
+            };
+            control.slider.updateText();
+            addAndMakeVisible(control.slider);
+        }
+    }
+
+    int computeTopControlsLayout(juce::Rectangle<int> bounds, bool apply)
+    {
+        const auto columns = std::max(1, (bounds.getWidth() + controlGap) / (topControlWidth + controlGap));
+        const auto columnWidth = static_cast<float>(bounds.getWidth() - (columns - 1) * controlGap)
+                                 / static_cast<float>(columns);
+
+        int column = 0;
+        int row = 0;
+        const auto placeControl = [&](ParameterControl& control) {
+            const auto span = std::min(control.isWide() ? 2 : 1, columns);
+            if (column + span > columns)
+            {
+                column = 0;
+                ++row;
+            }
+
+            if (apply)
+            {
+                const auto x = bounds.getX() + static_cast<int>(std::round(static_cast<float>(column)
+                                                                           * (columnWidth + static_cast<float>(controlGap))));
+                const auto width = static_cast<int>(std::round(static_cast<float>(span) * columnWidth
+                                                              + static_cast<float>((span - 1) * controlGap)));
+                const auto y = bounds.getY() + row * (topControlHeight + rowGap);
+                control.setBounds(x, y, width, topControlHeight);
+            }
+
+            column += span;
+        };
+
+        for (const auto& control : topControls)
+            placeControl(*control);
+        for (const auto& control : chordTopControls)
+            placeControl(*control);
+
+        return (row + 1) * topControlHeight + row * rowGap;
+    }
+
+    void layoutStepGrid(juce::Rectangle<int> bounds)
+    {
+        const auto stepWidth = std::max(28, (bounds.getWidth() - rowLabelWidth - (synth::arpStepCount - 1) * cellGap)
+                                            / synth::arpStepCount);
+        const auto gridWidth = rowLabelWidth + synth::arpStepCount * stepWidth + (synth::arpStepCount - 1) * cellGap;
+        const auto xStart = bounds.getX() + std::max(0, (bounds.getWidth() - gridWidth) / 2);
+        auto y = bounds.getY();
+
+        for (int step = 0; step < synth::arpStepCount; ++step)
+        {
+            const auto x = xStart + rowLabelWidth + step * (stepWidth + cellGap);
+            const auto index = static_cast<std::size_t>(step);
+            steps[index].enabled.toggle.setBounds(x, y + headerRowHeight, stepWidth, toggleRowHeight);
+            steps[index].pitch.slider.setBounds(x, y + headerRowHeight + toggleRowHeight + rowGap,
+                                                stepWidth, sliderRowHeight);
+            steps[index].velocity.slider.setBounds(x, y + headerRowHeight + toggleRowHeight + sliderRowHeight + 2 * rowGap,
+                                                   stepWidth, sliderRowHeight);
+            steps[index].gate.slider.setBounds(x, y + headerRowHeight + toggleRowHeight + 2 * sliderRowHeight + 3 * rowGap,
+                                               stepWidth, sliderRowHeight);
+            steps[index].tie.toggle.setBounds(x, y + headerRowHeight + toggleRowHeight + 3 * sliderRowHeight + 4 * rowGap,
+                                              stepWidth, toggleRowHeight);
+        }
+    }
+
+    void layoutChordGrid(juce::Rectangle<int> bounds)
+    {
+        const auto voiceWidth = std::max(48, (bounds.getWidth() - rowLabelWidth - (synth::chordVoiceCount - 1) * cellGap)
+                                             / synth::chordVoiceCount);
+        const auto gridWidth = rowLabelWidth + synth::chordVoiceCount * voiceWidth + (synth::chordVoiceCount - 1) * cellGap;
+        const auto xStart = bounds.getX() + std::max(0, (bounds.getWidth() - gridWidth) / 2);
+        auto y = bounds.getY();
+
+        for (int voice = 0; voice < synth::chordVoiceCount; ++voice)
+        {
+            const auto x = xStart + rowLabelWidth + voice * (voiceWidth + cellGap);
+            const auto index = static_cast<std::size_t>(voice);
+            chordVoices[index].enabled.toggle.setBounds(x, y + headerRowHeight, voiceWidth, toggleRowHeight);
+            chordVoices[index].pitch.slider.setBounds(x, y + headerRowHeight + toggleRowHeight + rowGap,
+                                                      voiceWidth, sliderRowHeight);
+            chordVoices[index].velocity.slider.setBounds(x, y + headerRowHeight + toggleRowHeight + sliderRowHeight + 2 * rowGap,
+                                                         voiceWidth, sliderRowHeight);
+        }
+    }
+
+    int computeLayoutHeight(int width) const
+    {
+        if (width <= 0)
+            return headerHeight + padTop + topControlHeight + sectionGap + stepGridHeight + sectionGap
+                   + chordGridHeight + padBottom;
+
+        auto bounds = juce::Rectangle<int>(0, 0, width, 10000).reduced(padX, 0);
+        auto y = headerHeight + padTop;
+        y += computeTopControlsHeight(bounds.withY(y).withHeight(topControlHeight * 2)) + sectionGap;
+        y += stepGridHeight + sectionGap;
+        y += chordGridHeight + padBottom;
+        return y;
+    }
+
+    void layoutControls(int width)
+    {
+        if (width <= 0)
+            return;
+
+        auto bounds = juce::Rectangle<int>(0, 0, width, 10000).reduced(padX, 0);
+        auto y = headerHeight + padTop;
+        y += computeTopControlsLayout(bounds.withY(y).withHeight(topControlHeight * 2), true) + sectionGap;
+        layoutStepGrid(bounds.withY(y).withHeight(stepGridHeight));
+        y += stepGridHeight + sectionGap;
+        layoutChordGrid(bounds.withY(y).withHeight(chordGridHeight));
+    }
+
+    void paintGridLabels(juce::Graphics& g) const
+    {
+        auto bounds = getLocalBounds().reduced(padX, 0);
+        auto y = headerHeight + padTop;
+        y += computeTopControlsHeight(bounds.withY(y).withHeight(topControlHeight * 2)) + sectionGap;
+        paintStepLabels(g, bounds.withY(y).withHeight(stepGridHeight));
+        y += stepGridHeight + sectionGap;
+        paintChordLabels(g, bounds.withY(y).withHeight(chordGridHeight));
+    }
+
+    int computeTopControlsHeight(juce::Rectangle<int> bounds) const
+    {
+        const auto columns = std::max(1, (bounds.getWidth() + controlGap) / (topControlWidth + controlGap));
+        int column = 0;
+        int row = 0;
+        auto countControl = [&column, &row, columns](const ParameterControl& control) {
+            const auto span = std::min(control.isWide() ? 2 : 1, columns);
+            if (column + span > columns)
+            {
+                column = 0;
+                ++row;
+            }
+            column += span;
+        };
+
+        for (const auto& control : topControls)
+            countControl(*control);
+        for (const auto& control : chordTopControls)
+            countControl(*control);
+
+        return (row + 1) * topControlHeight + row * rowGap;
+    }
+
+    void paintStepLabels(juce::Graphics& g, juce::Rectangle<int> bounds) const
+    {
+        const auto stepWidth = std::max(28, (bounds.getWidth() - rowLabelWidth - (synth::arpStepCount - 1) * cellGap)
+                                            / synth::arpStepCount);
+        const auto gridWidth = rowLabelWidth + synth::arpStepCount * stepWidth + (synth::arpStepCount - 1) * cellGap;
+        const auto xStart = bounds.getX() + std::max(0, (bounds.getWidth() - gridWidth) / 2);
+        auto y = bounds.getY();
+
+        g.setColour(mutedText);
+        g.setFont(uiFont(10.5f, true));
+        g.drawText("STEP", xStart, y, rowLabelWidth, headerRowHeight, juce::Justification::centredLeft, false);
+        for (int step = 0; step < synth::arpStepCount; ++step)
+        {
+            const auto x = xStart + rowLabelWidth + step * (stepWidth + cellGap);
+            g.drawText(juce::String(step + 1), x, y, stepWidth, headerRowHeight, juce::Justification::centred, false);
+        }
+
+        y += headerRowHeight;
+        paintRowLabel(g, xStart, y, "On");
+        y += toggleRowHeight + rowGap;
+        paintRowLabel(g, xStart, y, "Pitch");
+        y += sliderRowHeight + rowGap;
+        paintRowLabel(g, xStart, y, "Vel");
+        y += sliderRowHeight + rowGap;
+        paintRowLabel(g, xStart, y, "Gate");
+        y += sliderRowHeight + rowGap;
+        paintRowLabel(g, xStart, y, "Tie");
+    }
+
+    void paintChordLabels(juce::Graphics& g, juce::Rectangle<int> bounds) const
+    {
+        const auto voiceWidth = std::max(48, (bounds.getWidth() - rowLabelWidth - (synth::chordVoiceCount - 1) * cellGap)
+                                             / synth::chordVoiceCount);
+        const auto gridWidth = rowLabelWidth + synth::chordVoiceCount * voiceWidth + (synth::chordVoiceCount - 1) * cellGap;
+        const auto xStart = bounds.getX() + std::max(0, (bounds.getWidth() - gridWidth) / 2);
+        auto y = bounds.getY();
+
+        g.setColour(mutedText);
+        g.setFont(uiFont(10.5f, true));
+        g.drawText("CHORD", xStart, y, rowLabelWidth, headerRowHeight, juce::Justification::centredLeft, false);
+        for (int voice = 0; voice < synth::chordVoiceCount; ++voice)
+        {
+            const auto x = xStart + rowLabelWidth + voice * (voiceWidth + cellGap);
+            g.drawText(juce::String(voice + 1), x, y, voiceWidth, headerRowHeight, juce::Justification::centred, false);
+        }
+
+        y += headerRowHeight;
+        paintRowLabel(g, xStart, y, "On");
+        y += toggleRowHeight + rowGap;
+        paintRowLabel(g, xStart, y, "Pitch");
+        y += sliderRowHeight + rowGap;
+        paintRowLabel(g, xStart, y, "Vel");
+    }
+
+    void paintRowLabel(juce::Graphics& g, int x, int y, const juce::String& label) const
+    {
+        g.setColour(mutedText);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText(label, x, y, rowLabelWidth - 6, sliderRowHeight, juce::Justification::centredLeft, false);
+    }
+
+    juce::AudioProcessorValueTreeState& valueTreeState;
+    std::vector<std::unique_ptr<ParameterControl>> topControls;
+    std::vector<std::unique_ptr<ParameterControl>> chordTopControls;
+    std::array<StepControls, synth::arpStepCount> steps;
+    std::array<ChordVoiceControls, synth::chordVoiceCount> chordVoices;
+
+    static constexpr int headerHeight = 26;
+    static constexpr int padX = 12;
+    static constexpr int padTop = 6;
+    static constexpr int padBottom = 10;
+    static constexpr int controlGap = 8;
+    static constexpr int cellGap = 4;
+    static constexpr int rowGap = 4;
+    static constexpr int sectionGap = 12;
+    static constexpr int topControlWidth = 66;
+    static constexpr int topControlHeight = 58;
+    static constexpr int rowLabelWidth = 42;
+    static constexpr int headerRowHeight = 18;
+    static constexpr int toggleRowHeight = 26;
+    static constexpr int sliderRowHeight = 40;
+    static constexpr int stepGridHeight = headerRowHeight + 2 * toggleRowHeight + 3 * sliderRowHeight + 4 * rowGap;
+    static constexpr int chordGridHeight = headerRowHeight + toggleRowHeight + 2 * sliderRowHeight + 2 * rowGap;
+};
+
+// ============================================================================
 // Local helpers shared by the editor implementation.
 // ============================================================================
 namespace
@@ -592,7 +1008,7 @@ SynthAudioProcessorEditor::~SynthAudioProcessorEditor()
 
 void SynthAudioProcessorEditor::buildHeader()
 {
-    titleLabel.setText("SYNTH", juce::dontSendNotification);
+    titleLabel.setText("SYLENTH-AI", juce::dontSendNotification);
     titleLabel.setColour(juce::Label::textColourId, text);
     titleLabel.setFont(uiFont(22.0f, true));
     addAndMakeVisible(titleLabel);
@@ -755,17 +1171,8 @@ void SynthAudioProcessorEditor::buildPages()
         "ramp.enabled", "ramp.mode", "ramp.delay_ms", "ramp.rise_ms", "ramp.curve"
     });
 
-    arpPanel = addPanel(soundPage, soundPanels, "Arp", {
-        "arp.enabled", "arp.mode", "arp.rate", "arp.gate",
-        "arp.octaves", "arp.hold", "arp.swing", "arp.step_count"
-    }, "LIVE", live, "Arp ");
-
-    chordPanel = addPanel(soundPage, soundPanels, "Chord", {
-        "chord.enabled", "chord.voice_count",
-        "chord.voice.1.pitch_semitones", "chord.voice.2.enabled",
-        "chord.voice.2.pitch_semitones", "chord.voice.3.enabled",
-        "chord.voice.3.pitch_semitones"
-    }, "LIVE", live, "Chord ");
+    sequencerPanel = std::make_unique<SequencerPanel>(audioProcessor.getValueTreeState());
+    soundPage.addAndMakeVisible(*sequencerPanel);
 
     macroPanel = addPanel(soundPage, soundPanels, "Macros", {
         "macro.motion", "macro.width", "macro.drive", "macro.space"
@@ -1048,13 +1455,13 @@ int SynthAudioProcessorEditor::layoutRows(juce::Component& page,
         {
             const auto itemWidth = static_cast<int>(std::round(item.widthFraction * static_cast<float>(contentWidth)));
             widths.push_back(itemWidth);
-            rowHeight = std::max(rowHeight, item.panel->preferredHeight(itemWidth));
+            rowHeight = std::max(rowHeight, item.section->preferredHeight(itemWidth));
         }
 
         int x = outerPad;
         for (std::size_t i = 0; i < row.size(); ++i)
         {
-            row[i].panel->setBounds(x, y, widths[i], rowHeight);
+            row[i].section->setBounds(x, y, widths[i], rowHeight);
             x += widths[i] + columnGap;
         }
 
@@ -1071,14 +1478,14 @@ void SynthAudioProcessorEditor::layoutActivePage()
 
     if (currentPage == Page::Sound)
     {
-        if (slotPanels[0] == nullptr || coreOscPanel == nullptr)
+        if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr || sequencerPanel == nullptr)
             return;
         std::vector<std::vector<RowItem>> rows = {
             { { slotPanels[0].get(), 0.5f }, { slotPanels[1].get(), 0.5f } },
             { { coreOscPanel, 1.0f } },
             { { filterPanel, 0.32f }, { ampEnvPanel, 0.14f }, { modEnvPanel, 0.14f }, { lfoPanel, 0.40f } },
             { { voicePanel, 0.26f }, { ampPanel, 0.24f }, { rampPanel, 0.24f }, { macroPanel, 0.26f } },
-            { { arpPanel, 0.58f }, { chordPanel, 0.42f } },
+            { { sequencerPanel.get(), 1.0f } },
         };
         layoutRows(soundPage, rows, viewWidth);
     }

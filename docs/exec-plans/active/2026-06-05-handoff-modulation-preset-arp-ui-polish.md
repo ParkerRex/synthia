@@ -32,12 +32,14 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [x] 2026-06-06 EDT: Confirmed preset browser/source/bank/category/tag/favorite/search model exists before browser UI handoff.
 - [x] 2026-06-06 EDT: Confirmed arp/step/chord engine and APVTS model exists before arp UI handoff.
 - [ ] Confirm FX rack model exists before FX UI handoff.
-- [ ] Hand off completed dependency slice to Claude Code.
-- [ ] Record screenshot/manual QA.
+- [x] 2026-06-06 EDT: Handed the arp/step/chord dependency slice to Claude Code with streaming headless output; the run produced no patch before it stalled.
+- [x] 2026-06-06 EDT: Implemented the bounded arp/step/chord UI surface in `PluginEditor.*` with real APVTS bindings for arp controls, 16 arp steps, and 8 chord voices.
+- [x] 2026-06-06 EDT: Recorded native standalone screenshot evidence that the sequencer row renders at a tall window size; bottom-lane scroll QA remains for host/manual polish.
 
 ## Surprises & Discoveries
 
-None yet. Record missing route/browser/arp/FX models, component limitations, or handoff blockers here.
+- Claude Code headless streaming works with `claude -p --output-format stream-json --verbose`, but the first broad screenshot-heavy prompt over-researched and emitted no patch. Future Claude prompts for this repo should use tight file/edit constraints and bounded turns.
+- Native standalone screenshot automation confirmed the app opens after the editor patch. A taller window captured the new sequencer row itself, while PageDown and direct Accessibility scroll-bar automation did not move the JUCE viewport far enough to inspect the bottom lanes.
 
 ## Decision Log
 
@@ -47,7 +49,7 @@ Date: 2026-06-05.
 
 ## Outcomes & Retrospective
 
-Pending implementation and handoff review.
+Partial arp/step/chord implementation passed build, CTest, adversarial review, and native standalone visual launch/row evidence. Modulation, preset browser, and FX polish remain gated by their own dependency and QA checks.
 
 ## Context and Orientation
 
@@ -55,7 +57,7 @@ Do not hand a surface to Claude Code until the relevant dependency exists:
 
 - Modulation polish requires a route model and destination catalog.
 - Preset browser polish can now bind to `PresetSummary`, `PresetBrowserFilter`, `PresetBrowserCatalog`, source/bank/category/tag fields, and sidecar favorite keys.
-- Arp UI polish can now bind to `arp.*`, `arp.step.N.*`, `chord.*`, and `chord.voice.N.*`; final step-grid polish still needs Claude Code implementation.
+- Arp UI polish now has a bounded APVTS-backed editor surface for `arp.*`, `arp.step.N.*`, `chord.*`, and `chord.voice.N.*`; direct visual QA and any deeper Claude polish remain.
 - FX rack polish requires expanded FX module state and tail/cost diagnostics.
 
 Partial handoff is allowed only if the handoff prompt clearly limits scope to completed dependencies.

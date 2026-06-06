@@ -31,8 +31,10 @@ public:
 
 private:
     class SynthLookAndFeel;
+    class LayoutSection;
     class ParameterControl;
     class Panel;
+    class SequencerPanel;
     class Meter;
 
     enum class Page
@@ -44,7 +46,7 @@ private:
 
     struct RowItem
     {
-        Panel* panel = nullptr;
+        LayoutSection* section = nullptr;
         float widthFraction = 1.0f;
     };
 
@@ -117,6 +119,7 @@ private:
     juce::Component fxPage;
     std::vector<std::unique_ptr<Panel>> soundPanels;
     std::array<std::unique_ptr<Panel>, synth::oscillatorSlotsPerLayer> slotPanels;
+    std::unique_ptr<SequencerPanel> sequencerPanel;
     std::vector<std::unique_ptr<Panel>> modPanels;
     std::vector<std::unique_ptr<Panel>> fxPanels;
 
@@ -128,8 +131,6 @@ private:
     Panel* modEnvPanel = nullptr;
     Panel* lfoPanel = nullptr;
     Panel* rampPanel = nullptr;
-    Panel* arpPanel = nullptr;
-    Panel* chordPanel = nullptr;
     Panel* ampPanel = nullptr;
     Panel* macroPanel = nullptr;
     Panel* oscPitchModPanel = nullptr;
