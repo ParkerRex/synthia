@@ -116,6 +116,33 @@ bool containsString(const std::vector<std::string>& values, const std::string& e
     return std::find(values.begin(), values.end(), expected) != values.end();
 }
 
+bool editValueMatches(const synth::ModulationRouteWriteResult& write,
+                      const std::string& parameterId,
+                      float expected,
+                      float tolerance = 0.001f)
+{
+    return std::any_of(write.edits.begin(), write.edits.end(), [&](const auto& edit) {
+        return edit.parameterId == parameterId && std::abs(edit.value - expected) <= tolerance;
+    });
+}
+
+bool applyParameterEdits(juce::AudioProcessorValueTreeState& parameters,
+                         const std::vector<synth::ModulationRouteParameterEdit>& edits)
+{
+    for (const auto& edit : edits)
+    {
+        const auto* spec = synth::findParameterSpec(edit.parameterId);
+        if (spec == nullptr || !std::isfinite(edit.value))
+            return false;
+
+        const auto value = synth::clampPhysicalParameterValue(*spec, edit.value);
+        if (!setPhysicalParameter(parameters, edit.parameterId.c_str(), value))
+            return false;
+    }
+
+    return true;
+}
+
 bool checkModulationRouteModel()
 {
     const auto& sources = synth::modulationSourceCatalog();
@@ -202,6 +229,112 @@ bool checkModulationRouteModel()
         || std::abs(cancellingLegacyRoute->depth) > 0.0001f)
     {
         std::cerr << "Modulation route view did not reflect TransMod slots correctly.\n";
+        return false;
+    }
+
+    return true;
+}
+
+bool checkModulationRouteWriteAdapter()
+{
+    const auto write = synth::buildModulationRouteWrite({
+        3,
+        "lfo.1",
+        "macro.motion",
+        "filter.cutoff",
+        96.0f
+    });
+
+    if (!write.ok
+        || write.edits.size() != 10
+        || !editValueMatches(write, "transmod.3.enabled", 1.0f)
+        || !editValueMatches(write, "transmod.3.source", static_cast<float>(static_cast<int>(synth::ModSource::Lfo)))
+        || !editValueMatches(write, "transmod.3.scaler", static_cast<float>(static_cast<int>(synth::ModSource::Macro1)))
+        || !editValueMatches(write, "transmod.3.depth", 0.0f)
+        || !editValueMatches(write, "transmod.3.osc_pitch_semitones", 0.0f)
+        || !editValueMatches(write, "transmod.3.filter_cutoff_semitones", 72.0f))
+    {
+        std::cerr << "Modulation route write did not compile expected parameter edits.\n";
+        return false;
+    }
+
+    StateRoundTripProcessor processor;
+    if (!setPhysicalParameter(processor.parameters, "transmod.3.osc_pitch_semitones", 12.0f)
+        || !setPhysicalParameter(processor.parameters, "transmod.3.pan", 0.5f)
+        || !applyParameterEdits(processor.parameters, write.edits)
+        || !parameterValueMatches(processor.parameters, "transmod.3.enabled", 1.0f)
+        || !parameterValueMatches(processor.parameters, "transmod.3.source", 1.0f)
+        || !parameterValueMatches(processor.parameters, "transmod.3.scaler", 16.0f)
+        || !parameterValueMatches(processor.parameters, "transmod.3.osc_pitch_semitones", 0.0f)
+        || !parameterValueMatches(processor.parameters, "transmod.3.filter_cutoff_semitones", 72.0f)
+        || !parameterValueMatches(processor.parameters, "transmod.3.pan", 0.0f))
+    {
+        std::cerr << "Modulation route write edits did not apply to APVTS state.\n";
+        return false;
+    }
+
+    const auto panWrite = synth::buildModulationRouteWrite({
+        4,
+        "random_on_note",
+        "none",
+        "amp.pan",
+        -0.25f
+    });
+    if (!panWrite.ok
+        || !editValueMatches(panWrite, "transmod.4.source", static_cast<float>(static_cast<int>(synth::ModSource::RandomOnNote)))
+        || !editValueMatches(panWrite, "transmod.4.scaler", 0.0f)
+        || !editValueMatches(panWrite, "transmod.4.pan", -0.25f))
+    {
+        std::cerr << "Modulation route write did not handle none scaler or pan destination.\n";
+        return false;
+    }
+
+    const auto* sourceSpec = synth::findParameterSpec("transmod.4.source");
+    const auto* scalerSpec = synth::findParameterSpec("transmod.4.scaler");
+    const auto randomOnNoteValue = static_cast<float>(static_cast<int>(synth::ModSource::RandomOnNote));
+    const auto macroMotionValue = static_cast<float>(static_cast<int>(synth::ModSource::Macro1));
+    if (sourceSpec == nullptr
+        || scalerSpec == nullptr
+        || std::abs(synth::clampPhysicalParameterValue(*sourceSpec, randomOnNoteValue) - randomOnNoteValue) > 0.001f
+        || std::abs(synth::clampPhysicalParameterValue(*scalerSpec, macroMotionValue) - macroMotionValue) > 0.001f
+        || std::abs(synth::clampPhysicalParameterValue(*sourceSpec, 999.0f) - 19.0f) > 0.001f
+        || std::abs(synth::clampPhysicalParameterValue(*sourceSpec, -2.0f)) > 0.001f)
+    {
+        std::cerr << "Choice-valued modulation parameters did not preserve valid source/scaler indices.\n";
+        return false;
+    }
+
+    StateRoundTripProcessor panProcessor;
+    if (!applyParameterEdits(panProcessor.parameters, panWrite.edits)
+        || !parameterValueMatches(panProcessor.parameters, "transmod.4.source", randomOnNoteValue)
+        || !parameterValueMatches(panProcessor.parameters, "transmod.4.scaler", 0.0f)
+        || !parameterValueMatches(panProcessor.parameters, "transmod.4.pan", -0.25f))
+    {
+        std::cerr << "Applied modulation route edits did not preserve choice-valued source/scaler indices.\n";
+        return false;
+    }
+
+    const auto clear = synth::buildModulationSlotClear(3);
+    if (!clear.ok
+        || clear.edits.size() != 9
+        || !applyParameterEdits(processor.parameters, clear.edits)
+        || !parameterValueMatches(processor.parameters, "transmod.3.enabled", 0.0f)
+        || !parameterValueMatches(processor.parameters, "transmod.3.source", 0.0f)
+        || !parameterValueMatches(processor.parameters, "transmod.3.scaler", 0.0f)
+        || !parameterValueMatches(processor.parameters, "transmod.3.filter_cutoff_semitones", 0.0f))
+    {
+        std::cerr << "Modulation slot clear did not compile/apply expected edits.\n";
+        return false;
+    }
+
+    if (synth::buildModulationRouteWrite({ 0, "lfo.1", "none", "filter.cutoff", 1.0f }).ok
+        || synth::buildModulationRouteWrite({ 1, "none", "none", "filter.cutoff", 1.0f }).ok
+        || synth::buildModulationRouteWrite({ 1, "lfo.1", "bogus", "filter.cutoff", 1.0f }).ok
+        || synth::buildModulationRouteWrite({ 1, "lfo.1", "none", "missing.destination", 1.0f }).ok
+        || synth::buildModulationRouteWrite({ 1, "lfo.1", "none", "filter.cutoff", 0.0f }).ok
+        || synth::buildModulationSlotClear(9).ok)
+    {
+        std::cerr << "Modulation route write accepted invalid input.\n";
         return false;
     }
 
@@ -762,6 +895,9 @@ int main()
     }
 
     if (!checkModulationRouteModel())
+        return 1;
+
+    if (!checkModulationRouteWriteAdapter())
         return 1;
 
     if (!checkHostStateDefaultMerge())

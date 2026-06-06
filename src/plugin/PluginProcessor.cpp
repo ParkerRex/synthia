@@ -741,6 +741,39 @@ synth::ModulationRouteView SynthAudioProcessor::getModulationRouteView() const
     return synth::buildModulationRouteView(readParameters(128.0f, false).transMod);
 }
 
+bool SynthAudioProcessor::writeModulationRoute(const synth::ModulationRouteWriteRequest& request,
+                                               juce::String& message)
+{
+    const auto write = synth::buildModulationRouteWrite(request);
+    if (!write.ok)
+    {
+        message = juce::String(write.message);
+        return false;
+    }
+
+    if (!applyModulationRouteParameterEdits(write.edits, message))
+        return false;
+
+    message = "Assigned modulation route in slot " + juce::String(request.slotNumber);
+    return true;
+}
+
+bool SynthAudioProcessor::clearModulationSlot(int slotNumber, juce::String& message)
+{
+    const auto write = synth::buildModulationSlotClear(slotNumber);
+    if (!write.ok)
+    {
+        message = juce::String(write.message);
+        return false;
+    }
+
+    if (!applyModulationRouteParameterEdits(write.edits, message))
+        return false;
+
+    message = "Cleared modulation slot " + juce::String(slotNumber);
+    return true;
+}
+
 std::vector<synth::MidiControllerAssignment> SynthAudioProcessor::getMidiControllerAssignments() const
 {
     const juce::CriticalSection::ScopedLockType lock(midiControllerLock);
@@ -965,6 +998,58 @@ bool SynthAudioProcessor::assignMidiControllerInternal(int controllerNumber,
     publishMidiControllerAssignments();
     message = "Mapped CC" + juce::String(controllerNumber) + " to " + trimmedParameterId;
     setMidiControllerStatus(message);
+    return true;
+}
+
+bool SynthAudioProcessor::applyModulationRouteParameterEdits(
+    const std::vector<synth::ModulationRouteParameterEdit>& edits,
+    juce::String& message)
+{
+    struct ParameterTarget
+    {
+        juce::RangedAudioParameter* parameter = nullptr;
+        float normalizedValue = 0.0f;
+    };
+
+    std::vector<ParameterTarget> targets;
+    targets.reserve(edits.size());
+
+    for (const auto& edit : edits)
+    {
+        const auto* spec = synth::findParameterSpec(edit.parameterId);
+        if (spec == nullptr)
+        {
+            message = "Unknown modulation parameter: " + juce::String(edit.parameterId);
+            return false;
+        }
+
+        auto* parameter = parameters.getParameter(juce::String(edit.parameterId));
+        if (parameter == nullptr)
+        {
+            message = "Missing modulation parameter: " + juce::String(edit.parameterId);
+            return false;
+        }
+
+        if (!std::isfinite(edit.value))
+        {
+            message = "Invalid modulation parameter value: " + juce::String(edit.parameterId);
+            return false;
+        }
+
+        const auto physicalValue = synth::clampPhysicalParameterValue(*spec, edit.value);
+        targets.push_back({ parameter, parameter->convertTo0to1(physicalValue) });
+    }
+
+    {
+        ScopedParameterStateUpdate update(parameterStateSequence);
+        for (auto& target : targets)
+        {
+            target.parameter->beginChangeGesture();
+            target.parameter->setValueNotifyingHost(juce::jlimit(0.0f, 1.0f, target.normalizedValue));
+            target.parameter->endChangeGesture();
+        }
+    }
+
     return true;
 }
 

@@ -91,7 +91,7 @@ The next Claude Code pass can target deeper preset browser, arp/step/chord, and 
 
 Do not hand a surface to Claude Code until the relevant dependency exists:
 
-- Modulation inspection polish can now bind to `ModulationRouteModel`, source/destination catalogs, `SynthAudioProcessor::getModulationRouteView()`, and current `transmod.N.*` APVTS fields. Drag/drop writing, per-route bypass/remove, and expanded destination creation still require a later write-adapter/schema slice.
+- Modulation inspection polish can now bind to `ModulationRouteModel`, source/destination catalogs, `SynthAudioProcessor::getModulationRouteView()`, `SynthAudioProcessor::writeModulationRoute()`, `SynthAudioProcessor::clearModulationSlot()`, and current `transmod.N.*` APVTS fields. Drag/drop can now compile to real TransMod state; per-route bypass/remove, multi-destination route objects, and expanded destination creation still require later schema work.
 - Preset browser polish can now bind to `PresetSummary`, `PresetBrowserFilter`, `PresetBrowserCatalog`, source/bank/category/tag fields, and sidecar favorite keys.
 - Arp UI polish now has a bounded APVTS-backed editor surface for `arp.*`, `arp.step.N.*`, `chord.*`, and `chord.voice.N.*`; direct visual QA and any deeper Claude polish remain.
 - FX rack polish can now bind to fixed-order distortion/saturation, phaser, chorus/flanger-style modulation, EQ, delay, reverb, compressor, master bypass, quality, tail, and patch-cost state.

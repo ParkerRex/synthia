@@ -36,6 +36,7 @@ struct ParameterSpec
 
 const std::vector<ParameterSpec>& getParameterSpecs();
 const ParameterSpec* findParameterSpec(const std::string& id);
+float clampPhysicalParameterValue(const ParameterSpec& spec, float value) noexcept;
 std::vector<std::string> validateParameterSpecs();
 
 juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();

@@ -79,6 +79,8 @@ public:
     juce::String getCurrentPresetName() const;
     juce::String getCurrentPresetFilePath() const;
     synth::ModulationRouteView getModulationRouteView() const;
+    bool writeModulationRoute(const synth::ModulationRouteWriteRequest& request, juce::String& message);
+    bool clearModulationSlot(int slotNumber, juce::String& message);
     std::vector<synth::MidiControllerAssignment> getMidiControllerAssignments() const;
     juce::String getMidiControllerStatus() const;
     bool assignMidiController(int controllerNumber, const juce::String& parameterId, juce::String& message);
@@ -283,6 +285,8 @@ private:
                                       const juce::String& parameterId,
                                       juce::String& message,
                                       bool persist);
+    bool applyModulationRouteParameterEdits(const std::vector<synth::ModulationRouteParameterEdit>& edits,
+                                            juce::String& message);
     int parameterIndexForId(const juce::String& parameterId) const;
     void applyPendingMidiLearns();
     void applyPendingMappedControllers();

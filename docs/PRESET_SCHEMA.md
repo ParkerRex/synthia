@@ -262,6 +262,7 @@ Rules:
 - `scaler` may be `None`.
 - Unknown destinations should be preserved during migration when possible.
 - Runtime UI/model reads use `ModulationRouteModel` to derive route rows from the flat TransMod parameters. The legacy normalized `transmod.N.depth` field remains a cutoff-depth contributor and is surfaced as a contributing route parameter when present.
+- Runtime UI/model writes use `ModulationRouteModel` write requests that compile source, scaler, destination, and depth intent back into the existing flat `transmod.N.*` parameters. The current write adapter replaces a slot with one destination route and emits clear-slot edits for removal; per-route bypass/remove state and expanded destinations remain future schema work.
 
 ## Macro Shape
 

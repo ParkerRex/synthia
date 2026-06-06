@@ -3,6 +3,7 @@
 #include "../dsp/SynthParameters.h"
 
 #include <algorithm>
+#include <cmath>
 #include <set>
 
 namespace synth
@@ -320,6 +321,29 @@ const ParameterSpec* findParameterSpec(const std::string& id)
     });
 
     return found == specs.end() ? nullptr : &*found;
+}
+
+float clampPhysicalParameterValue(const ParameterSpec& spec, float value) noexcept
+{
+    if (!std::isfinite(value))
+        return value;
+
+    switch (spec.kind)
+    {
+        case ParameterKind::Bool:
+            return value >= 0.5f ? 1.0f : 0.0f;
+
+        case ParameterKind::Choice:
+        {
+            const auto maxChoice = std::max(0, static_cast<int>(spec.choices.size()) - 1);
+            return static_cast<float>(std::clamp(static_cast<int>(std::round(value)), 0, maxChoice));
+        }
+
+        case ParameterKind::Float:
+            return std::clamp(value, spec.minimum, spec.maximum);
+    }
+
+    return spec.defaultValue;
 }
 
 std::vector<std::string> validateParameterSpecs()
