@@ -152,6 +152,18 @@ void styleChipValue(juce::Label& label)
     label.setFont(uiFont(15.0f, true));
 }
 
+void styleTextEditor(juce::TextEditor& editor)
+{
+    editor.setFont(uiFont(12.0f));
+    editor.setSelectAllWhenFocused(true);
+    editor.setColour(juce::TextEditor::backgroundColourId, fieldBg);
+    editor.setColour(juce::TextEditor::textColourId, text);
+    editor.setColour(juce::TextEditor::highlightColourId, accent.withAlpha(0.35f));
+    editor.setColour(juce::TextEditor::highlightedTextColourId, text);
+    editor.setColour(juce::TextEditor::outlineColourId, stroke);
+    editor.setColour(juce::TextEditor::focusedOutlineColourId, accent);
+}
+
 // Draws the small rounded zone tick at the left of a module header so every panel reads
 // as a labelled module in a rack. Dimmed when the module's power toggle is off.
 void paintModuleHeaderTick(juce::Graphics& g, juce::Rectangle<int> headerArea,
@@ -840,8 +852,9 @@ private:
             return value.toLowerCase().contains(query);
         };
 
-        if (containsQuery(item.displayName) || containsQuery(item.bank) || containsQuery(item.category)
-            || containsQuery(item.sourceLabel) || containsQuery(item.file.getFileNameWithoutExtension()))
+        if (containsQuery(item.displayName) || containsQuery(item.author) || containsQuery(item.description)
+            || containsQuery(item.bank) || containsQuery(item.category) || containsQuery(item.sourceLabel)
+            || containsQuery(item.file.getFileNameWithoutExtension()))
             return true;
 
         for (const auto& tag : item.tags)
@@ -1128,6 +1141,209 @@ private:
     juce::TextButton loadAButton;
     juce::TextButton storeBButton;
     juce::TextButton loadBButton;
+};
+
+// ============================================================================
+// PresetMetadataPanel: metadata-aware safe-save controls over the real writer.
+// ============================================================================
+class SynthAudioProcessorEditor::PresetMetadataPanel final : public LayoutSection
+{
+public:
+    explicit PresetMetadataPanel(SynthAudioProcessorEditor& editor)
+        : owner(editor)
+    {
+        configureEditor(displayNameEditor, "Preset name");
+        configureEditor(authorEditor, "Author");
+        configureEditor(bankEditor, "Bank");
+        configureEditor(categoryEditor, "Category");
+        configureEditor(tagsEditor, "Tags, comma separated");
+        configureEditor(descriptionEditor, "Notes");
+        descriptionEditor.setMultiLine(true, true);
+        descriptionEditor.setReturnKeyStartsNewLine(true);
+
+        configureCommandButton(saveNewButton, "Save New", [this] {
+            owner.savePresetWithMetadata(synth::PresetWriteMode::CreateNew);
+        });
+        configureCommandButton(overwriteButton, "Overwrite", [this] {
+            owner.savePresetWithMetadata(synth::PresetWriteMode::OverwriteExisting);
+        });
+    }
+
+    int preferredHeight(int width) const override
+    {
+        return width < 760 ? 184 : 132;
+    }
+
+    void syncMetadata(const SynthAudioProcessor::PresetListItem* item,
+                      const juce::String& fallbackPresetName)
+    {
+        const auto name = item != nullptr ? item->displayName : fallbackPresetName;
+        setEditorText(displayNameEditor, nonEmptyField(name, "Init"));
+        setEditorText(authorEditor, item != nullptr ? item->author : "User");
+        setEditorText(bankEditor, item != nullptr ? item->bank : "User");
+        setEditorText(categoryEditor, item != nullptr ? item->category : "User");
+        setEditorText(tagsEditor, item != nullptr ? item->tags.joinIntoString(", ") : "user");
+        setEditorText(descriptionEditor, item != nullptr ? item->description
+                                                         : "User preset saved from the sylenth-ai editor.");
+    }
+
+    synth::PresetWriteOptions writeOptions(synth::PresetWriteMode mode) const
+    {
+        synth::PresetWriteOptions options;
+        options.mode = mode;
+        options.metadata.displayName = displayNameEditor.getText().trim().toStdString();
+        options.metadata.author = authorEditor.getText().trim().toStdString();
+        options.metadata.description = descriptionEditor.getText().trim().toStdString();
+        options.metadata.bank = bankEditor.getText().trim().toStdString();
+        options.metadata.category = categoryEditor.getText().trim().toStdString();
+        options.metadata.tags = parseTags(tagsEditor.getText());
+        return options;
+    }
+
+    juce::String presetName() const
+    {
+        return displayNameEditor.getText().trim();
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
+        g.setColour(panelBg);
+        g.fillRoundedRectangle(bounds, 6.0f);
+        g.setColour(strokeSoft);
+        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+
+        auto headerArea = getLocalBounds().removeFromTop(headerHeight);
+        g.setColour(panelHeader);
+        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
+        g.fillRect(headerArea.removeFromBottom(8));
+
+        paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneUtility);
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
+        auto badgeArea = titleArea.removeFromRight(92).withSizeKeepingCentre(92, 16);
+        titleArea.removeFromRight(8);
+
+        g.setColour(text);
+        g.setFont(uiFont(12.0f, true));
+        g.drawText("PRESET SAVE", titleArea, juce::Justification::centredLeft, true);
+
+        g.setColour(live.withAlpha(0.18f));
+        g.fillRoundedRectangle(badgeArea.toFloat(), 8.0f);
+        g.setColour(live);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText("NO-CLOBBER", badgeArea, juce::Justification::centred, false);
+    }
+
+    void resized() override
+    {
+        auto content = getLocalBounds();
+        content.removeFromTop(headerHeight);
+        content = content.reduced(12, 8);
+
+        if (content.getWidth() < 760)
+        {
+            auto row = content.removeFromTop(28);
+            displayNameEditor.setBounds(row.removeFromLeft(220));
+            row.removeFromLeft(8);
+            authorEditor.setBounds(row);
+
+            content.removeFromTop(7);
+            row = content.removeFromTop(28);
+            bankEditor.setBounds(row.removeFromLeft(160));
+            row.removeFromLeft(8);
+            categoryEditor.setBounds(row.removeFromLeft(160));
+            row.removeFromLeft(8);
+            tagsEditor.setBounds(row);
+
+            content.removeFromTop(7);
+            row = content.removeFromTop(52);
+            descriptionEditor.setBounds(row);
+
+            content.removeFromTop(8);
+            row = content.removeFromTop(28);
+            saveNewButton.setBounds(row.removeFromLeft(92));
+            row.removeFromLeft(8);
+            overwriteButton.setBounds(row.removeFromLeft(96));
+            return;
+        }
+
+        auto topRow = content.removeFromTop(28);
+        displayNameEditor.setBounds(topRow.removeFromLeft(220));
+        topRow.removeFromLeft(8);
+        authorEditor.setBounds(topRow.removeFromLeft(148));
+        topRow.removeFromLeft(8);
+        bankEditor.setBounds(topRow.removeFromLeft(136));
+        topRow.removeFromLeft(8);
+        categoryEditor.setBounds(topRow.removeFromLeft(136));
+        topRow.removeFromLeft(8);
+        tagsEditor.setBounds(topRow);
+
+        content.removeFromTop(8);
+        auto bottomRow = content.removeFromTop(48);
+        auto buttons = bottomRow.removeFromRight(202);
+        buttons.removeFromLeft(8);
+        saveNewButton.setBounds(buttons.removeFromLeft(94).withSizeKeepingCentre(94, 28));
+        buttons.removeFromLeft(8);
+        overwriteButton.setBounds(buttons.removeFromLeft(92).withSizeKeepingCentre(92, 28));
+        descriptionEditor.setBounds(bottomRow);
+    }
+
+private:
+    static constexpr int headerHeight = 26;
+
+    static std::vector<std::string> parseTags(const juce::String& rawTags)
+    {
+        juce::StringArray tokens;
+        tokens.addTokens(rawTags, ",", "");
+        tokens.trim();
+        tokens.removeEmptyStrings();
+
+        std::vector<std::string> tags;
+        for (const auto& token : tokens)
+            tags.push_back(token.toStdString());
+        return tags;
+    }
+
+    static juce::String nonEmptyField(const juce::String& value, const juce::String& fallback)
+    {
+        const auto trimmed = value.trim();
+        return trimmed.isNotEmpty() ? trimmed : fallback;
+    }
+
+    static void setEditorText(juce::TextEditor& editor, const juce::String& textToShow)
+    {
+        if (editor.hasKeyboardFocus(false))
+            return;
+
+        if (editor.getText() != textToShow)
+            editor.setText(textToShow, juce::dontSendNotification);
+    }
+
+    void configureEditor(juce::TextEditor& editor, const juce::String& placeholder)
+    {
+        styleTextEditor(editor);
+        editor.setTextToShowWhenEmpty(placeholder, mutedText);
+        addAndMakeVisible(editor);
+    }
+
+    void configureCommandButton(juce::TextButton& button, const juce::String& label, std::function<void()> handler)
+    {
+        button.setButtonText(label);
+        styleFlatButton(button, label == "Overwrite" ? warn.darker(0.2f) : accent.darker(0.18f),
+                        label == "Overwrite" ? text : juce::Colour::fromRGB(12, 14, 16));
+        button.onClick = std::move(handler);
+        addAndMakeVisible(button);
+    }
+
+    SynthAudioProcessorEditor& owner;
+    juce::TextEditor displayNameEditor;
+    juce::TextEditor authorEditor;
+    juce::TextEditor bankEditor;
+    juce::TextEditor categoryEditor;
+    juce::TextEditor tagsEditor;
+    juce::TextEditor descriptionEditor;
+    juce::TextButton saveNewButton;
+    juce::TextButton overwriteButton;
 };
 
 // ============================================================================
@@ -2097,6 +2313,7 @@ SynthAudioProcessorEditor::SynthAudioProcessorEditor(SynthAudioProcessor& p)
     setPage(Page::Sound);
     updateDiagnostics();
     refreshPresetWorkflow();
+    syncPresetMetadataPanel();
     startTimerHz(15);
 
     setResizable(true, true);
@@ -2242,6 +2459,8 @@ void SynthAudioProcessorEditor::buildPages()
     // ---- SOUND: the live core sound-design surface ------------------------
     presetWorkflowPanel = std::make_unique<PresetWorkflowPanel>(*this);
     soundPage.addAndMakeVisible(*presetWorkflowPanel);
+    presetMetadataPanel = std::make_unique<PresetMetadataPanel>(*this);
+    soundPage.addAndMakeVisible(*presetMetadataPanel);
     presetBrowserPanel = std::make_unique<PresetBrowserPanel>(*this);
     soundPage.addAndMakeVisible(*presetBrowserPanel);
     midiControllerPanel = std::make_unique<MidiControllerPanel>(*this);
@@ -2628,7 +2847,7 @@ void SynthAudioProcessorEditor::layoutActivePage()
     if (currentPage == Page::Sound)
     {
         if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr
-            || sequencerPanel == nullptr || presetWorkflowPanel == nullptr
+            || sequencerPanel == nullptr || presetWorkflowPanel == nullptr || presetMetadataPanel == nullptr
             || presetBrowserPanel == nullptr || midiControllerPanel == nullptr)
             return;
         // Synthesis is the hero: oscillator slots, tone source, filter/envelopes/LFO, and
@@ -2642,6 +2861,7 @@ void SynthAudioProcessorEditor::layoutActivePage()
             { { voicePanel, 0.26f }, { ampPanel, 0.24f }, { rampPanel, 0.24f }, { macroPanel, 0.26f } },
             { { sequencerPanel.get(), 1.0f } },
             { { presetWorkflowPanel.get(), 1.0f } },
+            { { presetMetadataPanel.get(), 1.0f } },
             { { presetBrowserPanel.get(), 1.0f } },
             { { midiControllerPanel.get(), 1.0f } },
         };
@@ -2759,6 +2979,7 @@ void SynthAudioProcessorEditor::loadPresetAtIndex(int itemIndex)
         nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
         refreshPresetMenu();
         refreshPresetWorkflow();
+        syncPresetMetadataPanel();
     }
 
     updateStatus(message);
@@ -2833,7 +3054,10 @@ void SynthAudioProcessorEditor::savePresetAs()
 
                                  juce::String message;
                                  if (safeEditor->audioProcessor.savePresetFile(file, presetName, message))
+                                 {
                                      safeEditor->refreshPresetMenu();
+                                     safeEditor->syncPresetMetadataPanel();
+                                 }
 
                                  safeEditor->updateStatus(message);
                                  safeEditor->refreshPresetWorkflow();
@@ -2859,6 +3083,7 @@ void SynthAudioProcessorEditor::duplicatePreset()
     {
         nameEditor.setText(presetName, juce::dontSendNotification);
         refreshPresetMenu();
+        syncPresetMetadataPanel();
     }
 
     updateStatus(message);
@@ -2872,6 +3097,7 @@ void SynthAudioProcessorEditor::initializePreset()
     {
         nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
         refreshPresetMenu();
+        syncPresetMetadataPanel();
     }
 
     updateStatus(message);
@@ -2885,6 +3111,7 @@ void SynthAudioProcessorEditor::resetPreset()
     {
         nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
         refreshPresetMenu();
+        syncPresetMetadataPanel();
     }
 
     updateStatus(message);
@@ -2898,6 +3125,7 @@ void SynthAudioProcessorEditor::randomizePreset()
     {
         nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
         refreshPresetMenu();
+        syncPresetMetadataPanel();
     }
 
     updateStatus(message);
@@ -2919,6 +3147,7 @@ void SynthAudioProcessorEditor::recallCompareSlot(int slotIndex)
     {
         nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
         refreshPresetMenu();
+        syncPresetMetadataPanel();
     }
 
     updateStatus(message);
@@ -2936,6 +3165,86 @@ void SynthAudioProcessorEditor::refreshPresetWorkflow()
 
     if (presetWorkflowPanel != nullptr)
         presetWorkflowPanel->refresh(snapshot);
+}
+
+const SynthAudioProcessor::PresetListItem* SynthAudioProcessorEditor::findCurrentPresetItem()
+{
+    currentPresetMetadataItem.reset();
+
+    const auto currentFilePath = audioProcessor.getCurrentPresetFilePath();
+    if (currentFilePath.isEmpty())
+        return nullptr;
+
+    for (const auto& item : presetItems)
+    {
+        if (item.file.getFullPathName() == currentFilePath)
+            return &item;
+    }
+
+    currentPresetMetadataItem = audioProcessor.getPresetListItemForFile(juce::File(currentFilePath));
+    return currentPresetMetadataItem.has_value() ? &(*currentPresetMetadataItem) : nullptr;
+}
+
+void SynthAudioProcessorEditor::syncPresetMetadataPanel()
+{
+    if (presetMetadataPanel != nullptr)
+        presetMetadataPanel->syncMetadata(findCurrentPresetItem(), audioProcessor.getCurrentPresetName());
+}
+
+void SynthAudioProcessorEditor::savePresetWithMetadata(synth::PresetWriteMode mode)
+{
+    if (presetMetadataPanel == nullptr)
+        return;
+
+    const auto presetName = presetMetadataPanel->presetName();
+    if (presetName.trim().isEmpty())
+    {
+        updateStatus("Preset name required");
+        return;
+    }
+
+    auto options = presetMetadataPanel->writeOptions(mode);
+    auto file = audioProcessor.getUserPresetDirectory()
+        .getChildFile(fileSafeName(presetName) + ".json");
+
+    if (mode == synth::PresetWriteMode::OverwriteExisting)
+    {
+        const auto currentPresetPath = audioProcessor.getCurrentPresetFilePath();
+        if (currentPresetPath.isEmpty())
+        {
+            updateStatus("Overwrite requires a loaded user preset");
+            refreshPresetWorkflow();
+            return;
+        }
+
+        file = juce::File(currentPresetPath);
+        const auto* currentItem = findCurrentPresetItem();
+        const auto factoryDirectory = juce::File(juce::String(synth::factoryPresetDirectory().string()));
+        if ((currentItem != nullptr && currentItem->factory) || file.isAChildOf(factoryDirectory))
+        {
+            updateStatus("Factory presets cannot be overwritten; use Save New");
+            refreshPresetWorkflow();
+            return;
+        }
+
+        if (!file.existsAsFile())
+        {
+            updateStatus("Overwrite target no longer exists; use Save New");
+            refreshPresetWorkflow();
+            return;
+        }
+    }
+
+    juce::String message;
+    if (audioProcessor.savePresetFile(file, options, message))
+    {
+        nameEditor.setText(juce::String(options.metadata.displayName), juce::dontSendNotification);
+        refreshPresetMenu();
+        syncPresetMetadataPanel();
+    }
+
+    updateStatus(message);
+    refreshPresetWorkflow();
 }
 
 void SynthAudioProcessorEditor::updateStatus(const juce::String& message)

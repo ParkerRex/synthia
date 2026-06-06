@@ -11,6 +11,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -50,6 +51,8 @@ public:
     struct PresetListItem
     {
         juce::String displayName;
+        juce::String author;
+        juce::String description;
         juce::String bank;
         juce::String category;
         juce::String sourceLabel;
@@ -87,9 +90,11 @@ public:
     };
 
     std::vector<PresetListItem> getPresetList() const;
+    std::optional<PresetListItem> getPresetListItemForFile(const juce::File& file) const;
     juce::File getUserPresetDirectory() const;
     bool loadPresetFile(const juce::File& file, juce::String& message);
     bool savePresetFile(const juce::File& file, const juce::String& displayName, juce::String& message);
+    bool savePresetFile(const juce::File& file, const synth::PresetWriteOptions& options, juce::String& message);
     bool initializeCurrentPreset(juce::String& message);
     bool resetCurrentPreset(juce::String& message);
     bool randomizeCurrentPreset(juce::String& message);

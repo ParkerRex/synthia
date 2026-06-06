@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 
 namespace
 {
@@ -45,6 +46,25 @@ bool validMidiControllerNumber(int controllerNumber) noexcept
 bool reservedMidiControllerNumber(int controllerNumber) noexcept
 {
     return controllerNumber == 64 || controllerNumber == 120 || controllerNumber == 123;
+}
+
+SynthAudioProcessor::PresetListItem makePresetListItem(const synth::PresetSummary& preset)
+{
+    SynthAudioProcessor::PresetListItem item;
+    item.displayName = preset.displayName.empty() ? juce::String(preset.path.stem().string())
+                                                  : juce::String(preset.displayName);
+    item.author = juce::String(preset.author);
+    item.description = juce::String(preset.description);
+    item.bank = juce::String(preset.bank);
+    item.category = juce::String(preset.category);
+    item.sourceLabel = juce::String(synth::presetSourceLabel(preset.source));
+    item.favoriteKey = juce::String(preset.favoriteKey);
+    item.file = juce::File(juce::String(preset.path.string()));
+    for (const auto& tag : preset.tags)
+        item.tags.add(juce::String(tag));
+    item.factory = preset.factory;
+    item.favorite = preset.favorite;
+    return item;
 }
 } // namespace
 
@@ -652,27 +672,38 @@ std::vector<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetL
 
     auto append = [&items](const std::vector<synth::PresetSummary>& presets) {
         for (const auto& preset : presets)
-        {
-            PresetListItem item;
-            item.displayName = preset.displayName.empty() ? juce::String(preset.path.stem().string())
-                                                          : juce::String(preset.displayName);
-            item.bank = juce::String(preset.bank);
-            item.category = juce::String(preset.category);
-            item.sourceLabel = juce::String(synth::presetSourceLabel(preset.source));
-            item.favoriteKey = juce::String(preset.favoriteKey);
-            item.file = juce::File(juce::String(preset.path.string()));
-            for (const auto& tag : preset.tags)
-                item.tags.add(juce::String(tag));
-            item.factory = preset.factory;
-            item.favorite = preset.favorite;
-            items.push_back(item);
-        }
+            items.push_back(makePresetListItem(preset));
     };
 
     append(synth::scanPresetDirectory(synth::factoryPresetDirectory(), synth::PresetSource::Factory, favoriteKeys));
     append(synth::scanPresetDirectory(synth::defaultUserPresetDirectory(), synth::PresetSource::User, favoriteKeys));
     append(synth::scanPresetDirectory(synth::legacyUserPresetDirectory(), synth::PresetSource::LegacyUser, favoriteKeys));
     return items;
+}
+
+std::optional<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetListItemForFile(const juce::File& file) const
+{
+    if (file == juce::File())
+        return std::nullopt;
+
+    const auto target = file.hasFileExtension(".json") ? file : file.withFileExtension(".json");
+    for (const auto& item : getPresetList())
+    {
+        if (item.file.getFullPathName() == target.getFullPathName())
+            return item;
+    }
+
+    const auto favoriteKeys = synth::readFavoritePresetKeys(synth::defaultPresetFavoritesFile());
+    const auto parentPath = std::filesystem::path(target.getParentDirectory().getFullPathName().toStdString());
+    const auto summaries = synth::scanPresetDirectory(parentPath, synth::PresetSource::User, favoriteKeys);
+    for (const auto& preset : summaries)
+    {
+        const auto presetFile = juce::File(juce::String(preset.path.string()));
+        if (presetFile.getFullPathName() == target.getFullPathName())
+            return makePresetListItem(preset);
+    }
+
+    return std::nullopt;
 }
 
 juce::File SynthAudioProcessor::getUserPresetDirectory() const
@@ -709,12 +740,22 @@ bool SynthAudioProcessor::savePresetFile(const juce::File& file,
                                          const juce::String& displayName,
                                          juce::String& message)
 {
+    synth::PresetWriteOptions options;
+    options.metadata.displayName = displayName.toStdString();
+    return savePresetFile(file, options, message);
+}
+
+bool SynthAudioProcessor::savePresetFile(const juce::File& file,
+                                         const synth::PresetWriteOptions& options,
+                                         juce::String& message)
+{
     std::string error;
     const auto saved = synth::writeCurrentPreset(parameters, file.getFullPathName().toStdString(),
-                                                 displayName.toStdString(), error);
+                                                 options, error);
     if (saved)
     {
-        const auto presetName = displayName.isNotEmpty() ? displayName : file.getFileNameWithoutExtension();
+        const auto metadataName = juce::String(options.metadata.displayName);
+        const auto presetName = metadataName.isNotEmpty() ? metadataName : file.getFileNameWithoutExtension();
         const auto presetFile = file.hasFileExtension(".json") ? file : file.withFileExtension(".json");
         message = "Saved preset: " + presetName;
         setPresetMetadata(presetName, message, presetFile.getFullPathName());

@@ -8,8 +8,8 @@ post_build_recap: Added `PresetWriteOptions`, create-new versus overwrite-existi
 program_id: sylenth-lab-rebuild
 planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
 read_when:
-  - Wiring preset dirty indicators or safe overwrite prompts.
-  - Adding preset metadata editing UI.
+  - Reviewing preset dirty indicators or safe-save controls.
+  - Reviewing preset metadata UI dependencies.
   - Adding A/B compare controls.
   - Reviewing preset save or command-state behavior.
 ---
@@ -20,7 +20,7 @@ This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
 ## Purpose / Big Picture
 
-The preset browser and command model were real, but the UI roadmap still needed backend surfaces for safe overwrite, dirty indicators, metadata editing, and A/B compare. This slice adds those model helpers without adding visible UI or new preset JSON fields for transient UI state.
+The preset browser and command model were real, but the UI roadmap still needed backend surfaces for safe-save policy, dirty indicators, metadata editing, and A/B compare. This slice adds those model helpers without adding visible UI or new preset JSON fields for transient UI state.
 
 ## Progress
 
@@ -61,7 +61,7 @@ Date: 2026-06-06.
 
 ## Outcomes & Retrospective
 
-Completed. `PresetManager` now has the backend model that Claude/UI can bind to for dirty state, safe overwrite prompts, richer metadata editing, and A/B compare. Dirty state compares the live APVTS state against an immutable fingerprint baseline, and create-new saves use no-clobber writes. The changes do not affect audio-thread behavior and do not add transient workflow fields to preset JSON.
+Completed. `PresetManager` now has the backend model that Claude/UI can bind to for dirty state, safe-save controls, richer metadata editing, and A/B compare. Dirty state compares the live APVTS state against an immutable fingerprint baseline, and create-new saves use no-clobber writes. The changes do not affect audio-thread behavior and do not add transient workflow fields to preset JSON.
 
 ## Context and Orientation
 
@@ -150,4 +150,4 @@ This slice does not produce persistent runtime artifacts beyond temporary contra
 
 ## Interfaces and Dependencies
 
-This slice depends on `AudioProcessorValueTreeState`, the parameter registry, preset validation, and existing preset write serialization. It feeds Claude/UI work for metadata editing, safe overwrite prompts, dirty indicators, and A/B compare controls.
+This slice depends on `AudioProcessorValueTreeState`, the parameter registry, preset validation, and existing preset write serialization. It fed the later metadata/safe-save UI, dirty indicators, and A/B compare controls.
