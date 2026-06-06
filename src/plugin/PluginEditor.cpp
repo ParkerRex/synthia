@@ -755,6 +755,18 @@ void SynthAudioProcessorEditor::buildPages()
         "ramp.enabled", "ramp.mode", "ramp.delay_ms", "ramp.rise_ms", "ramp.curve"
     });
 
+    arpPanel = addPanel(soundPage, soundPanels, "Arp", {
+        "arp.enabled", "arp.mode", "arp.rate", "arp.gate",
+        "arp.octaves", "arp.hold", "arp.swing", "arp.step_count"
+    }, "LIVE", live, "Arp ");
+
+    chordPanel = addPanel(soundPage, soundPanels, "Chord", {
+        "chord.enabled", "chord.voice_count",
+        "chord.voice.1.pitch_semitones", "chord.voice.2.enabled",
+        "chord.voice.2.pitch_semitones", "chord.voice.3.enabled",
+        "chord.voice.3.pitch_semitones"
+    }, "LIVE", live, "Chord ");
+
     macroPanel = addPanel(soundPage, soundPanels, "Macros", {
         "macro.motion", "macro.width", "macro.drive", "macro.space"
     });
@@ -1065,7 +1077,8 @@ void SynthAudioProcessorEditor::layoutActivePage()
             { { slotPanels[0].get(), 0.5f }, { slotPanels[1].get(), 0.5f } },
             { { coreOscPanel, 1.0f } },
             { { filterPanel, 0.32f }, { ampEnvPanel, 0.14f }, { modEnvPanel, 0.14f }, { lfoPanel, 0.40f } },
-            { { voicePanel, 0.26f }, { ampPanel, 0.24f }, { rampPanel, 0.26f }, { macroPanel, 0.24f } },
+            { { voicePanel, 0.26f }, { ampPanel, 0.24f }, { rampPanel, 0.24f }, { macroPanel, 0.26f } },
+            { { arpPanel, 0.58f }, { chordPanel, 0.42f } },
         };
         layoutRows(soundPage, rows, viewWidth);
     }

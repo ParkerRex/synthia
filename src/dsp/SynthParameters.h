@@ -90,6 +90,23 @@ enum class DelaySyncDivision
     Half = 4
 };
 
+enum class ArpMode
+{
+    Up = 0,
+    Down = 1,
+    UpDown = 2,
+    AsPlayed = 3
+};
+
+enum class ArpRateDivision
+{
+    ThirtySecond = 0,
+    Sixteenth = 1,
+    Eighth = 2,
+    Quarter = 3,
+    Half = 4
+};
+
 enum class OscillatorSlotWaveform
 {
     Saw = 0,
@@ -125,6 +142,8 @@ enum class ModSource
 inline constexpr int transModSlotCount = 8;
 inline constexpr int layerCount = 2;
 inline constexpr int oscillatorSlotsPerLayer = 2;
+inline constexpr int arpStepCount = 16;
+inline constexpr int chordVoiceCount = 8;
 
 struct EnvelopeParameters
 {
@@ -268,6 +287,51 @@ struct RampParameters
     RampCurve curve = RampCurve::Linear;
 };
 
+struct ArpStepParameters
+{
+    bool enabled = true;
+    int pitchSemitones = 0;
+    float velocity = 1.0f;
+    float gate = 1.0f;
+    bool tie = false;
+};
+
+struct ArpParameters
+{
+    bool enabled = false;
+    ArpMode mode = ArpMode::Up;
+    ArpRateDivision rate = ArpRateDivision::Sixteenth;
+    float gate = 0.75f;
+    int octaves = 1;
+    bool hold = false;
+    float swing = 0.0f;
+    int stepCount = arpStepCount;
+    std::array<ArpStepParameters, arpStepCount> steps {};
+};
+
+struct ChordVoiceParameters
+{
+    bool enabled = false;
+    int pitchSemitones = 0;
+    float velocity = 1.0f;
+};
+
+struct ChordParameters
+{
+    bool enabled = false;
+    int voiceCount = 1;
+    std::array<ChordVoiceParameters, chordVoiceCount> voices {
+        ChordVoiceParameters { true, 0, 1.0f },
+        ChordVoiceParameters {},
+        ChordVoiceParameters {},
+        ChordVoiceParameters {},
+        ChordVoiceParameters {},
+        ChordVoiceParameters {},
+        ChordVoiceParameters {},
+        ChordVoiceParameters {}
+    };
+};
+
 struct TransModSlotParameters
 {
     bool enabled = false;
@@ -337,6 +401,8 @@ struct SynthParameters
     DirectModParameters direct;
     LfoParameters lfo;
     RampParameters ramp;
+    ArpParameters arp;
+    ChordParameters chord;
     TransModParameters transMod;
     MacroParameters macro;
     FxParameters fx;

@@ -65,6 +65,42 @@ When a preset is loaded through the plugin editor, the processor resets APVTS pa
 
 Current FX and quality fields are ordinary serialized parameters. `fx.enabled` is the global FX bypass; module bypasses use `fx.saturation_enabled`, `fx.delay_enabled`, `fx.reverb_enabled`, and `fx.chorus_enabled`. Delay sync is stored as an enum string such as `1/8`. Realtime and offline quality are stored as `quality.realtime_mode` and `quality.offline_mode`.
 
+## Arp, Step, and Chord State
+
+Phase 1 arp/chord state is ordinary serialized parameter state so host automation, saved presets, and future AI generation use the same contract.
+
+Top-level arp fields:
+
+- `arp.enabled`: boolean, default `false`.
+- `arp.mode`: enum string: `Up`, `Down`, `UpDown`, or `AsPlayed`.
+- `arp.rate`: enum string: `1/32`, `1/16`, `1/8`, `1/4`, or `1/2`.
+- `arp.gate`: normalized gate, `0.02` through `1.0`, default `0.75`.
+- `arp.octaves`: integer-like octave span, `1` through `4`.
+- `arp.hold`: boolean hold/latch behavior for released input notes.
+- `arp.swing`: normalized swing amount, `0.0` through `0.75`.
+- `arp.step_count`: integer-like active step count, `1` through `16`.
+
+Each fixed step lane is `arp.step.N.*` for `N = 1..16`:
+
+- `arp.step.N.enabled`: boolean.
+- `arp.step.N.pitch_semitones`: integer-like pitch offset, `-24` through `24`.
+- `arp.step.N.velocity`: normalized velocity scale, `0.0` through `1.0`.
+- `arp.step.N.gate`: normalized per-step gate scale, `0.02` through `1.0`.
+- `arp.step.N.tie`: boolean; tied steps suppress the normal gate-off until the next step boundary.
+
+Top-level chord fields:
+
+- `chord.enabled`: boolean, default `false`.
+- `chord.voice_count`: integer-like active chord voice count, `1` through `8`.
+
+Each fixed chord voice is `chord.voice.N.*` for `N = 1..8`:
+
+- `chord.voice.N.enabled`: boolean.
+- `chord.voice.N.pitch_semitones`: integer-like pitch offset, `-24` through `24`.
+- `chord.voice.N.velocity`: normalized velocity scale, `0.0` through `1.0`.
+
+Defaults preserve existing behavior: arp and chord are disabled, step lanes are enabled with neutral pitch/velocity/gate, and chord voice 1 is the neutral root voice. Legacy presets that omit these fields load through registry defaults. Newly saved user presets include the full arp/step/chord parameter set.
+
 ## Layer and Oscillator Slot State
 
 Phase 1 now serializes a Sylenth-style A/B layer backbone as ordinary parameter state. Layer indices are numeric in IDs:

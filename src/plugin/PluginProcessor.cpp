@@ -294,6 +294,34 @@ void SynthAudioProcessor::cacheParameterPointers()
     raw.rampDelayMs = get("ramp.delay_ms");
     raw.rampRiseMs = get("ramp.rise_ms");
     raw.rampCurve = get("ramp.curve");
+    raw.arpEnabled = get("arp.enabled");
+    raw.arpMode = get("arp.mode");
+    raw.arpRate = get("arp.rate");
+    raw.arpGate = get("arp.gate");
+    raw.arpOctaves = get("arp.octaves");
+    raw.arpHold = get("arp.hold");
+    raw.arpSwing = get("arp.swing");
+    raw.arpStepCount = get("arp.step_count");
+    for (int step = 0; step < synth::arpStepCount; ++step)
+    {
+        const auto prefix = "arp.step." + std::to_string(step + 1) + ".";
+        auto& rawStep = raw.arpSteps[static_cast<std::size_t>(step)];
+        rawStep.enabled = get((prefix + "enabled").c_str());
+        rawStep.pitchSemitones = get((prefix + "pitch_semitones").c_str());
+        rawStep.velocity = get((prefix + "velocity").c_str());
+        rawStep.gate = get((prefix + "gate").c_str());
+        rawStep.tie = get((prefix + "tie").c_str());
+    }
+    raw.chordEnabled = get("chord.enabled");
+    raw.chordVoiceCount = get("chord.voice_count");
+    for (int voice = 0; voice < synth::chordVoiceCount; ++voice)
+    {
+        const auto prefix = "chord.voice." + std::to_string(voice + 1) + ".";
+        auto& rawVoice = raw.chordVoices[static_cast<std::size_t>(voice)];
+        rawVoice.enabled = get((prefix + "enabled").c_str());
+        rawVoice.pitchSemitones = get((prefix + "pitch_semitones").c_str());
+        rawVoice.velocity = get((prefix + "velocity").c_str());
+    }
     raw.directFilterKeytrack = get("direct.filter_keytrack");
     raw.directFilterLfoSemitones = get("direct.filter_lfo_semitones");
     raw.directFilterModEnvSemitones = get("direct.filter_mod_env_semitones");
@@ -439,6 +467,41 @@ synth::SynthParameters SynthAudioProcessor::readParameters(float tempoBpm, bool 
     snapshot.ramp.delayMs = value(raw.rampDelayMs, 0.0f);
     snapshot.ramp.riseMs = value(raw.rampRiseMs, 1000.0f);
     snapshot.ramp.curve = static_cast<synth::RampCurve>(static_cast<int>(std::round(value(raw.rampCurve, 0.0f))));
+    snapshot.arp.enabled = value(raw.arpEnabled, 0.0f) >= 0.5f;
+    snapshot.arp.mode = static_cast<synth::ArpMode>(static_cast<int>(std::round(value(raw.arpMode, 0.0f))));
+    snapshot.arp.rate = static_cast<synth::ArpRateDivision>(static_cast<int>(std::round(value(raw.arpRate, 1.0f))));
+    snapshot.arp.gate = value(raw.arpGate, defaults.arp.gate);
+    snapshot.arp.octaves = static_cast<int>(std::round(value(raw.arpOctaves, 1.0f)));
+    snapshot.arp.hold = value(raw.arpHold, 0.0f) >= 0.5f;
+    snapshot.arp.swing = value(raw.arpSwing, 0.0f);
+    snapshot.arp.stepCount = static_cast<int>(std::round(value(raw.arpStepCount,
+                                                              static_cast<float>(synth::arpStepCount))));
+    for (int step = 0; step < synth::arpStepCount; ++step)
+    {
+        const auto& rawStep = raw.arpSteps[static_cast<std::size_t>(step)];
+        const auto& defaultStep = defaults.arp.steps[static_cast<std::size_t>(step)];
+        auto& stepSnapshot = snapshot.arp.steps[static_cast<std::size_t>(step)];
+        stepSnapshot.enabled = value(rawStep.enabled, defaultStep.enabled ? 1.0f : 0.0f) >= 0.5f;
+        stepSnapshot.pitchSemitones = static_cast<int>(std::round(value(rawStep.pitchSemitones,
+                                                                        static_cast<float>(
+                                                                            defaultStep.pitchSemitones))));
+        stepSnapshot.velocity = value(rawStep.velocity, defaultStep.velocity);
+        stepSnapshot.gate = value(rawStep.gate, defaultStep.gate);
+        stepSnapshot.tie = value(rawStep.tie, defaultStep.tie ? 1.0f : 0.0f) >= 0.5f;
+    }
+    snapshot.chord.enabled = value(raw.chordEnabled, 0.0f) >= 0.5f;
+    snapshot.chord.voiceCount = static_cast<int>(std::round(value(raw.chordVoiceCount, 1.0f)));
+    for (int voice = 0; voice < synth::chordVoiceCount; ++voice)
+    {
+        const auto& rawVoice = raw.chordVoices[static_cast<std::size_t>(voice)];
+        const auto& defaultVoice = defaults.chord.voices[static_cast<std::size_t>(voice)];
+        auto& voiceSnapshot = snapshot.chord.voices[static_cast<std::size_t>(voice)];
+        voiceSnapshot.enabled = value(rawVoice.enabled, defaultVoice.enabled ? 1.0f : 0.0f) >= 0.5f;
+        voiceSnapshot.pitchSemitones = static_cast<int>(std::round(value(rawVoice.pitchSemitones,
+                                                                         static_cast<float>(
+                                                                             defaultVoice.pitchSemitones))));
+        voiceSnapshot.velocity = value(rawVoice.velocity, defaultVoice.velocity);
+    }
     snapshot.direct.filterKeytrack = value(raw.directFilterKeytrack, 0.0f);
     snapshot.direct.filterLfoSemitones = value(raw.directFilterLfoSemitones, 0.0f);
     snapshot.direct.filterModEnvSemitones = value(raw.directFilterModEnvSemitones, 0.0f);

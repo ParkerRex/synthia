@@ -32,11 +32,11 @@ The current smoke render is intentionally note-less and proves initialization, f
 
 The current contract validation proves:
 
-- 218 unique parameter IDs,
+- 332 unique parameter IDs,
 - valid defaults and ranges,
 - APVTS state round-trip,
-- old host-state default merge for new layer and oscillator-slot fields,
-- layer and oscillator-slot defaults, legacy preset defaulting, saved preset serialization, inactive-slot no-op behavior, audible A2/B1/B2 rendering, and layer mute/solo behavior,
+- old host-state default merge for new layer, oscillator-slot, arp, step, and chord fields,
+- layer and oscillator-slot defaults, arp/chord defaults, legacy preset defaulting, saved preset serialization, inactive-slot no-op behavior, audible A2/B1/B2 rendering, and layer mute/solo behavior,
 - two factory preset JSON files,
 - no unknown preset parameter IDs,
 - TransMod slot objects use valid slot IDs, source/scaler choices, depth domains, and destination IDs.
@@ -62,6 +62,7 @@ The current DSP validation proves:
 - drive changes filter response,
 - `Pluck Core 01` dry render loads the requested preset and MIDI fixture, writes a finite non-clipping WAV/report, and records note-local LFO spread during overlapping notes.
 - ramp timing, glide, velocity glide, direct keytrack/LFO/envelope routes, TransMod scaler multiplication to many physical destinations, performance MIDI sources, voice/unison/random source spread, and fixture trace ranges.
+- direct chord expansion, arp up-mode timing, host-tempo step duration, gate-off timing, octave wrapping, step pitch and velocity scaling, tie/hold behavior, and panic clearing generated notes.
 - top-level `mod_slots` preset schema objects are applied by render loading, including schema-only modulation fixtures that omit flat APVTS-style `transmod.*` parameters.
 - FX bypass stays null-equivalent to dry rendering when globally bypassed, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
 - `SylenthAIRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.

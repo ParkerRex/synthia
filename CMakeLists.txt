@@ -47,6 +47,8 @@ else()
 endif()
 
 set(SYLENTH_AI_COMMON_SOURCES
+    src/dsp/Arpeggiator.cpp
+    src/dsp/Arpeggiator.h
     src/dsp/Envelope.cpp
     src/dsp/Envelope.h
     src/dsp/Filter.cpp

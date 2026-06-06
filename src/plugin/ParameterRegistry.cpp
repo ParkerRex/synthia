@@ -129,6 +129,18 @@ std::vector<ParameterSpec> buildSpecs()
         floatParam("ramp.rise_ms", "Ramp Rise", "ramp", "milliseconds", 1.0f, 10000.0f, 1000.0f, 0.01f, 0.35f),
         choiceParam("ramp.curve", "Ramp Curve", "ramp", {"Linear", "Exponential", "Snappy"}, 0),
 
+        boolParam("arp.enabled", "Arp Enabled", "arp", false),
+        choiceParam("arp.mode", "Arp Mode", "arp", {"Up", "Down", "UpDown", "AsPlayed"}, 0),
+        choiceParam("arp.rate", "Arp Rate", "arp", {"1/32", "1/16", "1/8", "1/4", "1/2"}, 1),
+        floatParam("arp.gate", "Arp Gate", "arp", "normalized", 0.02f, 1.0f, 0.75f, 0.0001f),
+        floatParam("arp.octaves", "Arp Octaves", "arp", "octaves", 1.0f, 4.0f, 1.0f, 1.0f),
+        boolParam("arp.hold", "Arp Hold", "arp", false),
+        floatParam("arp.swing", "Arp Swing", "arp", "normalized", 0.0f, 0.75f, 0.0f, 0.0001f),
+        floatParam("arp.step_count", "Arp Step Count", "arp", "steps", 1.0f, 16.0f, 16.0f, 1.0f),
+
+        boolParam("chord.enabled", "Chord Enabled", "chord", false),
+        floatParam("chord.voice_count", "Chord Voice Count", "chord", "voices", 1.0f, 8.0f, 1.0f, 1.0f),
+
         floatParam("direct.filter_keytrack", "Filter Keytrack Direct", "direct", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f),
         floatParam("direct.filter_lfo_semitones", "Filter LFO Direct", "direct", "semitones", -72.0f, 72.0f, 0.0f, 0.01f),
         floatParam("direct.filter_mod_env_semitones", "Filter Env Direct", "direct", "semitones", -72.0f, 72.0f, 0.0f, 0.01f),
@@ -210,9 +222,34 @@ std::vector<ParameterSpec> buildSpecs()
                                        "layer_osc", "normalized", -1.0f, 1.0f, 0.0f, 0.0001f, 1.0f, 5.0f));
             specs.push_back(boolParam(oscillatorPrefix + "retrigger", oscillatorName + " Retrigger",
                                       "layer_osc", true));
-            specs.push_back(boolParam(oscillatorPrefix + "invert", oscillatorName + " Invert",
+        specs.push_back(boolParam(oscillatorPrefix + "invert", oscillatorName + " Invert",
                                       "layer_osc", false));
         }
+    }
+
+    for (int step = 1; step <= arpStepCount; ++step)
+    {
+        const auto prefix = "arp.step." + std::to_string(step) + ".";
+        const auto stepName = "Arp Step " + std::to_string(step);
+        specs.push_back(boolParam(prefix + "enabled", stepName + " Enabled", "arp_step", true));
+        specs.push_back(floatParam(prefix + "pitch_semitones", stepName + " Pitch",
+                                   "arp_step", "semitones", -24.0f, 24.0f, 0.0f, 1.0f));
+        specs.push_back(floatParam(prefix + "velocity", stepName + " Velocity",
+                                   "arp_step", "normalized", 0.0f, 1.0f, 1.0f, 0.0001f));
+        specs.push_back(floatParam(prefix + "gate", stepName + " Gate",
+                                   "arp_step", "normalized", 0.02f, 1.0f, 1.0f, 0.0001f));
+        specs.push_back(boolParam(prefix + "tie", stepName + " Tie", "arp_step", false));
+    }
+
+    for (int voice = 1; voice <= chordVoiceCount; ++voice)
+    {
+        const auto prefix = "chord.voice." + std::to_string(voice) + ".";
+        const auto voiceName = "Chord Voice " + std::to_string(voice);
+        specs.push_back(boolParam(prefix + "enabled", voiceName + " Enabled", "chord_voice", voice == 1));
+        specs.push_back(floatParam(prefix + "pitch_semitones", voiceName + " Pitch",
+                                   "chord_voice", "semitones", -24.0f, 24.0f, 0.0f, 1.0f));
+        specs.push_back(floatParam(prefix + "velocity", voiceName + " Velocity",
+                                   "chord_voice", "normalized", 0.0f, 1.0f, 1.0f, 0.0001f));
     }
 
     const auto sources = sourceChoices();

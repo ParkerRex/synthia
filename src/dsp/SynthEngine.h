@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Arpeggiator.h"
 #include "SynthParameters.h"
 #include "fx/FxChain.h"
 #include "../voice/VoiceAllocator.h"
@@ -40,10 +41,15 @@ public:
     const Voice* getVoice(int index) const noexcept { return voices.getVoice(index); }
 
 private:
+    void triggerDirectNoteOn(int midiNote, float velocity) noexcept;
+    void triggerDirectNoteOff(int midiNote) noexcept;
+    void processArpEvent(const ArpGeneratedEvent& event) noexcept;
+
     double sampleRate = 44100.0;
     int maxBlockSize = 512;
     SynthParameters parameters;
     PerformanceState performance;
+    Arpeggiator arpeggiator;
     VoiceAllocator voices { 32 };
     FxChain fx;
 };

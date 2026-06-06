@@ -113,6 +113,22 @@ private:
             std::atomic<float>* pan = nullptr;
         };
 
+        struct RawArpStep
+        {
+            std::atomic<float>* enabled = nullptr;
+            std::atomic<float>* pitchSemitones = nullptr;
+            std::atomic<float>* velocity = nullptr;
+            std::atomic<float>* gate = nullptr;
+            std::atomic<float>* tie = nullptr;
+        };
+
+        struct RawChordVoice
+        {
+            std::atomic<float>* enabled = nullptr;
+            std::atomic<float>* pitchSemitones = nullptr;
+            std::atomic<float>* velocity = nullptr;
+        };
+
         std::atomic<float>* voiceMode = nullptr;
         std::atomic<float>* voicePolyphony = nullptr;
         std::atomic<float>* voiceUnisonCount = nullptr;
@@ -168,6 +184,18 @@ private:
         std::atomic<float>* rampDelayMs = nullptr;
         std::atomic<float>* rampRiseMs = nullptr;
         std::atomic<float>* rampCurve = nullptr;
+        std::atomic<float>* arpEnabled = nullptr;
+        std::atomic<float>* arpMode = nullptr;
+        std::atomic<float>* arpRate = nullptr;
+        std::atomic<float>* arpGate = nullptr;
+        std::atomic<float>* arpOctaves = nullptr;
+        std::atomic<float>* arpHold = nullptr;
+        std::atomic<float>* arpSwing = nullptr;
+        std::atomic<float>* arpStepCount = nullptr;
+        std::array<RawArpStep, synth::arpStepCount> arpSteps {};
+        std::atomic<float>* chordEnabled = nullptr;
+        std::atomic<float>* chordVoiceCount = nullptr;
+        std::array<RawChordVoice, synth::chordVoiceCount> chordVoices {};
         std::atomic<float>* directFilterKeytrack = nullptr;
         std::atomic<float>* directFilterLfoSemitones = nullptr;
         std::atomic<float>* directFilterModEnvSemitones = nullptr;

@@ -26,18 +26,31 @@ void SynthEngine::reset() noexcept
 {
     performance = {};
     parameters.performance = performance;
+    arpeggiator.reset();
     voices.panic();
     fx.reset();
 }
 
 void SynthEngine::noteOn(int midiNote, float velocity) noexcept
 {
-    voices.noteOn(midiNote, velocity, parameters);
+    if (parameters.arp.enabled)
+    {
+        arpeggiator.noteOn(midiNote, velocity);
+        return;
+    }
+
+    triggerDirectNoteOn(midiNote, velocity);
 }
 
 void SynthEngine::noteOff(int midiNote) noexcept
 {
-    voices.noteOff(midiNote, parameters);
+    if (parameters.arp.enabled)
+    {
+        arpeggiator.noteOff(midiNote, parameters.arp.hold);
+        return;
+    }
+
+    triggerDirectNoteOff(midiNote);
 }
 
 void SynthEngine::setSustainPedal(bool down) noexcept
@@ -65,11 +78,13 @@ void SynthEngine::setAftertouch(float normalized) noexcept
 
 void SynthEngine::allNotesOff() noexcept
 {
+    arpeggiator.reset();
     voices.allNotesOff();
 }
 
 void SynthEngine::panic() noexcept
 {
+    arpeggiator.reset();
     voices.panic();
     fx.reset();
 }
@@ -77,6 +92,7 @@ void SynthEngine::panic() noexcept
 void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
 {
     const SynthParameters defaults;
+    const auto arpWasEnabled = parameters.arp.enabled;
     parameters = newParameters;
     parameters.performance = performance;
     parameters.voiceMode = static_cast<VoiceMode>(std::clamp(static_cast<int>(parameters.voiceMode), 0, 3));
@@ -156,6 +172,24 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
     parameters.ramp.delayMs = std::clamp(finiteOr(parameters.ramp.delayMs, defaults.ramp.delayMs), 0.0f, 10000.0f);
     parameters.ramp.riseMs = std::clamp(finiteOr(parameters.ramp.riseMs, defaults.ramp.riseMs), 1.0f, 10000.0f);
     parameters.ramp.curve = static_cast<RampCurve>(std::clamp(static_cast<int>(parameters.ramp.curve), 0, 2));
+    parameters.arp.mode = static_cast<ArpMode>(std::clamp(static_cast<int>(parameters.arp.mode), 0, 3));
+    parameters.arp.rate = static_cast<ArpRateDivision>(std::clamp(static_cast<int>(parameters.arp.rate), 0, 4));
+    parameters.arp.gate = std::clamp(finiteOr(parameters.arp.gate, defaults.arp.gate), 0.02f, 1.0f);
+    parameters.arp.octaves = std::clamp(parameters.arp.octaves, 1, 4);
+    parameters.arp.swing = std::clamp(finiteOr(parameters.arp.swing, defaults.arp.swing), 0.0f, 0.75f);
+    parameters.arp.stepCount = std::clamp(parameters.arp.stepCount, 1, arpStepCount);
+    for (auto& step : parameters.arp.steps)
+    {
+        step.pitchSemitones = std::clamp(step.pitchSemitones, -24, 24);
+        step.velocity = std::clamp(finiteOr(step.velocity, 1.0f), 0.0f, 1.0f);
+        step.gate = std::clamp(finiteOr(step.gate, 1.0f), 0.02f, 1.0f);
+    }
+    parameters.chord.voiceCount = std::clamp(parameters.chord.voiceCount, 1, chordVoiceCount);
+    for (auto& voice : parameters.chord.voices)
+    {
+        voice.pitchSemitones = std::clamp(voice.pitchSemitones, -24, 24);
+        voice.velocity = std::clamp(finiteOr(voice.velocity, 1.0f), 0.0f, 1.0f);
+    }
     parameters.direct.filterKeytrack = std::clamp(finiteOr(parameters.direct.filterKeytrack, defaults.direct.filterKeytrack), -1.0f, 1.0f);
     parameters.direct.filterLfoSemitones = std::clamp(finiteOr(parameters.direct.filterLfoSemitones, defaults.direct.filterLfoSemitones), -72.0f, 72.0f);
     parameters.direct.filterModEnvSemitones = std::clamp(finiteOr(parameters.direct.filterModEnvSemitones, defaults.direct.filterModEnvSemitones), -72.0f, 72.0f);
@@ -194,6 +228,12 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
     parameters.quality.offlineMode = static_cast<QualityMode>(std::clamp(static_cast<int>(parameters.quality.offlineMode), 0, 2));
     parameters.quality.activeMode = static_cast<QualityMode>(std::clamp(static_cast<int>(parameters.quality.activeMode), 0, 2));
     parameters.tempoBpm = std::clamp(finiteOr(parameters.tempoBpm, defaults.tempoBpm), 20.0f, 300.0f);
+
+    if (arpWasEnabled != parameters.arp.enabled)
+    {
+        arpeggiator.reset();
+        voices.allNotesOff();
+    }
 }
 
 RenderStats SynthEngine::process(float* left, float* right, int numSamples) noexcept
@@ -203,6 +243,9 @@ RenderStats SynthEngine::process(float* left, float* right, int numSamples) noex
 
     for (int i = 0; i < stats.samplesRendered; ++i)
     {
+        if (parameters.arp.enabled)
+            processArpEvent(arpeggiator.processSample(parameters, sampleRate));
+
         const auto frame = voices.renderSample(parameters);
         const auto fxFrame = fx.process({ frame.left, frame.right }, parameters);
         auto l = fxFrame.left;
@@ -235,5 +278,64 @@ RenderStats SynthEngine::process(float* left, float* right, int numSamples) noex
     stats.activeVoices = voices.activeVoiceCount();
 
     return stats;
+}
+
+void SynthEngine::triggerDirectNoteOn(int midiNote, float velocity) noexcept
+{
+    if (!parameters.chord.enabled)
+    {
+        voices.noteOn(midiNote, velocity, parameters);
+        return;
+    }
+
+    const auto voiceLimit = std::clamp(parameters.chord.voiceCount, 1, chordVoiceCount);
+    auto triggered = false;
+    for (int voiceIndex = 0; voiceIndex < voiceLimit; ++voiceIndex)
+    {
+        const auto& chordVoice = parameters.chord.voices[static_cast<std::size_t>(voiceIndex)];
+        if (!chordVoice.enabled)
+            continue;
+
+        voices.noteOn(std::clamp(midiNote + chordVoice.pitchSemitones, 0, 127),
+                      std::clamp(velocity * chordVoice.velocity, 0.0f, 1.0f),
+                      parameters);
+        triggered = true;
+    }
+
+    if (!triggered)
+        voices.noteOn(midiNote, velocity, parameters);
+}
+
+void SynthEngine::triggerDirectNoteOff(int midiNote) noexcept
+{
+    if (!parameters.chord.enabled)
+    {
+        voices.noteOff(midiNote, parameters);
+        return;
+    }
+
+    const auto voiceLimit = std::clamp(parameters.chord.voiceCount, 1, chordVoiceCount);
+    auto released = false;
+    for (int voiceIndex = 0; voiceIndex < voiceLimit; ++voiceIndex)
+    {
+        const auto& chordVoice = parameters.chord.voices[static_cast<std::size_t>(voiceIndex)];
+        if (!chordVoice.enabled)
+            continue;
+
+        voices.noteOff(std::clamp(midiNote + chordVoice.pitchSemitones, 0, 127), parameters);
+        released = true;
+    }
+
+    if (!released)
+        voices.noteOff(midiNote, parameters);
+}
+
+void SynthEngine::processArpEvent(const ArpGeneratedEvent& event) noexcept
+{
+    if (event.noteOff)
+        voices.noteOff(event.noteOffNumber, parameters);
+
+    if (event.noteOn)
+        voices.noteOn(event.noteOnNumber, event.velocity, parameters);
 }
 } // namespace synth

@@ -66,7 +66,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-05 EDT: Completed the Claude Code modern UI shell handoff with fixed header, Layer A/B selector, Sound/Mod/FX workspace, render-boundary labels, screenshots, and passing Debug/CTest validation.
 - [x] 2026-06-05 EDT: Executed Phase 1 layer rendering: Layer B, four oscillator slots, layer mute/solo/level/pan, and compatibility-preserving presets.
 - [x] 2026-06-05 EDT: Renamed the host-facing project identity to sylenth-ai across CMake targets, bundle IDs, local install scripts, preset paths, docs, and Git remote.
-- [ ] Execute Phase 1 arp/step/chord workflow.
+- [x] 2026-06-06 EDT: Executed Phase 1 arp/step/chord workflow with parameter-backed state, fixed-array generated-note scheduling, direct chord expansion, minimal Arp/Chord editor controls, and focused DSP validation.
 - [ ] Execute Phase 1 preset browser/bank workflow.
 - [ ] Execute Phase 1 FX rack expansion.
 - [ ] Hand off UI information architecture and visual polish plans to Claude Code after state contracts are ready.
@@ -86,13 +86,14 @@ The current Program is not release hardening. It is a product expansion Program.
 
 Active child ExecPlans:
 
-- `docs/exec-plans/active/2026-06-05-build-arp-step-chord-workflow.md`
+- `docs/exec-plans/active/2026-06-06-build-preset-browser-and-bank-workflow.md`
 - `docs/exec-plans/active/2026-06-05-handoff-modulation-preset-arp-ui-polish.md`
 
 Completed child ExecPlans:
 
 - `docs/exec-plans/completed/2026-06-05-build-sylenth-layer-oscillator-backbone.md`
 - `docs/exec-plans/completed/2026-06-05-build-sylenth-layer-b-and-four-osc-rendering.md`
+- `docs/exec-plans/completed/2026-06-05-build-arp-step-chord-workflow.md`
 - `docs/exec-plans/completed/2026-06-05-handoff-modern-sylenth-ui-shell.md`
 - `docs/exec-plans/completed/2026-06-05-rename-project-identity-to-sylenth-ai.md`
 
@@ -100,9 +101,9 @@ Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
 ## Next Slice
 
-Product-order next slice: `docs/exec-plans/active/2026-06-05-build-arp-step-chord-workflow.md`.
+Product-order next slice: `docs/exec-plans/active/2026-06-06-build-preset-browser-and-bank-workflow.md`.
 
-It is next because layer/slot rendering is now audible, and the Phase 1 Sylenth rebuild needs an arpeggiator/step/chord state model before deeper UI polish. The modulation/preset/arp/FX handoff remains blocked until those feature models exist.
+It is next because layers and arp now have real state, and the Sylenth workflow depends on bank/category/favorite/search behavior before deeper Claude UI polish. The modulation/preset/arp/FX handoff remains blocked for browser and expanded FX model dependencies.
 
 ## Risks and Watchpoints
 

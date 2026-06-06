@@ -128,6 +128,8 @@ private:
     Panel* modEnvPanel = nullptr;
     Panel* lfoPanel = nullptr;
     Panel* rampPanel = nullptr;
+    Panel* arpPanel = nullptr;
+    Panel* chordPanel = nullptr;
     Panel* ampPanel = nullptr;
     Panel* macroPanel = nullptr;
     Panel* oscPitchModPanel = nullptr;

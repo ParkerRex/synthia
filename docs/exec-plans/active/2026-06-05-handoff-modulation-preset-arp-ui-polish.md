@@ -30,7 +30,7 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [x] 2026-06-05 EDT: Created this UI handoff ExecPlan.
 - [ ] Confirm modulation route model exists before modulation UI handoff.
 - [ ] Confirm preset browser model exists before browser UI handoff.
-- [ ] Confirm arp/step model exists before arp UI handoff.
+- [x] 2026-06-06 EDT: Confirmed arp/step/chord engine and APVTS model exists before arp UI handoff.
 - [ ] Confirm FX rack model exists before FX UI handoff.
 - [ ] Hand off completed dependency slice to Claude Code.
 - [ ] Record screenshot/manual QA.
@@ -55,7 +55,7 @@ Do not hand this to Claude Code until the relevant dependency exists:
 
 - Modulation polish requires a route model and destination catalog.
 - Preset browser polish requires browser/search/favorite/metadata state.
-- Arp UI polish requires arp/step/chord engine state.
+- Arp UI polish can now bind to `arp.*`, `arp.step.N.*`, `chord.*`, and `chord.voice.N.*`; final step-grid polish still needs Claude Code implementation.
 - FX rack polish requires expanded FX module state and tail/cost diagnostics.
 
 Partial handoff is allowed only if the handoff prompt clearly limits scope to completed dependencies.

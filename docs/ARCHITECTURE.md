@@ -18,7 +18,7 @@ Current scaffold:
 - `SylenthAISmokeTest` is the first CTest target.
 - `SylenthAIContractTest` validates parameter registry, layer/oscillator-slot defaults, preset files, and APVTS state round-trip.
 - `SylenthAIVoiceCoreTest` validates envelope, LFO reset, voice allocation, and engine note release.
-- `SylenthAIDspCoreTest` validates oscillator, filter, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, layer slot rendering, and FX bypass, delay/tail, panic-clear, and reverb-state safety.
+- `SylenthAIDspCoreTest` validates oscillator, filter, arp/chord scheduling, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, layer slot rendering, and FX bypass, delay/tail, panic-clear, and reverb-state safety.
 - `SylenthAIRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`, including dry and wet factory pluck reports.
 
 ## Component Stack
@@ -46,6 +46,7 @@ Current scaffold:
    - Band-limited oscillator stack.
    - Mixer and gain compensation.
    - Nonlinear multimode filter.
+   - Arpeggiator, step, and chord event generation.
    - Amp drive and stereo stage.
    - Optional FX.
 
@@ -119,6 +120,8 @@ Existing scaffold files:
 - `src/presets/PresetManager.cpp`
 - `src/dsp/Envelope.h`
 - `src/dsp/Envelope.cpp`
+- `src/dsp/Arpeggiator.h`
+- `src/dsp/Arpeggiator.cpp`
 - `src/dsp/Lfo.h`
 - `src/dsp/Lfo.cpp`
 - `src/dsp/Ramp.h`
@@ -164,13 +167,13 @@ Each parameter needs:
 
 Current registry status:
 
-- 218 parameter IDs.
-- Voice, A/B layer state, four oscillator-slot state, legacy oscillator, filter, amp, envelopes, LFO, ramp, direct modulation, FX, realtime/offline quality modes, macros, and eight TransMod-style slots with physical destination depths are represented.
+- 332 parameter IDs.
+- Voice, A/B layer state, four oscillator-slot state, legacy oscillator, filter, amp, envelopes, LFO, ramp, arp/step/chord state, direct modulation, FX, realtime/offline quality modes, macros, and eight TransMod-style slots with physical destination depths are represented.
 - Host state uses `AudioProcessorValueTreeState` with schema metadata.
 
 Current editor and preset status:
 
-- `PluginEditor` is a compact, fixed-shell control surface modeled on the Sylenth workflow: a header (preset prev/next/load/save/duplicate, output meter, active voices, derived patch-load estimate, panic, and an always-visible SR/block/peak/MIDI/invalid/architecture diagnostics footer), a persistent Layer A/B selector exposing the `layer.*` mix state, and a `Sound` / `Modulation` / `Effects` tabbed workspace. The `Sound` tab keeps the live core controls visible without scrolling at the default window size (oscillator slots, core oscillator, filter, amp/mod envelopes, LFO, ramp, voice, amp/stereo, macros); `Modulation` holds the destination-grouped direct routes plus the eight TransMod slots; `Effects` is a per-module FX rack with master/quality. Controls are drawn with an original rotary/switch/combo look and grid-packed into stable cells with formatted value readouts. Render-boundary honesty is encoded in the UI: the legacy flat `osc.*` path that currently produces sound is badged `LIVE`, while the `layer.*` / `layer.N.osc.M.*` slot state is badged `STATE` and Layer B reads `STAGED - not yet rendered`, so editing staged state never implies it is audible.
+- `PluginEditor` is a compact, fixed-shell control surface modeled on the Sylenth workflow: a header (preset prev/next/load/save/duplicate, output meter, active voices, derived patch-load estimate, panic, and an always-visible SR/block/peak/MIDI/invalid/architecture diagnostics footer), a persistent Layer A/B selector exposing the `layer.*` mix state, and a `Sound` / `Modulation` / `Effects` tabbed workspace. The `Sound` tab keeps the live core controls visible without scrolling at the default window size (oscillator slots, core oscillator, filter, amp/mod envelopes, LFO, ramp, voice, amp/stereo, arp/chord, macros); `Modulation` holds the destination-grouped direct routes plus the eight TransMod slots; `Effects` is a per-module FX rack with master/quality. Controls are drawn with an original rotary/switch/combo look and grid-packed into stable cells with formatted value readouts. Render-boundary honesty is encoded in the UI: Layer A oscillator 1 remains the legacy flat `osc.*` compatibility source and is badged `LIVE`; A2/B1/B2, layer mix controls, and top-level arp/chord controls are also live, while fine-grained step-grid polish remains a Claude handoff item.
 - Editor controls are constructed against `ParameterRegistry` IDs and use APVTS attachments for sliders, combo boxes, and toggles so UI edits reach the same host-automatable parameters as presets and host state.
 - `PresetManager` scans bundled factory presets with a source-directory development fallback, scans user presets from `~/Music/ParkerX/sylenth-ai/Presets`, also reads legacy `~/Music/ParkerX/Synth/Presets` presets during the rename transition, validates preset JSON before load, prepares defaults-plus-overrides APVTS state for one-shot replacement, maps canonical `mod_slots` objects into flat TransMod parameters, and writes schema-valid user preset JSON.
 - Processor diagnostics expose sample rate, block size, active voices, MIDI event count, invalid sample count, peak, current preset, and binary architecture to the editor without filesystem or UI work on the audio thread.
@@ -192,6 +195,7 @@ Current voice-core status:
 - `OscillatorStack` renders polyBLEP saw/pulse, deterministic noise, sub waveforms, stack detune, and hard sync.
 - `Filter` renders semitone-domain L2/L4/B2/B4/H2/H4/Peak2/Notch2/Notch4 nonlinear responses with drive/resonance compensation and interpolated oversampling sub-steps.
 - `Voice` applies direct pitch/pulse/cutoff routes, ramp, glide, velocity glide, TransMod scalers, synced or Hz LFO rates, per-voice/mono LFO behavior, amp envelope, amp drive, level, pan spread, unison spread, analog variation, performance MIDI sources, and macro influence.
+- `Arpeggiator` keeps fixed-size held-note, step, and chord candidate state. When `arp.enabled` is true, external MIDI notes become held input state and generated note events feed the existing `VoiceAllocator`. When `chord.enabled` is true with arp off, direct note-on/off expands through the configured chord voices. The scheduler uses host tempo from `SynthParameters::tempoBpm`, fixed arrays, and no audio-thread allocation.
 - `FxChain` applies bypassable post-voice saturation, chorus, tempo-synced delay, and simple reverb. It allocates delay buffers during `prepare` and does not allocate in sample processing. `quality.realtime_mode` and `quality.offline_mode` select conservative processing variations without changing audio-thread resource allocation.
 - `SylenthAIRender` can write oscillator, filter, modulation, voice, preset validation, dry-core factory pluck, wet factory pluck, LFO ablation, determinism, and core-suite summary reports using the requested preset and MIDI fixture.
 
@@ -201,7 +205,7 @@ Highest priority:
 
 - Phase 1 Sylenth rebuild roadmap and Ableton AU/VST3 proof.
 - Per-layer filters/envelopes, layer mixer/master polish, and deeper oscillator-slot parity on top of the delivered layer/slot renderer.
-- Preset browser, arpeggiator, effects, and modulation UX that support the Sylenth-level workflow.
+- Preset browser, fine-grained step/arp UI, effects, and modulation UX that support the Sylenth-level workflow.
 
 Lower priority:
 

@@ -53,7 +53,11 @@ bool checkStateRoundTrip()
     if (!setPhysicalParameter(source.parameters, "layer.2.enabled", 1.0f)
         || !setPhysicalParameter(source.parameters, "layer.2.osc.2.voices", 6.0f)
         || !setPhysicalParameter(source.parameters, "layer.2.osc.2.waveform", 3.0f)
-        || !setPhysicalParameter(source.parameters, "layer.1.osc.2.invert", 1.0f))
+        || !setPhysicalParameter(source.parameters, "layer.1.osc.2.invert", 1.0f)
+        || !setPhysicalParameter(source.parameters, "arp.enabled", 1.0f)
+        || !setPhysicalParameter(source.parameters, "arp.step.2.pitch_semitones", 7.0f)
+        || !setPhysicalParameter(source.parameters, "chord.enabled", 1.0f)
+        || !setPhysicalParameter(source.parameters, "chord.voice.2.pitch_semitones", 4.0f))
     {
         return false;
     }
@@ -78,7 +82,11 @@ bool checkStateRoundTrip()
         && parameterValueMatches(destination.parameters, "layer.2.enabled", 1.0f)
         && parameterValueMatches(destination.parameters, "layer.2.osc.2.voices", 6.0f)
         && parameterValueMatches(destination.parameters, "layer.2.osc.2.waveform", 3.0f)
-        && parameterValueMatches(destination.parameters, "layer.1.osc.2.invert", 1.0f);
+        && parameterValueMatches(destination.parameters, "layer.1.osc.2.invert", 1.0f)
+        && parameterValueMatches(destination.parameters, "arp.enabled", 1.0f)
+        && parameterValueMatches(destination.parameters, "arp.step.2.pitch_semitones", 7.0f)
+        && parameterValueMatches(destination.parameters, "chord.enabled", 1.0f)
+        && parameterValueMatches(destination.parameters, "chord.voice.2.pitch_semitones", 4.0f);
 }
 
 bool parameterValueMatches(const juce::AudioProcessorValueTreeState& parameters,
@@ -123,12 +131,18 @@ bool checkHostStateDefaultMerge()
     oldState.setProperty("schema_version", 1, nullptr);
     oldState.setProperty("current_preset", "Old Host State", nullptr);
     removeParameterChildrenStartingWith(oldState, "layer.");
+    removeParameterChildrenStartingWith(oldState, "arp.");
+    removeParameterChildrenStartingWith(oldState, "chord.");
 
     StateRoundTripProcessor destination;
     if (!setPhysicalParameter(destination.parameters, "layer.1.enabled", 0.0f)
         || !setPhysicalParameter(destination.parameters, "layer.2.enabled", 1.0f)
         || !setPhysicalParameter(destination.parameters, "layer.2.osc.2.voices", 8.0f)
-        || !setPhysicalParameter(destination.parameters, "layer.2.osc.2.invert", 1.0f))
+        || !setPhysicalParameter(destination.parameters, "layer.2.osc.2.invert", 1.0f)
+        || !setPhysicalParameter(destination.parameters, "arp.enabled", 1.0f)
+        || !setPhysicalParameter(destination.parameters, "arp.step.1.tie", 1.0f)
+        || !setPhysicalParameter(destination.parameters, "chord.enabled", 1.0f)
+        || !setPhysicalParameter(destination.parameters, "chord.voice.3.enabled", 1.0f))
     {
         return false;
     }
@@ -142,7 +156,12 @@ bool checkHostStateDefaultMerge()
         && parameterValueMatches(destination.parameters, "layer.1.osc.1.enabled", 1.0f)
         && parameterValueMatches(destination.parameters, "layer.1.osc.1.voices", 1.0f)
         && parameterValueMatches(destination.parameters, "layer.2.osc.2.voices", 0.0f)
-        && parameterValueMatches(destination.parameters, "layer.2.osc.2.invert", 0.0f);
+        && parameterValueMatches(destination.parameters, "layer.2.osc.2.invert", 0.0f)
+        && parameterValueMatches(destination.parameters, "arp.enabled", 0.0f)
+        && parameterValueMatches(destination.parameters, "arp.step.1.tie", 0.0f)
+        && parameterValueMatches(destination.parameters, "chord.enabled", 0.0f)
+        && parameterValueMatches(destination.parameters, "chord.voice.1.enabled", 1.0f)
+        && parameterValueMatches(destination.parameters, "chord.voice.3.enabled", 0.0f);
 }
 
 bool checkLayerOscillatorVoiceCost()
@@ -196,7 +215,12 @@ bool checkPresetManagerLoadAndSave()
         || !parameterValueMatches(processor.parameters, "layer.1.osc.1.enabled", 1.0f)
         || !parameterValueMatches(processor.parameters, "layer.1.osc.1.voices", 1.0f)
         || !parameterValueMatches(processor.parameters, "layer.1.osc.2.enabled", 0.0f)
-        || !parameterValueMatches(processor.parameters, "layer.2.osc.2.voices", 0.0f))
+        || !parameterValueMatches(processor.parameters, "layer.2.osc.2.voices", 0.0f)
+        || !parameterValueMatches(processor.parameters, "arp.enabled", 0.0f)
+        || !parameterValueMatches(processor.parameters, "arp.step_count", 16.0f)
+        || !parameterValueMatches(processor.parameters, "arp.step.1.enabled", 1.0f)
+        || !parameterValueMatches(processor.parameters, "chord.enabled", 0.0f)
+        || !parameterValueMatches(processor.parameters, "chord.voice.1.enabled", 1.0f))
     {
         std::cerr << "Layer/oscillator defaults do not match the Phase 1 backbone contract.\n";
         return false;
@@ -231,7 +255,9 @@ bool checkPresetManagerLoadAndSave()
     if (!parameterValueMatches(processor.parameters, "layer.1.enabled", 1.0f)
         || !parameterValueMatches(processor.parameters, "layer.2.enabled", 0.0f)
         || !parameterValueMatches(processor.parameters, "layer.1.osc.1.enabled", 1.0f)
-        || !parameterValueMatches(processor.parameters, "layer.2.osc.1.enabled", 0.0f))
+        || !parameterValueMatches(processor.parameters, "layer.2.osc.1.enabled", 0.0f)
+        || !parameterValueMatches(processor.parameters, "arp.enabled", 0.0f)
+        || !parameterValueMatches(processor.parameters, "chord.enabled", 0.0f))
     {
         std::cerr << "Legacy preset load did not preserve new layer defaults.\n";
         return false;
@@ -279,7 +305,11 @@ bool checkPresetManagerLoadAndSave()
     if (savedParameterObject == nullptr
         || !savedParameterObject->hasProperty(juce::Identifier("layer.1.osc.1.voices"))
         || !savedParameterObject->hasProperty(juce::Identifier("layer.2.enabled"))
-        || !savedParameterObject->hasProperty(juce::Identifier("layer.2.osc.2.invert")))
+        || !savedParameterObject->hasProperty(juce::Identifier("layer.2.osc.2.invert"))
+        || !savedParameterObject->hasProperty(juce::Identifier("arp.enabled"))
+        || !savedParameterObject->hasProperty(juce::Identifier("arp.step.16.tie"))
+        || !savedParameterObject->hasProperty(juce::Identifier("chord.enabled"))
+        || !savedParameterObject->hasProperty(juce::Identifier("chord.voice.8.pitch_semitones")))
     {
         std::cerr << "Saved preset omitted layer/oscillator state.\n";
         tempFile.deleteFile();
@@ -335,7 +365,11 @@ int main()
         || synth::findParameterSpec("layer.1.enabled") == nullptr
         || synth::findParameterSpec("layer.2.enabled") == nullptr
         || synth::findParameterSpec("layer.1.osc.1.voices") == nullptr
-        || synth::findParameterSpec("layer.2.osc.2.invert") == nullptr)
+        || synth::findParameterSpec("layer.2.osc.2.invert") == nullptr
+        || synth::findParameterSpec("arp.enabled") == nullptr
+        || synth::findParameterSpec("arp.step.16.tie") == nullptr
+        || synth::findParameterSpec("chord.enabled") == nullptr
+        || synth::findParameterSpec("chord.voice.8.velocity") == nullptr)
     {
         std::cerr << "Required parameter missing.\n";
         return 1;
@@ -354,16 +388,32 @@ int main()
     const auto* layerBEnabled = synth::findParameterSpec("layer.2.enabled");
     const auto* layerAOscillatorVoices = synth::findParameterSpec("layer.1.osc.1.voices");
     const auto* layerBOscillatorInvert = synth::findParameterSpec("layer.2.osc.2.invert");
+    const auto* arpEnabled = synth::findParameterSpec("arp.enabled");
+    const auto* arpStepCount = synth::findParameterSpec("arp.step_count");
+    const auto* arpStepPitch = synth::findParameterSpec("arp.step.16.pitch_semitones");
+    const auto* chordVoiceCount = synth::findParameterSpec("chord.voice_count");
+    const auto* chordVoiceOneEnabled = synth::findParameterSpec("chord.voice.1.enabled");
     if (layerAEnabled == nullptr
         || layerBEnabled == nullptr
         || layerAOscillatorVoices == nullptr
         || layerBOscillatorInvert == nullptr
+        || arpEnabled == nullptr
+        || arpStepCount == nullptr
+        || arpStepPitch == nullptr
+        || chordVoiceCount == nullptr
+        || chordVoiceOneEnabled == nullptr
         || std::abs(layerAEnabled->defaultValue - 1.0f) > 0.0001f
         || std::abs(layerBEnabled->defaultValue) > 0.0001f
         || std::abs(layerAOscillatorVoices->minimum) > 0.0001f
         || std::abs(layerAOscillatorVoices->maximum - 8.0f) > 0.0001f
         || std::abs(layerAOscillatorVoices->defaultValue - 1.0f) > 0.0001f
-        || std::abs(layerBOscillatorInvert->defaultValue) > 0.0001f)
+        || std::abs(layerBOscillatorInvert->defaultValue) > 0.0001f
+        || std::abs(arpEnabled->defaultValue) > 0.0001f
+        || std::abs(arpStepCount->defaultValue - 16.0f) > 0.0001f
+        || std::abs(arpStepPitch->minimum + 24.0f) > 0.0001f
+        || std::abs(arpStepPitch->maximum - 24.0f) > 0.0001f
+        || std::abs(chordVoiceCount->defaultValue - 1.0f) > 0.0001f
+        || std::abs(chordVoiceOneEnabled->defaultValue - 1.0f) > 0.0001f)
     {
         std::cerr << "Layer/oscillator registry defaults or ranges mismatch.\n";
         return 1;

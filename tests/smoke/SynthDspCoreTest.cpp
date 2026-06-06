@@ -382,12 +382,191 @@ int activeSnapshotCount(const synth::SynthEngine& engine)
     return count;
 }
 
+std::vector<synth::VoiceSnapshot> heldSnapshots(const synth::SynthEngine& engine)
+{
+    std::vector<synth::VoiceSnapshot> snapshots;
+    for (int i = 0; i < 32; ++i)
+    {
+        const auto* voice = engine.getVoice(i);
+        if (voice == nullptr)
+            continue;
+
+        const auto snapshot = voice->snapshot();
+        if (snapshot.state == synth::VoiceState::Held)
+            snapshots.push_back(snapshot);
+    }
+
+    return snapshots;
+}
+
+int firstHeldNote(const synth::SynthEngine& engine)
+{
+    const auto snapshots = heldSnapshots(engine);
+    return snapshots.empty() ? -1 : snapshots.front().midiNote;
+}
+
+float firstHeldVelocity(const synth::SynthEngine& engine)
+{
+    const auto snapshots = heldSnapshots(engine);
+    return snapshots.empty() ? 0.0f : snapshots.front().velocity;
+}
+
 void processSamples(synth::SynthEngine& engine, int sampleCount)
 {
     float left = 0.0f;
     float right = 0.0f;
     for (int i = 0; i < sampleCount; ++i)
         engine.process(&left, &right, 1);
+}
+
+bool testDirectChordExpansion()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = false;
+    parameters.ampEnv.releaseMs = 1.0f;
+    parameters.chord.enabled = true;
+    parameters.chord.voiceCount = 3;
+    parameters.chord.voices[0] = { true, 0, 1.0f };
+    parameters.chord.voices[1] = { true, 4, 0.75f };
+    parameters.chord.voices[2] = { true, 7, 0.5f };
+
+    synth::SynthEngine engine;
+    engine.prepare(1000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.8f);
+    processSamples(engine, 1);
+
+    auto hasRoot = false;
+    auto hasThird = false;
+    auto hasFifth = false;
+    for (const auto& snapshot : heldSnapshots(engine))
+    {
+        hasRoot = hasRoot || (snapshot.midiNote == 60 && std::abs(snapshot.velocity - 0.8f) < 0.001f);
+        hasThird = hasThird || (snapshot.midiNote == 64 && std::abs(snapshot.velocity - 0.6f) < 0.001f);
+        hasFifth = hasFifth || (snapshot.midiNote == 67 && std::abs(snapshot.velocity - 0.4f) < 0.001f);
+    }
+
+    if (!hasRoot || !hasThird || !hasFifth)
+        return false;
+
+    engine.noteOff(60);
+    processSamples(engine, 2);
+    return heldSnapshots(engine).empty();
+}
+
+bool testArpUpModeTimingAndGate()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = false;
+    parameters.ampEnv.attackMs = 0.0f;
+    parameters.ampEnv.releaseMs = 1.0f;
+    parameters.arp.enabled = true;
+    parameters.arp.mode = synth::ArpMode::Up;
+    parameters.arp.rate = synth::ArpRateDivision::Sixteenth;
+    parameters.arp.gate = 0.25f;
+    parameters.arp.stepCount = 1;
+    parameters.tempoBpm = 120.0f;
+
+    synth::SynthEngine engine;
+    engine.prepare(1000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(67, 0.9f);
+    engine.noteOn(60, 0.9f);
+    engine.noteOn(64, 0.9f);
+
+    processSamples(engine, 1);
+    if (firstHeldNote(engine) != 60)
+        return false;
+
+    processSamples(engine, 32);
+    if (!heldSnapshots(engine).empty())
+        return false;
+
+    processSamples(engine, 92);
+    if (firstHeldNote(engine) != -1)
+        return false;
+
+    processSamples(engine, 1);
+    if (firstHeldNote(engine) != 64)
+        return false;
+
+    processSamples(engine, 125);
+    return firstHeldNote(engine) == 67;
+}
+
+bool testArpOctaveWrapAndStepPitchVelocity()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = false;
+    parameters.ampEnv.attackMs = 0.0f;
+    parameters.ampEnv.releaseMs = 1.0f;
+    parameters.arp.enabled = true;
+    parameters.arp.mode = synth::ArpMode::Up;
+    parameters.arp.rate = synth::ArpRateDivision::Sixteenth;
+    parameters.arp.gate = 1.0f;
+    parameters.arp.octaves = 2;
+    parameters.arp.stepCount = 2;
+    parameters.arp.steps[1].pitchSemitones = 7;
+    parameters.arp.steps[1].velocity = 0.5f;
+    parameters.tempoBpm = 120.0f;
+
+    synth::SynthEngine engine;
+    engine.prepare(1000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.8f);
+    engine.noteOn(64, 0.8f);
+
+    processSamples(engine, 1);
+    if (firstHeldNote(engine) != 60 || std::abs(firstHeldVelocity(engine) - 0.8f) > 0.001f)
+        return false;
+
+    processSamples(engine, 125);
+    if (firstHeldNote(engine) != 71 || std::abs(firstHeldVelocity(engine) - 0.4f) > 0.001f)
+        return false;
+
+    processSamples(engine, 125);
+    if (firstHeldNote(engine) != 72)
+        return false;
+
+    processSamples(engine, 125);
+    return firstHeldNote(engine) == 83;
+}
+
+bool testArpTieHoldAndPanic()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = false;
+    parameters.ampEnv.attackMs = 0.0f;
+    parameters.ampEnv.releaseMs = 1.0f;
+    parameters.arp.enabled = true;
+    parameters.arp.mode = synth::ArpMode::AsPlayed;
+    parameters.arp.rate = synth::ArpRateDivision::Sixteenth;
+    parameters.arp.gate = 0.05f;
+    parameters.arp.hold = true;
+    parameters.arp.stepCount = 2;
+    parameters.arp.steps[0].tie = true;
+    parameters.tempoBpm = 120.0f;
+
+    synth::SynthEngine engine;
+    engine.prepare(1000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.8f);
+    processSamples(engine, 1);
+    if (firstHeldNote(engine) != 60)
+        return false;
+
+    processSamples(engine, 80);
+    if (firstHeldNote(engine) != 60)
+        return false;
+
+    engine.noteOff(60);
+    processSamples(engine, 45);
+    if (firstHeldNote(engine) != 60)
+        return false;
+
+    engine.panic();
+    processSamples(engine, 1);
+    return activeSnapshotCount(engine) == 0;
 }
 
 bool testRampGlideAndVelocityGlide()
@@ -1155,6 +1334,30 @@ int main()
     if (!testLayerBMuteAndSoloAffectRender())
     {
         std::cerr << "Layer B mute/solo render test failed.\n";
+        return 1;
+    }
+
+    if (!testDirectChordExpansion())
+    {
+        std::cerr << "Direct chord expansion test failed.\n";
+        return 1;
+    }
+
+    if (!testArpUpModeTimingAndGate())
+    {
+        std::cerr << "Arp up-mode timing/gate test failed.\n";
+        return 1;
+    }
+
+    if (!testArpOctaveWrapAndStepPitchVelocity())
+    {
+        std::cerr << "Arp octave/step pitch/velocity test failed.\n";
+        return 1;
+    }
+
+    if (!testArpTieHoldAndPanic())
+    {
+        std::cerr << "Arp tie/hold/panic test failed.\n";
         return 1;
     }
 
