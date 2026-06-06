@@ -242,4 +242,8 @@ if(SYLENTH_AI_ENABLE_TESTS)
     add_test(NAME SylenthAIRenderCoreSuite
         COMMAND SylenthAIRender --suite core --output-dir build/reports/ctest-core)
     set_tests_properties(SylenthAIRenderCoreSuite PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+    add_test(NAME SylenthAIPatchRecreationSuite
+        COMMAND SylenthAIRender --suite patch-recreation --output-dir build/reports/ctest-patch-recreation)
+    set_tests_properties(SylenthAIPatchRecreationSuite PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()

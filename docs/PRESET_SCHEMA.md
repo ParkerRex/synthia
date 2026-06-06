@@ -16,6 +16,11 @@ Current factory presets:
 
 - `presets/factory/init.json`
 - `presets/factory/pluck-core-01.json`
+- `presets/factory/supersaw-stack-01.json`
+- `presets/factory/bass-wub-01.json`
+- `presets/factory/pad-wide-01.json`
+- `presets/factory/arp-motion-01.json`
+- `presets/factory/fx-space-01.json`
 
 Current user preset location:
 
@@ -29,6 +34,12 @@ Current validation command:
 
 ```bash
 ./build/SylenthAIRender --validate-presets presets/factory --output build/reports/presets.json
+```
+
+Current patch recreation command:
+
+```bash
+./build/SylenthAIRender --suite patch-recreation --output-dir build/reports/patch-recreation
 ```
 
 ## Required Top-Level Fields
@@ -289,4 +300,4 @@ Shipped factory presets must avoid unlicensed third-party marks.
 
 Internal research names may exist in `metadata` during development, but release builds should omit or sanitize them.
 
-The current factory preset display names are `Init` and `Pluck Core 01`.
+The current factory preset display names are `Init`, `Pluck Core 01`, `Supersaw Stack 01`, `Bass Wub 01`, `Pad Wide 01`, `Arp Motion 01`, and `FX Space 01`.

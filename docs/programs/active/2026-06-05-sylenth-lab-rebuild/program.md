@@ -83,6 +83,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed VST3 learned-CC capture/persistence proof: routed a temporary CoreMIDI source into Ableton, armed MIDI Learn for `filter.resonance`, captured CC71, persisted the expected controller-map sidecar, and kept AU/controller value-application plus automation replay open.
 - [x] 2026-06-06 EDT: Executed VST3 continuous controller value-application proof: seeded the persisted CC71 map, routed a temporary CoreMIDI value source into Ableton, and captured hosted Resonance moving `0.00 -> 1.00 -> 0.00`.
 - [x] 2026-06-06 EDT: Executed VST3 controller Forget/stepped proof: seeded CC73 to `filter.mode`, captured Filter Mode moving `L4 -> Notch4 -> L2`, clicked hosted Forget, verified an empty sidecar, and confirmed later CC73 high no longer changed Filter Mode.
+- [x] 2026-06-06 EDT: Executed Phase 1 patch recreation suite with five additional lab-authored Factory presets, renderer support for preset-loaded arp/chord state, standalone WAV/JSON proof, and CTest coverage.
 - [x] Model-ready UI handoff and first local polish passes exist for preset browser, arp/step/chord, FX rack, and read-only modulation inspection.
 - [x] 2026-06-06 EDT: Created a Claude Code visual information architecture handoff to make the model-backed shell look materially closer to the Sylenth screenshot corpus without adding fake controls.
 - [ ] Complete or explicitly close deeper UI visual/control polish follow-ups.
@@ -107,6 +108,7 @@ Active child ExecPlans:
 
 Completed child ExecPlans:
 
+- `docs/exec-plans/completed/2026-06-06-build-sylenth-patch-recreation-suite.md`
 - `docs/exec-plans/completed/2026-06-05-build-sylenth-layer-oscillator-backbone.md`
 - `docs/exec-plans/completed/2026-06-05-build-sylenth-layer-b-and-four-osc-rendering.md`
 - `docs/exec-plans/completed/2026-06-05-build-arp-step-chord-workflow.md`
@@ -136,7 +138,7 @@ Product-order next Codex slice: complete the remaining Phase 1 Ableton host matr
 
 Preset browser, arp/step/chord, FX rack, modulation inspection, layer/slot rendering, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; drag/drop modulation writing, per-route bypass/remove, per-control MIDI context menus, richer browser metadata editing, and per-layer filter/envelope/master parity remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 automation record/playback, AU learned CC mapping/value application, current preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic. Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, and VST3 controller Learn/value/Forget/stepped proof are already recorded.
+The remaining non-UI product proof is Ableton AU/VST3 automation record/playback, AU learned CC mapping/value application, Ableton-side current preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic. Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, and standalone patch recreation are already recorded.
 
 ## Risks and Watchpoints
 

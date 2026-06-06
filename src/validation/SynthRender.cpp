@@ -145,6 +145,7 @@ Options parseOptions(int argc, char* argv[])
             std::cout << "  SylenthAIRender --filter-test --output <path>\n";
             std::cout << "  SylenthAIRender --modulation-test --fixture <path> --output <path>\n";
             std::cout << "  SylenthAIRender --suite core --output-dir <dir>\n";
+            std::cout << "  SylenthAIRender --suite patch-recreation --output-dir <dir>\n";
             std::cout << "  SylenthAIRender --preset <json> --fixture <path> --dry --output <wav> --report <json>\n";
             std::cout << "  SylenthAIRender --preset <json> --fixture <path> --wet --output <wav> --report <json>\n";
             std::exit(0);
@@ -875,6 +876,52 @@ void applyPresetValue(synth::SynthParameters& parameters, const std::string& id,
     else if (id == "ramp.delay_ms") parameters.ramp.delayMs = numeric;
     else if (id == "ramp.rise_ms") parameters.ramp.riseMs = numeric;
     else if (id == "ramp.curve") parameters.ramp.curve = static_cast<synth::RampCurve>(choice);
+    else if (id == "arp.enabled") parameters.arp.enabled = numeric >= 0.5f;
+    else if (id == "arp.mode") parameters.arp.mode = static_cast<synth::ArpMode>(choice);
+    else if (id == "arp.rate") parameters.arp.rate = static_cast<synth::ArpRateDivision>(choice);
+    else if (id == "arp.gate") parameters.arp.gate = numeric;
+    else if (id == "arp.octaves") parameters.arp.octaves = static_cast<int>(std::round(numeric));
+    else if (id == "arp.hold") parameters.arp.hold = numeric >= 0.5f;
+    else if (id == "arp.swing") parameters.arp.swing = numeric;
+    else if (id == "arp.step_count") parameters.arp.stepCount = static_cast<int>(std::round(numeric));
+    else if (id.starts_with("arp.step."))
+    {
+        const auto stepStart = std::string("arp.step.").size();
+        const auto stepEnd = id.find('.', stepStart);
+        if (stepEnd == std::string::npos)
+            return;
+
+        const auto stepNumber = std::stoi(id.substr(stepStart, stepEnd - stepStart));
+        if (stepNumber < 1 || stepNumber > synth::arpStepCount)
+            return;
+
+        auto& step = parameters.arp.steps[static_cast<std::size_t>(stepNumber - 1)];
+        const auto field = id.substr(stepEnd + 1);
+        if (field == "enabled") step.enabled = numeric >= 0.5f;
+        else if (field == "pitch_semitones") step.pitchSemitones = static_cast<int>(std::round(numeric));
+        else if (field == "velocity") step.velocity = numeric;
+        else if (field == "gate") step.gate = numeric;
+        else if (field == "tie") step.tie = numeric >= 0.5f;
+    }
+    else if (id == "chord.enabled") parameters.chord.enabled = numeric >= 0.5f;
+    else if (id == "chord.voice_count") parameters.chord.voiceCount = static_cast<int>(std::round(numeric));
+    else if (id.starts_with("chord.voice."))
+    {
+        const auto voiceStart = std::string("chord.voice.").size();
+        const auto voiceEnd = id.find('.', voiceStart);
+        if (voiceEnd == std::string::npos)
+            return;
+
+        const auto voiceNumber = std::stoi(id.substr(voiceStart, voiceEnd - voiceStart));
+        if (voiceNumber < 1 || voiceNumber > synth::chordVoiceCount)
+            return;
+
+        auto& voice = parameters.chord.voices[static_cast<std::size_t>(voiceNumber - 1)];
+        const auto field = id.substr(voiceEnd + 1);
+        if (field == "enabled") voice.enabled = numeric >= 0.5f;
+        else if (field == "pitch_semitones") voice.pitchSemitones = static_cast<int>(std::round(numeric));
+        else if (field == "velocity") voice.velocity = numeric;
+    }
     else if (id == "macro.motion") parameters.macro.motion = numeric;
     else if (id == "macro.width") parameters.macro.width = numeric;
     else if (id == "macro.drive") parameters.macro.drive = numeric;
@@ -2200,6 +2247,208 @@ int writeCoreSuite(const Options& options)
     std::cout << "Core suite wrote " << items.size() << " reports to " << outputDir << ".\n";
     return failed == 0 ? 0 : 1;
 }
+
+struct PatchRecreationCase
+{
+    const char* id = "";
+    const char* displayName = "";
+    const char* category = "";
+    const char* intent = "";
+    RenderFxMode fxMode = RenderFxMode::Wet;
+    PresetRenderVariant variant = PresetRenderVariant::Default;
+    bool requireWetProof = true;
+    bool requireArpChordStateProof = false;
+};
+
+struct PatchRecreationItem
+{
+    PatchRecreationCase patch;
+    std::filesystem::path presetPath;
+    std::filesystem::path reportPath;
+    std::filesystem::path wavPath;
+    PresetRenderResult result;
+    bool arpChordStatePassed = true;
+    bool passed = false;
+};
+
+std::vector<PatchRecreationCase> patchRecreationCases()
+{
+    return {
+        { "pluck-core-01", "Pluck Core 01", "Plucks",
+          "Existing pluck baseline with ramp, TransMod, saturation, delay, and reverb.",
+          RenderFxMode::Wet, PresetRenderVariant::Default, true, false },
+        { "supersaw-stack-01", "Supersaw Stack 01", "Leads",
+          "Wide saw stack using A/B layers, four oscillator slots, unison, chorus, delay, and reverb.",
+          RenderFxMode::Wet, PresetRenderVariant::Default, true, false },
+        { "bass-wub-01", "Bass Wub 01", "Bass",
+          "Mono-legato bass with sub support, filter LFO motion, drive, and compressor proof.",
+          RenderFxMode::Wet, PresetRenderVariant::MonoLfo, true, false },
+        { "pad-wide-01", "Pad Wide 01", "Pads",
+          "Slow-attack dual-layer pad with wide oscillator slots, phaser, chorus, delay, and reverb.",
+          RenderFxMode::Wet, PresetRenderVariant::Default, true, false },
+        { "arp-motion-01", "Arp Motion 01", "Arps",
+          "Arpeggiated chord/step patch proving preset-loaded arp and chord state in the renderer.",
+          RenderFxMode::Wet, PresetRenderVariant::Default, true, true },
+        { "fx-space-01", "FX Space 01", "FX",
+          "FX-forward pluck that exercises the expanded rack tail and wet-versus-dry comparison.",
+          RenderFxMode::Wet, PresetRenderVariant::Default, true, false }
+    };
+}
+
+bool arpChordPresetStateMatches(const std::filesystem::path& presetPath)
+{
+    synth::SynthParameters parameters;
+    std::string error;
+    if (!loadPresetParameters(presetPath, parameters, error))
+        return false;
+
+    const auto& arp = parameters.arp;
+    const auto& chord = parameters.chord;
+    return arp.enabled
+        && arp.mode == synth::ArpMode::UpDown
+        && arp.rate == synth::ArpRateDivision::Sixteenth
+        && std::abs(arp.gate - 0.58f) < 0.001f
+        && arp.octaves == 2
+        && std::abs(arp.swing - 0.18f) < 0.001f
+        && arp.stepCount == 8
+        && arp.steps[1].pitchSemitones == 7
+        && std::abs(arp.steps[1].velocity - 0.82f) < 0.001f
+        && arp.steps[4].tie
+        && chord.enabled
+        && chord.voiceCount == 3
+        && chord.voices[1].enabled
+        && chord.voices[1].pitchSemitones == 7
+        && std::abs(chord.voices[1].velocity - 0.72f) < 0.001f
+        && chord.voices[2].enabled
+        && chord.voices[2].pitchSemitones == 12;
+}
+
+void writePatchRecreationSummary(const std::filesystem::path& path,
+                                 const std::filesystem::path& outputDir,
+                                 const std::filesystem::path& fixturePath,
+                                 const std::vector<PatchRecreationItem>& items)
+{
+    ensureParentDirectory(path);
+
+    auto passedCount = 0;
+    for (const auto& item : items)
+    {
+        if (item.passed)
+            ++passedCount;
+    }
+
+    const auto failedCount = static_cast<int>(items.size()) - passedCount;
+    std::ofstream out(path);
+    out << "{\n";
+    out << "  \"schema_version\": 1,\n";
+    out << "  \"suite\": \"patch-recreation\",\n";
+    out << "  \"format\": \"standalone\",\n";
+    out << "  \"output_dir\": \"" << genericString(outputDir) << "\",\n";
+    out << "  \"fixture\": \"" << genericString(fixturePath) << "\",\n";
+    out << "  \"fixture_id\": \"overlap-pluck\",\n";
+    out << "  \"sample_rate\": 48000,\n";
+    out << "  \"block_size\": 1,\n";
+    out << "  \"tempo_bpm\": 128,\n";
+    out << "  \"seed\": \"engine-default-deterministic\",\n";
+    out << "  \"preset_count\": " << items.size() << ",\n";
+    out << "  \"report_count\": " << items.size() << ",\n";
+    out << "  \"passed_count\": " << passedCount << ",\n";
+    out << "  \"failed_count\": " << failedCount << ",\n";
+    out << "  \"patches\": [\n";
+    for (std::size_t i = 0; i < items.size(); ++i)
+    {
+        const auto& item = items[i];
+        out << "    {";
+        out << "\"id\": \"" << item.patch.id << "\", ";
+        out << "\"display_name\": \"" << item.patch.displayName << "\", ";
+        out << "\"category\": \"" << item.patch.category << "\", ";
+        out << "\"intent\": \"" << item.patch.intent << "\", ";
+        out << "\"preset\": \"" << genericString(item.presetPath) << "\", ";
+        out << "\"report\": \"" << genericString(item.reportPath) << "\", ";
+        out << "\"artifact_wav\": \"" << genericString(item.wavPath) << "\", ";
+        out << "\"fx_mode\": \"" << toString(item.patch.fxMode) << "\", ";
+        out << "\"variant\": \"" << toString(item.patch.variant) << "\", ";
+        out << "\"peak\": " << item.result.metrics.peak << ", ";
+        out << "\"rms_dbfs\": " << item.result.metrics.rmsDbfs << ", ";
+        out << "\"spectral_centroid_hz\": " << item.result.metrics.spectralCentroidHz << ", ";
+        out << "\"note_local_lfo_spread\": " << item.result.noteLocalLfoSpread << ", ";
+        out << "\"wet_dry_rms_diff\": " << item.result.wetDryRmsDiff << ", ";
+        out << "\"wet_meaningful_passed\": " << boolString(item.result.wetMeaningfulPassed) << ", ";
+        out << "\"arp_chord_state_passed\": " << boolString(item.arpChordStatePassed) << ", ";
+        out << "\"passed\": " << boolString(item.passed);
+        out << "}";
+        out << (i + 1 == items.size() ? "\n" : ",\n");
+    }
+    out << "  ],\n";
+    out << "  \"passed\": " << boolString(failedCount == 0) << "\n";
+    out << "}\n";
+}
+
+int writePatchRecreationSuite(const Options& options)
+{
+    const auto outputDir = options.outputDir;
+    const auto artifactDir = outputDir / "artifacts";
+    const auto fixturePath = options.fixturePath;
+
+    ensureDirectory(outputDir);
+    ensureDirectory(artifactDir);
+
+    std::vector<PatchRecreationItem> items;
+    for (const auto& patch : patchRecreationCases())
+    {
+        const auto presetPath = std::filesystem::path { "presets/factory" } / (std::string(patch.id) + ".json");
+        const auto reportPath = outputDir / (std::string(patch.id) + "-" + toString(patch.fxMode) + ".json");
+        const auto wavPath = artifactDir / (std::string(patch.id) + "-" + toString(patch.fxMode) + ".wav");
+
+        auto render = renderPresetAudio(presetPath, fixturePath, patch.variant, patch.fxMode);
+        const auto arpChordStatePassed = !patch.requireArpChordStateProof
+            || arpChordPresetStateMatches(presetPath);
+        auto passed = false;
+
+        if (!render.ok)
+        {
+            writeFailureReport(reportPath, "patch-recreation", render.error);
+        }
+        else
+        {
+            if (patch.fxMode == RenderFxMode::Wet)
+            {
+                const auto dryReference = renderPresetAudio(presetPath, fixturePath,
+                                                            patch.variant, RenderFxMode::Dry);
+                if (dryReference.ok)
+                {
+                    evaluateWetDifference(render, dryReference);
+                }
+                else
+                {
+                    render.passed = false;
+                    render.error = dryReference.error;
+                }
+            }
+
+            writeWav16(wavPath, render.left, render.right, render.sampleRate);
+            writePresetRenderReport(reportPath, render, presetPath, fixturePath, wavPath,
+                                    patch.fxMode, patch.variant);
+            passed = render.passed
+                && (!patch.requireWetProof || render.wetMeaningfulPassed)
+                && arpChordStatePassed;
+        }
+
+        items.push_back({ patch, presetPath, reportPath, wavPath, std::move(render),
+                          arpChordStatePassed, passed });
+    }
+
+    const auto summaryPath = outputDir / "summary.json";
+    writePatchRecreationSummary(summaryPath, outputDir, fixturePath, items);
+
+    const auto failed = std::count_if(items.begin(), items.end(), [](const auto& item) {
+        return !item.passed;
+    });
+
+    std::cout << "Patch recreation suite wrote " << items.size() << " reports to "
+              << outputDir << ".\n";
+    return failed == 0 ? 0 : 1;
+}
 } // namespace
 
 int main(int argc, char* argv[])
@@ -2207,7 +2456,15 @@ int main(int argc, char* argv[])
     const auto options = parseOptions(argc, argv);
 
     if (!options.suite.empty())
-        return writeCoreSuite(options);
+    {
+        if (options.suite == "core")
+            return writeCoreSuite(options);
+        if (options.suite == "patch-recreation")
+            return writePatchRecreationSuite(options);
+
+        std::cerr << "Unknown suite: " << options.suite << "\n";
+        return 2;
+    }
 
     if (options.listParameters)
     {
