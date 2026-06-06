@@ -42,11 +42,17 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [x] 2026-06-06 EDT: Captured native standalone screenshot evidence at `build/reports/ui/preset-arp-fx-polish-sound.png`, `build/reports/ui/preset-arp-fx-polish-sound-paged.png`, and `build/reports/ui/preset-arp-fx-polish-effects.png`.
 - [x] 2026-06-06 EDT: Passed `git diff --check`, standalone rebuild, CTest, and `SylenthAIRender --suite core` for the UI polish slice.
 - [x] 2026-06-06 EDT: Route model handoff dependency landed in `ModulationRouteModel`: source catalog, destination catalog, active route summaries, and legacy cutoff-depth visibility. Drag/drop write adapters, per-route bypass/remove, and expanded destinations remain out of scope.
+- [x] 2026-06-06 EDT: Handed a narrow modulation-inspection prompt to Claude Code with Sylenth screenshot references; stopped the run after it stayed in analysis/build-check mode without editing files.
+- [x] 2026-06-06 EDT: Implemented a bounded read-only modulation overview in `PluginEditor.*` using `synth::modulationSourceCatalog()` and `SynthAudioProcessor::getModulationRouteView()`.
+- [x] 2026-06-06 EDT: Captured native standalone Modulation tab screenshot evidence at `build/reports/ui/modulation-inspection-ui-polish.png`.
+- [x] 2026-06-06 EDT: Passed `git diff --check`, standalone rebuild, CTest, and `SylenthAIRender --suite core` for the modulation inspection UI slice.
+- [x] 2026-06-06 EDT: Ran an adversarial read-only pass; fixed hidden-tab route refresh churn and scaler-only source activity counts before commit.
 
 ## Surprises & Discoveries
 
 - Claude Code headless streaming works with `claude -p --output-format stream-json --verbose`, but the first broad screenshot-heavy prompt over-researched and emitted no patch. Future Claude prompts for this repo should use tight file/edit constraints and bounded turns.
 - A second tighter screenshot-referenced Claude handoff still spent the run reading and reasoning without patching. For UI polish, use Claude as a fast bounded reviewer/polisher, but keep a local implementation path ready when the patch does not appear quickly.
+- A third narrow modulation-inspection Claude handoff with explicit two-file scope still stopped before patching. The practical loop is now: give Claude strict UI polish prompts, watch streaming output, terminate analysis-only runs quickly, and preserve local implementation as the shipping path.
 - Native standalone screenshot automation confirmed the app opens after the editor patch. A taller window captured the new sequencer row itself, while PageDown and direct Accessibility scroll-bar automation did not move the JUCE viewport far enough to inspect the bottom lanes.
 
 ## Decision Log
@@ -57,9 +63,9 @@ Date: 2026-06-05.
 
 ## Outcomes & Retrospective
 
-Partial arp/step/chord implementation passed build, CTest, adversarial review, and native standalone visual launch/row evidence. FX rack state is now model-backed and has a first local visual polish pass with ordered module badges. Modulation inspection polish now has a route model over the current TransMod state.
+Partial arp/step/chord implementation passed build, CTest, adversarial review, and native standalone visual launch/row evidence. FX rack state is now model-backed and has a first local visual polish pass with ordered module badges. Modulation inspection polish now has a route model over the current TransMod state and a read-only overview panel that exposes source counts and active routes without inventing write behavior.
 
-The next Claude Code pass can target deeper preset browser, arp/step/chord, and FX rack visual polish only. It must not invent modulation-route UI state until the route model lands.
+The next Claude Code pass can target deeper preset browser, arp/step/chord, and FX rack visual polish only. Modulation drag/drop, matrix editing, per-route bypass/remove, and route halos still need explicit write adapters or schema support before they become UI scope.
 
 ## Context and Orientation
 

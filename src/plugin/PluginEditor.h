@@ -35,6 +35,7 @@ private:
     class ParameterControl;
     class Panel;
     class SequencerPanel;
+    class ModulationOverviewPanel;
     class Meter;
 
     enum class Page
@@ -120,6 +121,7 @@ private:
     std::vector<std::unique_ptr<Panel>> soundPanels;
     std::array<std::unique_ptr<Panel>, synth::oscillatorSlotsPerLayer> slotPanels;
     std::unique_ptr<SequencerPanel> sequencerPanel;
+    std::unique_ptr<ModulationOverviewPanel> modulationOverviewPanel;
     std::vector<std::unique_ptr<Panel>> modPanels;
     std::vector<std::unique_ptr<Panel>> fxPanels;
 

@@ -554,6 +554,297 @@ private:
 };
 
 // ============================================================================
+// ModulationOverviewPanel: read-only source and route inspection.
+// ============================================================================
+class SynthAudioProcessorEditor::ModulationOverviewPanel final : public LayoutSection
+{
+public:
+    explicit ModulationOverviewPanel(SynthAudioProcessor& processor)
+        : audioProcessor(processor)
+    {
+        refresh();
+    }
+
+    int preferredHeight(int width) const override
+    {
+        return headerHeight + padY * 2 + labelHeight * 2 + sectionGap
+               + sourceRowsForWidth(width) * chipHeight
+               + std::max(0, sourceRowsForWidth(width) - 1) * chipGap
+               + routeRows * routeHeight + (routeRows - 1) * routeGap;
+    }
+
+    void refresh()
+    {
+        routeView = audioProcessor.getModulationRouteView();
+        repaint();
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
+        g.setColour(panelBg);
+        g.fillRoundedRectangle(bounds, 6.0f);
+        g.setColour(strokeSoft);
+        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+
+        auto headerArea = getLocalBounds().removeFromTop(headerHeight);
+        g.setColour(panelHeader);
+        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
+        g.fillRect(headerArea.removeFromBottom(8));
+
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        auto badgeArea = titleArea.removeFromRight(52).withSizeKeepingCentre(52, 16);
+        titleArea.removeFromRight(8);
+
+        g.setColour(text);
+        g.setFont(uiFont(12.0f, true));
+        g.drawText("MODULATION OVERVIEW", titleArea, juce::Justification::centredLeft, true);
+
+        g.setColour(live.withAlpha(0.18f));
+        g.fillRoundedRectangle(badgeArea.toFloat(), 8.0f);
+        g.setColour(live);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText("READ", badgeArea, juce::Justification::centred, false);
+
+        auto content = getLocalBounds();
+        content.removeFromTop(headerHeight);
+        content = content.reduced(padX, padY);
+
+        auto sourceLabelArea = content.removeFromTop(labelHeight);
+        paintSectionLabel(g, sourceLabelArea, "SOURCES");
+        const auto sourceRows = sourceRowsForWidth(getWidth());
+        auto sourceArea = content.removeFromTop(sourceRows * chipHeight + std::max(0, sourceRows - 1) * chipGap);
+        paintSources(g, sourceArea);
+
+        content.removeFromTop(sectionGap);
+        auto routeLabelArea = content.removeFromTop(labelHeight);
+        paintSectionLabel(g, routeLabelArea, "ACTIVE ROUTES");
+        paintRoutes(g, content.removeFromTop(routeRows * routeHeight + (routeRows - 1) * routeGap));
+    }
+
+private:
+    static constexpr int headerHeight = 26;
+    static constexpr int padX = 12;
+    static constexpr int padY = 8;
+    static constexpr int labelHeight = 15;
+    static constexpr int sectionGap = 9;
+    static constexpr int chipHeight = 22;
+    static constexpr int chipGap = 6;
+    static constexpr int routeHeight = 24;
+    static constexpr int routeGap = 6;
+    static constexpr int routeRows = 2;
+    static constexpr int minChipWidth = 92;
+    static constexpr int minRouteWidth = 226;
+    static constexpr std::size_t sourceCount = static_cast<std::size_t>(synth::ModSource::Macro4) + 1;
+
+    int sourceColumnsForWidth(int width) const
+    {
+        const auto usableWidth = std::max(1, width - padX * 2);
+        return std::max(2, usableWidth / (minChipWidth + chipGap));
+    }
+
+    int sourceRowsForWidth(int width) const
+    {
+        int visibleSources = 0;
+        for (const auto& source : synth::modulationSourceCatalog())
+        {
+            if (source.source != synth::ModSource::None)
+                ++visibleSources;
+        }
+
+        const auto columns = sourceColumnsForWidth(width);
+        return std::max(1, (visibleSources + columns - 1) / columns);
+    }
+
+    int routeColumnsForWidth(int width) const
+    {
+        const auto usableWidth = std::max(1, width - padX * 2);
+        return std::max(1, usableWidth / (minRouteWidth + routeGap));
+    }
+
+    void incrementSourceUseCount(std::array<int, sourceCount>& counts, synth::ModSource source) const
+    {
+        const auto sourceIndex = static_cast<int>(source);
+        if (sourceIndex >= 0 && sourceIndex < static_cast<int>(counts.size()))
+            ++counts[static_cast<std::size_t>(sourceIndex)];
+    }
+
+    std::array<int, sourceCount> sourceUseCounts() const
+    {
+        std::array<int, sourceCount> counts {};
+        for (const auto& route : routeView.activeRoutes)
+        {
+            incrementSourceUseCount(counts, route.source);
+            if (route.scaler != synth::ModSource::None && route.scaler != route.source)
+                incrementSourceUseCount(counts, route.scaler);
+        }
+        return counts;
+    }
+
+    void paintSectionLabel(juce::Graphics& g, juce::Rectangle<int> area, const juce::String& label) const
+    {
+        g.setColour(mutedText);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText(label, area, juce::Justification::centredLeft, true);
+    }
+
+    void paintSources(juce::Graphics& g, juce::Rectangle<int> area) const
+    {
+        const auto counts = sourceUseCounts();
+        const auto columns = sourceColumnsForWidth(getWidth());
+        const auto chipWidth = (area.getWidth() - (columns - 1) * chipGap) / columns;
+
+        int visibleIndex = 0;
+        for (const auto& source : synth::modulationSourceCatalog())
+        {
+            if (source.source == synth::ModSource::None)
+                continue;
+
+            const auto column = visibleIndex % columns;
+            const auto row = visibleIndex / columns;
+            auto chip = juce::Rectangle<int>(
+                area.getX() + column * (chipWidth + chipGap),
+                area.getY() + row * (chipHeight + chipGap),
+                chipWidth,
+                chipHeight);
+
+            const auto sourceIndex = static_cast<int>(source.source);
+            const auto routeCount = sourceIndex >= 0 && sourceIndex < static_cast<int>(counts.size())
+                ? counts[static_cast<std::size_t>(sourceIndex)]
+                : 0;
+
+            const auto activeFill = routeCount > 0 ? accent.withAlpha(0.16f) : fieldBg;
+            const auto outline = routeCount > 0 ? accent.withAlpha(0.72f) : strokeSoft;
+            g.setColour(activeFill);
+            g.fillRoundedRectangle(chip.toFloat(), 5.0f);
+            g.setColour(outline);
+            g.drawRoundedRectangle(chip.toFloat().reduced(0.5f), 5.0f, 1.0f);
+
+            auto labelArea = chip.reduced(7, 0);
+            if (routeCount > 0)
+            {
+                auto countArea = labelArea.removeFromRight(22);
+                g.setColour(accent.withAlpha(0.22f));
+                g.fillRoundedRectangle(countArea.toFloat().withSizeKeepingCentre(18.0f, 14.0f), 7.0f);
+                g.setColour(accent);
+                g.setFont(uiFont(10.0f, true));
+                g.drawText(juce::String(routeCount), countArea, juce::Justification::centred, false);
+                labelArea.removeFromRight(3);
+            }
+
+            g.setColour(routeCount > 0 ? text : mutedText);
+            g.setFont(uiFont(10.5f, routeCount > 0));
+            g.drawFittedText(juce::String(source.label), labelArea, juce::Justification::centredLeft, 1, 0.72f);
+
+            ++visibleIndex;
+        }
+    }
+
+    juce::String sourceLabel(synth::ModSource source) const
+    {
+        if (const auto* info = synth::findModulationSourceInfo(source))
+            return juce::String(info->label);
+        return "None";
+    }
+
+    juce::String destinationLabel(synth::ModulationDestination destination) const
+    {
+        if (const auto* info = synth::findModulationDestinationInfo(destination))
+            return juce::String(info->label);
+        return "Target";
+    }
+
+    juce::String signedNumber(float value, int decimals) const
+    {
+        return juce::String(value > 0.0f ? "+" : "") + juce::String(value, decimals);
+    }
+
+    juce::String depthLabel(const synth::ModulationRouteSummary& route) const
+    {
+        const auto* destination = synth::findModulationDestinationInfo(route.destination);
+        if (destination == nullptr)
+            return signedNumber(route.depth, 2);
+
+        if (destination->unit == "semitones")
+            return signedNumber(route.depth, 1) + " st";
+        if (destination->unit == "dB")
+            return signedNumber(route.depth, 1) + " dB";
+        if (destination->unit == "normalized" || destination->unit == "percent")
+            return signedNumber(route.depth * 100.0f, 0) + "%";
+
+        return signedNumber(route.depth, 2);
+    }
+
+    juce::String routeLabel(const synth::ModulationRouteSummary& route) const
+    {
+        auto label = sourceLabel(route.source) + " -> " + destinationLabel(route.destination);
+        if (route.scaler != synth::ModSource::None)
+            label += " x " + sourceLabel(route.scaler);
+        label += " " + depthLabel(route);
+        return label;
+    }
+
+    void paintRoutes(juce::Graphics& g, juce::Rectangle<int> area) const
+    {
+        const auto columns = routeColumnsForWidth(getWidth());
+        const auto routeWidth = (area.getWidth() - (columns - 1) * routeGap) / columns;
+        const auto visibleCapacity = std::max(1, columns * routeRows);
+
+        if (routeView.activeRoutes.empty())
+        {
+            auto emptyArea = area.removeFromTop(routeHeight);
+            g.setColour(fieldBg);
+            g.fillRoundedRectangle(emptyArea.toFloat(), 5.0f);
+            g.setColour(strokeSoft);
+            g.drawRoundedRectangle(emptyArea.toFloat().reduced(0.5f), 5.0f, 1.0f);
+            g.setColour(mutedText);
+            g.setFont(uiFont(10.5f, true));
+            g.drawText("NO ACTIVE ROUTES", emptyArea.reduced(8, 0), juce::Justification::centredLeft, true);
+            return;
+        }
+
+        const auto routeCount = static_cast<int>(routeView.activeRoutes.size());
+        const auto paintCount = std::min(routeCount, visibleCapacity);
+        const auto needsOverflowPill = routeCount > visibleCapacity;
+        const auto routePills = needsOverflowPill ? std::max(0, paintCount - 1) : paintCount;
+
+        for (int index = 0; index < routePills; ++index)
+            paintRoutePill(g, area, columns, routeWidth, index, routeLabel(routeView.activeRoutes[static_cast<std::size_t>(index)]));
+
+        if (needsOverflowPill)
+            paintRoutePill(g, area, columns, routeWidth, visibleCapacity - 1,
+                           "+" + juce::String(routeCount - routePills) + " MORE");
+    }
+
+    void paintRoutePill(juce::Graphics& g,
+                        juce::Rectangle<int> area,
+                        int columns,
+                        int routeWidth,
+                        int index,
+                        const juce::String& label) const
+    {
+        const auto column = index % columns;
+        const auto row = index / columns;
+        auto routeArea = juce::Rectangle<int>(
+            area.getX() + column * (routeWidth + routeGap),
+            area.getY() + row * (routeHeight + routeGap),
+            routeWidth,
+            routeHeight);
+
+        g.setColour(accent.withAlpha(0.12f));
+        g.fillRoundedRectangle(routeArea.toFloat(), 5.0f);
+        g.setColour(accent.withAlpha(0.62f));
+        g.drawRoundedRectangle(routeArea.toFloat().reduced(0.5f), 5.0f, 1.0f);
+        g.setColour(text);
+        g.setFont(uiFont(10.5f, true));
+        g.drawFittedText(label, routeArea.reduced(8, 0), juce::Justification::centredLeft, 1, 0.64f);
+    }
+
+    SynthAudioProcessor& audioProcessor;
+    synth::ModulationRouteView routeView;
+};
+
+// ============================================================================
 // SequencerPanel: dense real controls for arp steps and chord voices.
 // ============================================================================
 class SynthAudioProcessorEditor::SequencerPanel final : public LayoutSection
@@ -1233,7 +1524,10 @@ void SynthAudioProcessorEditor::buildPages()
         "macro.motion", "macro.width", "macro.drive", "macro.space"
     });
 
-    // ---- MOD: direct routes grouped by destination + the eight TransMod slots
+    // ---- MOD: read-only route overview, direct routes, and eight TransMod slots
+    modulationOverviewPanel = std::make_unique<ModulationOverviewPanel>(audioProcessor);
+    modPage.addAndMakeVisible(*modulationOverviewPanel);
+
     oscPitchModPanel = addPanel(modPage, modPanels, "Osc Pitch Mod", {
         "direct.osc_keytrack_semitones", "direct.osc_lfo_semitones", "direct.osc_mod_env_semitones"
     }, {}, {}, "Osc ");
@@ -1355,6 +1649,9 @@ void SynthAudioProcessorEditor::setPage(Page page)
     else if (page == Page::Fx)
         viewed = &fxPage;
     pageViewport.setViewedComponent(viewed, false);
+
+    if (page == Page::Mod && modulationOverviewPanel != nullptr)
+        modulationOverviewPanel->refresh();
 
     auto styleTab = [](juce::TextButton& tab, bool active) {
         styleFlatButton(tab, active ? accent.darker(0.18f) : juce::Colour::fromRGB(30, 34, 39),
@@ -1557,7 +1854,11 @@ void SynthAudioProcessorEditor::layoutActivePage()
     }
     else if (currentPage == Page::Mod)
     {
+        if (modulationOverviewPanel == nullptr)
+            return;
+
         std::vector<std::vector<RowItem>> rows = {
+            { { modulationOverviewPanel.get(), 1.0f } },
             { { oscPitchModPanel, 0.34f }, { pulseWidthModPanel, 0.33f }, { filterCutoffModPanel, 0.33f } },
             { { transModPanels[0], 0.25f }, { transModPanels[1], 0.25f },
               { transModPanels[2], 0.25f }, { transModPanels[3], 0.25f } },
@@ -1782,4 +2083,6 @@ void SynthAudioProcessorEditor::updateDiagnostics()
 void SynthAudioProcessorEditor::timerCallback()
 {
     updateDiagnostics();
+    if (currentPage == Page::Mod && modulationOverviewPanel != nullptr)
+        modulationOverviewPanel->refresh();
 }
