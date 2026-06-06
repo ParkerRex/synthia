@@ -87,6 +87,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed modulation write adapter slice with route-write compilation to existing `transmod.N.*` APVTS fields, processor write/clear APIs, and contract tests for writes, invalid inputs, clamping, and slot clearing.
 - [x] 2026-06-06 EDT: Executed patch cost and voice math model slice with a shared estimator, processor diagnostic exposure, header active/max voice display, and contract tests for default, high-cost, zero-level, solo/mute, mono/unison/poly, filter, and FX cases.
 - [x] 2026-06-06 EDT: Executed preset command model slice with backend Init, Reset, and seedable bounded Randomize state preparation plus processor APIs and contract tests.
+- [x] 2026-06-06 EDT: Executed randomized preset render validation with `SylenthAIRender --randomize-test`, core-suite integration, CTest coverage, and finite non-silent non-clipping proof for fixed seeds.
 - [x] Model-ready UI handoff and first local polish passes exist for preset browser, arp/step/chord, FX rack, and read-only modulation inspection.
 - [x] 2026-06-06 EDT: Created a Claude Code visual information architecture handoff to make the model-backed shell look materially closer to the Sylenth screenshot corpus without adding fake controls.
 - [ ] Complete or explicitly close deeper UI visual/control polish follow-ups.
@@ -114,6 +115,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-06-build-modulation-write-adapter-and-route-schema.md`
 - `docs/exec-plans/completed/2026-06-06-build-patch-cost-and-voice-math-model.md`
 - `docs/exec-plans/completed/2026-06-06-build-preset-command-model.md`
+- `docs/exec-plans/completed/2026-06-06-build-randomize-render-validation.md`
 - `docs/exec-plans/completed/2026-06-06-build-sylenth-patch-recreation-suite.md`
 - `docs/exec-plans/completed/2026-06-05-build-sylenth-layer-oscillator-backbone.md`
 - `docs/exec-plans/completed/2026-06-05-build-sylenth-layer-b-and-four-osc-rendering.md`
