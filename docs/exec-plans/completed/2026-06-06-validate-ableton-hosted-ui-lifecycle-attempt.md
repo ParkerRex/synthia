@@ -150,7 +150,7 @@ Acceptance for this attempt:
 
 - VST3 hosted editor lifecycle proof was later resolved by `2026-06-06-validate-ableton-vst3-hosted-editor-lifecycle.md`.
 - AU and VST3 automation record/playback.
-- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC proof later passed.
+- AU learned CC mapping proof plus VST3 host Forget/stepped controller proof in Ableton. Follow-on VST3 learned-CC and continuous value-application proof later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
