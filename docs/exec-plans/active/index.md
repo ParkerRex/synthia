@@ -19,6 +19,7 @@ Completed child plans:
 - `../completed/2026-06-06-build-patch-cost-and-voice-math-model.md`
 - `../completed/2026-06-06-build-preset-command-model.md`
 - `../completed/2026-06-06-build-randomize-render-validation.md`
+- `../completed/2026-06-06-build-modulation-route-render-proof.md`
 - `../completed/2026-06-06-build-sylenth-patch-recreation-suite.md`
 - `../completed/2026-06-05-build-sylenth-layer-oscillator-backbone.md`
 - `../completed/2026-06-05-build-sylenth-layer-b-and-four-osc-rendering.md`

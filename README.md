@@ -73,6 +73,7 @@ Focused validation commands:
 ./build/SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
 ./build/SylenthAIRender --filter-test --output build/reports/filter.json
 ./build/SylenthAIRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
+./build/SylenthAIRender --modulation-route-render-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation-route-render.json
 ```
 
 Render the factory dry-core pluck:
@@ -104,6 +105,7 @@ Current core validation covers:
 - semitone-domain filter mapping and nonlinear filter stability,
 - ramp timing, glide, velocity glide, and mono/legato/unison allocation edge cases,
 - direct modulation and TransMod source/scaler/destination behavior,
+- modulation route write audio proof, including audible route creation and deterministic clear-to-baseline restore,
 - top-level preset `mod_slots` schema loading and strict depth validation,
 - FX bypass equivalence, tempo-synced delay at test tempo, FX tail reporting, wet render finite-output safety, and serialized realtime/offline quality settings,
 - deterministic render repeatability and LFO ablation metrics.
