@@ -2,7 +2,7 @@
 title: Validate Ableton VST3 Controller Learn Proof
 status: completed
 summary: Prove the current VST3 learns an incoming CC in Ableton and persists the global MIDI controller map.
-post_build_recap: Ableton Live 11 loaded the current sylenth-ai VST3, enumerated a temporary CoreMIDI validation source with Track enabled, routed that source into track 1, and the hosted plugin learned CC71 for `filter.resonance`. The plugin wrote the expected `MidiControllerMap.json` mapping and displayed the assignment in the hosted editor. Arrangement automation recording was attempted but did not capture a clip or envelope. A later VST3 continuous value-application pass proved the persisted CC71 mapping drives Resonance; AU controller proof, VST3 host Forget/stepped playback, and AU/VST3 automation record/playback remain open.
+post_build_recap: Ableton Live 11 loaded the current sylenth-ai VST3, enumerated a temporary CoreMIDI validation source with Track enabled, routed that source into track 1, and the hosted plugin learned CC71 for `filter.resonance`. The plugin wrote the expected `MidiControllerMap.json` mapping and displayed the assignment in the hosted editor. Arrangement automation recording was attempted but did not capture a clip or envelope. Later VST3 continuous value-application and Forget/stepped playback passes proved the persisted controller map drives continuous and choice parameters and can be cleared from the hosted panel; AU controller proof and AU/VST3 automation record/playback remain open.
 triggers:
   - Reviewing Ableton learned-CC controller proof.
   - Continuing host validation after VST3 hosted editor lifecycle proof.
@@ -11,7 +11,7 @@ triggers:
 
 # Validate Ableton VST3 Controller Learn Proof
 
-This ExecPlan closes the VST3 learned-CC capture/persistence proof gap for the current hosted Ableton build. It does not close AU controller proof, VST3 host Forget/stepped mapped CC playback, or AU/VST3 automation record/playback. A later VST3 continuous value-application pass closed the VST3 post-learn continuous value proof gap.
+This ExecPlan closes the VST3 learned-CC capture/persistence proof gap for the current hosted Ableton build. It does not close AU controller proof or AU/VST3 automation record/playback. Later VST3 continuous value-application and Forget/stepped mapped CC playback passes closed the VST3 post-learn controller-specific proof gaps.
 
 ## Context
 
@@ -68,7 +68,6 @@ The attempted Arrangement record pass produced live MIDI input, but Arrangement 
 
 - AU and VST3 automation record/playback.
 - AU learned CC mapping and value-application proof in Ableton.
-- VST3 host Forget and stepped-parameter mapped CC playback proof.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.

@@ -10,7 +10,7 @@ Active Claude handoff slice: `2026-06-05-handoff-modulation-preset-arp-ui-polish
 
 UI handoff rule: the modern shell handoff is completed. Preset browser, arp/step/chord, FX rack, and modulation inspection polish are model-ready. Drag/drop modulation writing still needs a later write-adapter/schema slice.
 
-Product-order Codex slice after the current VST3 continuous controller value-application proof PR: complete the remaining Ableton Phase 1 host matrix against AU/VST3 with automation record/playback, AU controller mapping/value application, VST3 Forget/stepped controller playback, preset recreation, modulation exercise, bounce-versus-realtime comparison, buffer/sample-rate, and all-notes-off/panic proof.
+Product-order Codex slice after the current VST3 controller Forget/stepped proof PR: complete the remaining Ableton Phase 1 host matrix against AU/VST3 with automation record/playback, AU controller mapping/value application, preset recreation, modulation exercise, bounce-versus-realtime comparison, buffer/sample-rate, and all-notes-off/panic proof.
 
 Completed child plans:
 
@@ -33,6 +33,7 @@ Completed child plans:
 - `../completed/2026-06-06-validate-ableton-vst3-hosted-editor-lifecycle.md`
 - `../completed/2026-06-06-validate-ableton-vst3-controller-learn-proof.md`
 - `../completed/2026-06-06-validate-ableton-vst3-controller-value-proof.md`
+- `../completed/2026-06-06-validate-ableton-vst3-controller-forget-stepped-proof.md`
 
 Superseded historical plans retained for context:
 

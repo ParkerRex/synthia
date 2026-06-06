@@ -82,6 +82,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed VST3 hosted editor lifecycle proof: dragged the current VST3 into a fresh Ableton set, verified VST3 create logs, and proved hosted VST3 editor open/close/reopen while transport runs.
 - [x] 2026-06-06 EDT: Executed VST3 learned-CC capture/persistence proof: routed a temporary CoreMIDI source into Ableton, armed MIDI Learn for `filter.resonance`, captured CC71, persisted the expected controller-map sidecar, and kept AU/controller value-application plus automation replay open.
 - [x] 2026-06-06 EDT: Executed VST3 continuous controller value-application proof: seeded the persisted CC71 map, routed a temporary CoreMIDI value source into Ableton, and captured hosted Resonance moving `0.00 -> 1.00 -> 0.00`.
+- [x] 2026-06-06 EDT: Executed VST3 controller Forget/stepped proof: seeded CC73 to `filter.mode`, captured Filter Mode moving `L4 -> Notch4 -> L2`, clicked hosted Forget, verified an empty sidecar, and confirmed later CC73 high no longer changed Filter Mode.
 - [ ] Hand off UI information architecture and visual polish plans to Claude Code after state contracts are ready.
 - [ ] Complete the remaining Phase 1 Ableton validation matrix against the Sylenth-level build.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
@@ -122,6 +123,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-vst3-hosted-editor-lifecycle.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-vst3-controller-learn-proof.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-vst3-controller-value-proof.md`
+- `docs/exec-plans/completed/2026-06-06-validate-ableton-vst3-controller-forget-stepped-proof.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
@@ -131,7 +133,7 @@ Product-order next Codex slice: complete the remaining Phase 1 Ableton host matr
 
 Preset browser, arp/step/chord, FX rack, modulation inspection, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; drag/drop modulation writing, per-route bypass/remove, per-control MIDI context menus, and richer browser metadata editing remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore, VST3 transport run/stop, VST3 offline bounce artifact creation, AU transport run/stop, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 learned-CC capture/persistence proof, and VST3 continuous controller value-application proof: automation, AU learned CC mapping/value application, VST3 Forget/stepped controller playback, preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic.
+The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore, VST3 transport run/stop, VST3 offline bounce artifact creation, AU transport run/stop, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 learned-CC capture/persistence proof, VST3 continuous controller value-application proof, and VST3 controller Forget/stepped proof: automation, AU learned CC mapping/value application, preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic.
 
 ## Risks and Watchpoints
 

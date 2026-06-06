@@ -11,7 +11,7 @@ triggers:
 
 # Validate Ableton VST3 Controller Value Proof
 
-This ExecPlan closes the VST3 continuous controller value-application proof gap that remained after the learned-CC capture/persistence pass. It does not close AU controller proof, VST3 host Forget/stepped mapped CC playback, or AU/VST3 automation record/playback.
+This ExecPlan closes the VST3 continuous controller value-application proof gap that remained after the learned-CC capture/persistence pass. It does not close AU controller proof or AU/VST3 automation record/playback. A later VST3 Forget/stepped playback pass closed the remaining VST3 controller-specific proof gap.
 
 ## Context
 
@@ -57,13 +57,12 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 
 The VST3 processor loaded the seeded global user map on construction and the hosted editor displayed the assignment without re-learning it. Live delivered the temporary value source into the VST3 track, the plugin footer MIDI count advanced, and the Filter section's Resonance readout followed CC71 from `0.00` to `1.00` and back to `0.00`.
 
-This proof is intentionally VST3-only and continuous-parameter-only. AU learned-CC mapping, AU value application, VST3 host Forget, and VST3 stepped mapped CC playback still need their own host proof.
+This proof is intentionally VST3-only and continuous-parameter-only. AU learned-CC mapping and AU value application still need their own host proof. A later VST3 host proof covered Forget and stepped mapped CC playback.
 
 ## Remaining Gaps
 
 - AU and VST3 automation record/playback.
 - AU learned CC mapping and value-application proof in Ableton.
-- VST3 host Forget and stepped-parameter mapped CC playback proof.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
