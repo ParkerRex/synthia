@@ -217,6 +217,7 @@ Rules:
 - `source` is required when `enabled` is true.
 - `scaler` may be `None`.
 - Unknown destinations should be preserved during migration when possible.
+- Runtime UI/model reads use `ModulationRouteModel` to derive route rows from the flat TransMod parameters. The legacy normalized `transmod.N.depth` field remains a cutoff-depth contributor and is surfaced as a contributing route parameter when present.
 
 ## Macro Shape
 

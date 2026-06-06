@@ -1,5 +1,6 @@
 #include "../../src/plugin/ParameterRegistry.h"
 #include "../../src/dsp/SynthParameters.h"
+#include "../../src/modulation/ModulationRouteModel.h"
 #include "../../src/presets/PresetManager.h"
 #include "../../src/presets/PresetValidator.h"
 
@@ -112,6 +113,98 @@ bool setPhysicalParameter(juce::AudioProcessorValueTreeState& parameters, const 
 bool containsString(const std::vector<std::string>& values, const std::string& expected)
 {
     return std::find(values.begin(), values.end(), expected) != values.end();
+}
+
+bool checkModulationRouteModel()
+{
+    const auto& sources = synth::modulationSourceCatalog();
+    const auto& destinations = synth::modulationDestinationCatalog();
+
+    const auto* lfoSource = synth::findModulationSourceInfo(synth::ModSource::Lfo);
+    const auto* macroSource = synth::findModulationSourceInfo("macro.motion");
+    const auto* filterDestination = synth::findModulationDestinationInfo("filter.cutoff");
+    if (sources.size() != 20
+        || destinations.size() != 5
+        || lfoSource == nullptr
+        || lfoSource->id != "lfo.1"
+        || lfoSource->polarity != synth::ModulationPolarity::Bipolar
+        || lfoSource->scope != synth::ModulationScope::Voice
+        || lfoSource->updateRate != synth::ModulationUpdateRate::Audio
+        || macroSource == nullptr
+        || macroSource->source != synth::ModSource::Macro1
+        || filterDestination == nullptr
+        || filterDestination->targetParameterId != "filter.cutoff_semitones"
+        || synth::transModDepthParameterId(1, *filterDestination) != "transmod.1.filter_cutoff_semitones"
+        || !synth::transModDepthParameterId(0, *filterDestination).empty())
+    {
+        std::cerr << "Modulation source/destination catalog mismatch.\n";
+        return false;
+    }
+
+    synth::SynthParameters parameters;
+    auto& slotOne = parameters.transMod.slots[0];
+    slotOne.enabled = true;
+    slotOne.source = synth::ModSource::Lfo;
+    slotOne.scaler = synth::ModSource::Macro1;
+    slotOne.oscPitchSemitones = 7.0f;
+    slotOne.filterCutoffSemitones = 12.0f;
+    slotOne.pan = -0.25f;
+
+    auto& slotTwo = parameters.transMod.slots[1];
+    slotTwo.enabled = true;
+    slotTwo.source = synth::ModSource::Ramp;
+    slotTwo.depth = 0.5f; // legacy normalized cutoff depth
+
+    auto& cancellingLegacySlot = parameters.transMod.slots[2];
+    cancellingLegacySlot.enabled = true;
+    cancellingLegacySlot.source = synth::ModSource::Macro2;
+    cancellingLegacySlot.filterCutoffSemitones = 72.0f;
+    cancellingLegacySlot.depth = -1.0f;
+
+    auto& disabledSlot = parameters.transMod.slots[3];
+    disabledSlot.enabled = false;
+    disabledSlot.source = synth::ModSource::ModWheel;
+    disabledSlot.ampLevelDb = 6.0f;
+
+    const auto view = synth::buildModulationRouteView(parameters.transMod);
+    auto findRoute = [&view](int slotNumber, const std::string& destinationId) {
+        return std::find_if(view.activeRoutes.begin(), view.activeRoutes.end(),
+                            [slotNumber, &destinationId](const auto& route) {
+                                return route.slotNumber == slotNumber && route.destinationId == destinationId;
+                            });
+    };
+
+    const auto slotOneOscRoute = findRoute(1, "osc.pitch");
+    const auto slotOneFilterRoute = findRoute(1, "filter.cutoff");
+    const auto slotTwoFilterRoute = findRoute(2, "filter.cutoff");
+    const auto cancellingLegacyRoute = findRoute(3, "filter.cutoff");
+    if (view.slots.size() != synth::transModSlotCount
+        || view.activeRoutes.size() != 5
+        || view.slots[0].routes.size() != 3
+        || view.slots[2].routes.size() != 1
+        || !view.slots[3].routes.empty()
+        || slotOneOscRoute == view.activeRoutes.end()
+        || slotOneOscRoute->sourceId != "lfo.1"
+        || slotOneOscRoute->scalerId != "macro.motion"
+        || slotOneOscRoute->depthParameterId != "transmod.1.osc_pitch_semitones"
+        || std::abs(slotOneOscRoute->depth - 7.0f) > 0.0001f
+        || slotOneFilterRoute == view.activeRoutes.end()
+        || slotOneFilterRoute->depthParameterId != "transmod.1.filter_cutoff_semitones"
+        || containsString(slotOneFilterRoute->depthParameterIds, "transmod.1.depth")
+        || slotTwoFilterRoute == view.activeRoutes.end()
+        || slotTwoFilterRoute->depthParameterId != "transmod.2.depth"
+        || !containsString(slotTwoFilterRoute->depthParameterIds, "transmod.2.depth")
+        || std::abs(slotTwoFilterRoute->depth - 36.0f) > 0.0001f
+        || cancellingLegacyRoute == view.activeRoutes.end()
+        || cancellingLegacyRoute->depthParameterId != "transmod.3.filter_cutoff_semitones"
+        || !containsString(cancellingLegacyRoute->depthParameterIds, "transmod.3.depth")
+        || std::abs(cancellingLegacyRoute->depth) > 0.0001f)
+    {
+        std::cerr << "Modulation route view did not reflect TransMod slots correctly.\n";
+        return false;
+    }
+
+    return true;
 }
 
 void removeParameterChildrenStartingWith(juce::ValueTree& state, const char* prefix)
@@ -609,6 +702,9 @@ int main()
         std::cerr << "APVTS state round-trip failed.\n";
         return 1;
     }
+
+    if (!checkModulationRouteModel())
+        return 1;
 
     if (!checkHostStateDefaultMerge())
     {

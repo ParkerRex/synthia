@@ -8,7 +8,7 @@ Active child plans:
 
 Product-order next slice: `2026-06-05-handoff-modulation-preset-arp-ui-polish.md`.
 
-UI handoff rule: the modern shell handoff is completed. Preset browser, arp/step/chord, and FX rack polish are model-ready; modulation polish remains gated on the future route model.
+UI handoff rule: the modern shell handoff is completed. Preset browser, arp/step/chord, FX rack, and modulation inspection polish are model-ready. Drag/drop modulation writing still needs a later write-adapter/schema slice.
 
 Completed child plans:
 
@@ -19,6 +19,7 @@ Completed child plans:
 - `../completed/2026-06-05-rename-project-identity-to-sylenth-ai.md`
 - `../completed/2026-06-06-build-preset-browser-and-bank-workflow.md`
 - `../completed/2026-06-06-build-fx-rack-expansion.md`
+- `../completed/2026-06-06-build-modulation-route-model.md`
 
 Superseded historical plans retained for context:
 

@@ -690,6 +690,11 @@ juce::String SynthAudioProcessor::getCurrentPresetFilePath() const
     return currentPresetFilePath;
 }
 
+synth::ModulationRouteView SynthAudioProcessor::getModulationRouteView() const
+{
+    return synth::buildModulationRouteView(readParameters(128.0f, false).transMod);
+}
+
 SynthAudioProcessor::DiagnosticsSnapshot SynthAudioProcessor::getDiagnosticsSnapshot() const
 {
     DiagnosticsSnapshot snapshot;

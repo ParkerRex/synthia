@@ -70,6 +70,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed Phase 1 preset browser/bank workflow with scan summaries, bank/category/tag metadata, favorites, search/filter state, and validation hooks.
 - [x] 2026-06-06 EDT: Executed bounded arp/step/chord UI exposure with real APVTS bindings and opened the stacked UI PR.
 - [x] 2026-06-06 EDT: Executed Phase 1 FX rack expansion with fixed-order rack state, distortion/phaser/EQ/compressor DSP, editor bindings, adversarial fixes, and validation.
+- [x] 2026-06-06 EDT: Executed Phase 1 modulation route model and destination catalog over the existing TransMod engine, with adversarial fixes and validation.
 - [ ] Hand off UI information architecture and visual polish plans to Claude Code after state contracts are ready.
 - [ ] Execute Phase 1 Ableton validation against the Sylenth-level build.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
@@ -98,6 +99,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-05-handoff-modern-sylenth-ui-shell.md`
 - `docs/exec-plans/completed/2026-06-05-rename-project-identity-to-sylenth-ai.md`
 - `docs/exec-plans/completed/2026-06-06-build-fx-rack-expansion.md`
+- `docs/exec-plans/completed/2026-06-06-build-modulation-route-model.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
@@ -105,7 +107,7 @@ Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
 Product-order next slice: `docs/exec-plans/active/2026-06-05-handoff-modulation-preset-arp-ui-polish.md`.
 
-Preset browser, arp/step/chord, and FX rack state now exist, so Claude Code can take a bounded visual polish pass on those ready surfaces. Modulation route polish remains separately gated by the future route model.
+Preset browser, arp/step/chord, FX rack, and modulation inspection state now exist. Claude Code can take a bounded visual polish pass over those ready surfaces; drag/drop modulation writing and per-route bypass/remove remain a later write-adapter/schema slice.
 
 ## Risks and Watchpoints
 

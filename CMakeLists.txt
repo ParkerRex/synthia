@@ -64,6 +64,8 @@ set(SYLENTH_AI_COMMON_SOURCES
     src/dsp/SynthParameters.h
     src/dsp/fx/FxChain.cpp
     src/dsp/fx/FxChain.h
+    src/modulation/ModulationRouteModel.cpp
+    src/modulation/ModulationRouteModel.h
     src/plugin/ParameterRegistry.cpp
     src/plugin/ParameterRegistry.h
     src/presets/PresetManager.cpp

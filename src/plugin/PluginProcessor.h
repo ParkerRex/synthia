@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 #include "../dsp/SynthEngine.h"
+#include "../modulation/ModulationRouteModel.h"
 #include "ParameterRegistry.h"
 
 #include <array>
@@ -74,6 +75,7 @@ public:
     bool savePresetFile(const juce::File& file, const juce::String& displayName, juce::String& message);
     juce::String getCurrentPresetName() const;
     juce::String getCurrentPresetFilePath() const;
+    synth::ModulationRouteView getModulationRouteView() const;
     DiagnosticsSnapshot getDiagnosticsSnapshot() const;
     void requestPanic() noexcept;
 

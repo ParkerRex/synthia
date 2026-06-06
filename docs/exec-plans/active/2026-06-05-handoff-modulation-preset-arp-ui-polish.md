@@ -12,7 +12,7 @@ read_when:
 program_id: sylenth-lab-rebuild
 planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
 handoff_target: Claude Code
-handoff_status: partial_ready_for_preset_arp_and_fx
+handoff_status: model_ready_for_preset_arp_fx_and_modulation_inspection
 ---
 
 # Handoff Modulation Preset Arp UI Polish
@@ -28,7 +28,7 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 ## Progress
 
 - [x] 2026-06-05 EDT: Created this UI handoff ExecPlan.
-- [ ] Confirm modulation route model exists before modulation UI handoff.
+- [x] 2026-06-06 EDT: Confirmed modulation route model exists for source/destination catalogs and route inspection over the current TransMod slots.
 - [x] 2026-06-06 EDT: Confirmed preset browser/source/bank/category/tag/favorite/search model exists before browser UI handoff.
 - [x] 2026-06-06 EDT: Confirmed arp/step/chord engine and APVTS model exists before arp UI handoff.
 - [x] 2026-06-06 EDT: Confirmed fixed-order FX rack model exists before FX UI handoff.
@@ -41,6 +41,7 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [x] 2026-06-06 EDT: Applied bounded local UI polish in `PluginEditor.cpp`: preset popup sections, ordered FX rack stage titles/badges, reserved title/badge spacing, and framed arp/chord grids.
 - [x] 2026-06-06 EDT: Captured native standalone screenshot evidence at `build/reports/ui/preset-arp-fx-polish-sound.png`, `build/reports/ui/preset-arp-fx-polish-sound-paged.png`, and `build/reports/ui/preset-arp-fx-polish-effects.png`.
 - [x] 2026-06-06 EDT: Passed `git diff --check`, standalone rebuild, CTest, and `SylenthAIRender --suite core` for the UI polish slice.
+- [x] 2026-06-06 EDT: Route model handoff dependency landed in `ModulationRouteModel`: source catalog, destination catalog, active route summaries, and legacy cutoff-depth visibility. Drag/drop write adapters, per-route bypass/remove, and expanded destinations remain out of scope.
 
 ## Surprises & Discoveries
 
@@ -56,7 +57,7 @@ Date: 2026-06-05.
 
 ## Outcomes & Retrospective
 
-Partial arp/step/chord implementation passed build, CTest, adversarial review, and native standalone visual launch/row evidence. FX rack state is now model-backed and has a first local visual polish pass with ordered module badges. Modulation polish remains gated by its route model.
+Partial arp/step/chord implementation passed build, CTest, adversarial review, and native standalone visual launch/row evidence. FX rack state is now model-backed and has a first local visual polish pass with ordered module badges. Modulation inspection polish now has a route model over the current TransMod state.
 
 The next Claude Code pass can target deeper preset browser, arp/step/chord, and FX rack visual polish only. It must not invent modulation-route UI state until the route model lands.
 
@@ -64,7 +65,7 @@ The next Claude Code pass can target deeper preset browser, arp/step/chord, and 
 
 Do not hand a surface to Claude Code until the relevant dependency exists:
 
-- Modulation polish requires a route model and destination catalog.
+- Modulation inspection polish can now bind to `ModulationRouteModel`, source/destination catalogs, `SynthAudioProcessor::getModulationRouteView()`, and current `transmod.N.*` APVTS fields. Drag/drop writing, per-route bypass/remove, and expanded destination creation still require a later write-adapter/schema slice.
 - Preset browser polish can now bind to `PresetSummary`, `PresetBrowserFilter`, `PresetBrowserCatalog`, source/bank/category/tag fields, and sidecar favorite keys.
 - Arp UI polish now has a bounded APVTS-backed editor surface for `arp.*`, `arp.step.N.*`, `chord.*`, and `chord.voice.N.*`; direct visual QA and any deeper Claude polish remain.
 - FX rack polish can now bind to fixed-order distortion/saturation, phaser, chorus/flanger-style modulation, EQ, delay, reverb, compressor, master bypass, quality, tail, and patch-cost state.
