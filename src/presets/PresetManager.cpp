@@ -7,11 +7,18 @@
 #include <juce_core/juce_core.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <cctype>
 #include <cmath>
+#include <cstring>
 #include <random>
 #include <string_view>
 #include <system_error>
+
+#if JUCE_MAC || JUCE_LINUX
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 #if JUCE_MAC
 #include <dlfcn.h>
@@ -550,6 +557,71 @@ std::vector<std::string> normalizedFavoriteKeys(std::vector<std::string> favorit
     return favoriteKeys;
 }
 
+void hashBytes(std::uint64_t& hash, std::string_view bytes) noexcept
+{
+    for (const auto character : bytes)
+    {
+        hash ^= static_cast<std::uint8_t>(character);
+        hash *= 1099511628211ull;
+    }
+}
+
+void hashInteger(std::uint64_t& hash, std::int64_t value) noexcept
+{
+    for (auto byte = 0; byte < 8; ++byte)
+    {
+        hash ^= static_cast<std::uint8_t>((static_cast<std::uint64_t>(value) >> (byte * 8)) & 0xffu);
+        hash *= 1099511628211ull;
+    }
+}
+
+std::int64_t quantizedFingerprintValue(const ParameterSpec& spec, float physicalValue) noexcept
+{
+    physicalValue = clampPhysicalParameterValue(spec, physicalValue);
+    if (spec.kind == ParameterKind::Bool)
+        return physicalValue >= 0.5f ? 1 : 0;
+
+    if (spec.kind == ParameterKind::Choice)
+        return static_cast<std::int64_t>(std::round(physicalValue));
+
+    const auto resolution = spec.interval > 0.0f ? spec.interval : 0.000001f;
+    return static_cast<std::int64_t>(std::floor((physicalValue - spec.minimum) / resolution + 0.5f));
+}
+
+juce::var stateParameterValue(const juce::ValueTree& state, const std::string& parameterId)
+{
+    const auto juceId = juce::String(parameterId);
+    for (const auto& child : state)
+    {
+        if (child.hasType("PARAM") && child.getProperty("id").toString() == juceId)
+            return child.getProperty("value");
+    }
+
+    return {};
+}
+
+PresetStateFingerprint fingerprintRegistryValues(const std::vector<float>& physicalValues)
+{
+    PresetStateFingerprint fingerprint;
+    fingerprint.valid = true;
+    fingerprint.hash = 1469598103934665603ull;
+
+    const auto& specs = getParameterSpecs();
+    for (std::size_t index = 0; index < specs.size(); ++index)
+    {
+        const auto& spec = specs[index];
+        if (!spec.presetSerialized)
+            continue;
+
+        hashBytes(fingerprint.hash, spec.id);
+        hashInteger(fingerprint.hash,
+                    quantizedFingerprintValue(spec, physicalValues[index]));
+        ++fingerprint.comparedParameterCount;
+    }
+
+    return fingerprint;
+}
+
 juce::var currentParameterObject(const juce::AudioProcessorValueTreeState& parameters)
 {
     auto object = std::make_unique<juce::DynamicObject>();
@@ -974,6 +1046,76 @@ bool writeFavoritePresetKeys(const std::filesystem::path& path,
     return true;
 }
 
+static bool writeNewTextFile(const std::filesystem::path& path, const juce::String& text, std::string& error)
+{
+#if JUCE_MAC || JUCE_LINUX
+    const auto pathText = path.string();
+    const auto descriptor = ::open(pathText.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0644);
+    if (descriptor == -1)
+    {
+        error = errno == EEXIST
+            ? "preset already exists: " + path.string()
+            : "could not create preset file: " + std::string(std::strerror(errno));
+        return false;
+    }
+
+    auto remaining = text.getNumBytesAsUTF8();
+    auto* cursor = text.toRawUTF8();
+    while (remaining > 0)
+    {
+        const auto written = ::write(descriptor, cursor, remaining);
+        if (written < 0 && errno == EINTR)
+            continue;
+
+        if (written <= 0)
+        {
+            const auto writeError = errno;
+            ::close(descriptor);
+            std::error_code removeError;
+            std::filesystem::remove(path, removeError);
+            error = "could not write preset file: " + std::string(std::strerror(writeError));
+            return false;
+        }
+
+        cursor += written;
+        remaining -= static_cast<std::size_t>(written);
+    }
+
+    if (::close(descriptor) != 0)
+    {
+        const auto closeError = errno;
+        std::error_code removeError;
+        std::filesystem::remove(path, removeError);
+        error = "could not close preset file: " + std::string(std::strerror(closeError));
+        return false;
+    }
+
+    return true;
+#else
+    const auto tempPath = path.parent_path()
+        / ("." + path.filename().string() + ".tmp-" + std::to_string(juce::Time::getMillisecondCounter()));
+    const auto tempFile = juce::File(juce::String(tempPath.string()));
+    if (!tempFile.replaceWithText(text, false, false, "\n"))
+    {
+        error = "could not write temporary preset file: " + tempPath.string();
+        return false;
+    }
+
+    std::error_code copyError;
+    const auto copied = std::filesystem::copy_file(tempPath, path, std::filesystem::copy_options::none, copyError);
+    std::error_code removeError;
+    std::filesystem::remove(tempPath, removeError);
+    if (!copied)
+    {
+        error = copyError ? "could not create preset file: " + copyError.message()
+                          : "preset already exists: " + path.string();
+        return false;
+    }
+
+    return true;
+#endif
+}
+
 bool setPresetFavorite(const std::filesystem::path& path,
                        const std::string& favoriteKey,
                        bool favorite,
@@ -1036,6 +1178,7 @@ PresetLoadResult preparePresetState(juce::AudioProcessorValueTreeState& paramete
     state.setProperty("schema_version", 1, nullptr);
     state.setProperty("plugin_version", SYLENTH_AI_PROJECT_VERSION, nullptr);
     state.setProperty("current_preset", juce::String(result.displayName), nullptr);
+    result.fingerprint = fingerprintPresetState(state);
     result.state = state;
     return result;
 }
@@ -1050,6 +1193,7 @@ PresetLoadResult prepareInitPresetState(juce::AudioProcessorValueTreeState& para
     result.loaded = true;
     result.message = "Initialized preset";
     result.displayName = "Init";
+    result.fingerprint = fingerprintPresetState(state);
     result.state = state;
     return result;
 }
@@ -1072,6 +1216,104 @@ PresetLoadResult prepareRandomizedPresetState(juce::AudioProcessorValueTreeState
     result.loaded = true;
     result.message = "Randomized preset: seed " + std::to_string(seed);
     result.displayName = displayName;
+    result.fingerprint = fingerprintPresetState(state);
+    result.state = state;
+    return result;
+}
+
+PresetStateFingerprint fingerprintCurrentPresetState(const juce::AudioProcessorValueTreeState& parameters)
+{
+    const auto& specs = getParameterSpecs();
+    std::vector<float> physicalValues(specs.size(), 0.0f);
+
+    for (std::size_t index = 0; index < specs.size(); ++index)
+    {
+        const auto& spec = specs[index];
+        auto value = spec.kind == ParameterKind::Choice
+            ? static_cast<float>(spec.defaultChoice)
+            : spec.defaultValue;
+
+        if (const auto* parameter = parameters.getParameter(juce::String(spec.id)))
+            value = parameter->convertFrom0to1(parameter->getValue());
+
+        physicalValues[index] = clampPhysicalParameterValue(spec, value);
+    }
+
+    return fingerprintRegistryValues(physicalValues);
+}
+
+PresetStateFingerprint fingerprintPresetState(const juce::ValueTree& state)
+{
+    if (!state.isValid())
+        return {};
+
+    const auto& specs = getParameterSpecs();
+    std::vector<float> physicalValues(specs.size(), 0.0f);
+
+    for (std::size_t index = 0; index < specs.size(); ++index)
+    {
+        const auto& spec = specs[index];
+        const auto value = stateParameterValue(state, spec.id);
+        if (value.isVoid())
+        {
+            physicalValues[index] = spec.kind == ParameterKind::Choice
+                ? static_cast<float>(spec.defaultChoice)
+                : spec.defaultValue;
+        }
+        else
+        {
+            physicalValues[index] = physicalValueFromStateValue(spec, value);
+        }
+    }
+
+    return fingerprintRegistryValues(physicalValues);
+}
+
+PresetDirtyState comparePresetDirtyState(const juce::AudioProcessorValueTreeState& parameters,
+                                         const PresetStateFingerprint& baseline)
+{
+    PresetDirtyState state;
+    state.current = fingerprintCurrentPresetState(parameters);
+    state.baseline = baseline;
+    state.dirty = !state.current.valid
+        || !state.baseline.valid
+        || state.current.comparedParameterCount != state.baseline.comparedParameterCount
+        || state.current.hash != state.baseline.hash;
+    return state;
+}
+
+PresetCompareSlot capturePresetCompareSlot(juce::AudioProcessorValueTreeState& parameters,
+                                           const std::string& label)
+{
+    PresetCompareSlot slot;
+    slot.label = label.empty() ? "Compare Slot" : label;
+    slot.state = parameters.copyState();
+    slot.captured = slot.state.isValid();
+    slot.fingerprint = fingerprintPresetState(slot.state);
+    return slot;
+}
+
+PresetLoadResult preparePresetCompareSlotState(juce::AudioProcessorValueTreeState& parameters,
+                                               const PresetCompareSlot& slot)
+{
+    PresetLoadResult result;
+    if (!slot.captured || !slot.state.isValid())
+    {
+        result.message = "Compare slot is empty";
+        return result;
+    }
+
+    auto state = mergeParameterStateWithDefaults(parameters, slot.state);
+    const auto displayName = slot.label.empty() ? std::string("Compare Slot") : slot.label;
+    state.setProperty("schema_version", 1, nullptr);
+    state.setProperty("plugin_version", SYLENTH_AI_PROJECT_VERSION, nullptr);
+    state.setProperty("current_preset", juce::String(displayName), nullptr);
+    state.setProperty("current_preset_path", "", nullptr);
+
+    result.loaded = true;
+    result.message = "Loaded compare slot: " + displayName;
+    result.displayName = displayName;
+    result.fingerprint = fingerprintPresetState(state);
     result.state = state;
     return result;
 }
@@ -1104,8 +1346,33 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
                         const std::string& displayName,
                         std::string& error)
 {
+    PresetWriteOptions options;
+    options.metadata.displayName = displayName;
+    return writeCurrentPreset(parameters, path, options, error);
+}
+
+bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
+                        const std::filesystem::path& path,
+                        const PresetWriteOptions& options,
+                        std::string& error)
+{
     const auto destination = withJsonExtension(path);
-    const auto safeName = displayName.empty() ? std::string("User Preset") : displayName;
+    const auto safeName = options.metadata.displayName.empty() ? std::string("User Preset")
+                                                               : options.metadata.displayName;
+    std::error_code existsError;
+    const auto destinationExists = std::filesystem::exists(destination, existsError);
+    if (existsError)
+    {
+        error = "could not inspect preset destination: " + existsError.message();
+        return false;
+    }
+
+    if (options.mode == PresetWriteMode::CreateNew && destinationExists)
+    {
+        error = "preset already exists: " + destination.string();
+        return false;
+    }
+
     std::error_code createError;
     if (!destination.parent_path().empty())
         std::filesystem::create_directories(destination.parent_path(), createError);
@@ -1120,9 +1387,23 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
     root->setProperty("plugin_min_version", SYLENTH_AI_PROJECT_VERSION);
     root->setProperty("id", juce::String(presetIdFromDisplayName(safeName)));
     root->setProperty("display_name", juce::String(safeName));
-    root->setProperty("author", "User");
-    root->setProperty("description", "User preset saved from the sylenth-ai editor.");
-    root->setProperty("tags", juce::Array<juce::var> { juce::var("user") });
+    root->setProperty("author", juce::String(options.metadata.author.empty() ? "User"
+                                                                             : options.metadata.author));
+    root->setProperty("description", juce::String(options.metadata.description.empty()
+        ? "User preset saved from the sylenth-ai editor."
+        : options.metadata.description));
+    const auto tagsToWrite = options.metadata.tags.empty()
+        ? std::vector<std::string> { "user" }
+        : options.metadata.tags;
+    auto tags = juce::Array<juce::var> {};
+    for (const auto& tag : tagsToWrite)
+    {
+        if (!tag.empty())
+            tags.add(juce::var(juce::String(tag)));
+    }
+    if (tags.isEmpty())
+        tags.add(juce::var("user"));
+    root->setProperty("tags", tags);
     root->setProperty("parameters", currentParameterObject(parameters));
     root->setProperty("mod_slots", currentModSlotArray(parameters));
     root->setProperty("macros", currentMacroArray(parameters));
@@ -1130,16 +1411,30 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
     auto metadata = std::make_unique<juce::DynamicObject>();
     metadata->setProperty("program", "sylenth_lab_rebuild");
     auto browser = std::make_unique<juce::DynamicObject>();
-    browser->setProperty("bank", "User");
-    browser->setProperty("category", "User");
+    browser->setProperty("bank", juce::String(options.metadata.bank.empty() ? "User"
+                                                                            : options.metadata.bank));
+    browser->setProperty("category", juce::String(options.metadata.category.empty() ? "User"
+                                                                                    : options.metadata.category));
     browser->setProperty("source", "user");
     metadata->setProperty("browser", juce::var(browser.release()));
     root->setProperty("metadata", juce::var(metadata.release()));
 
-    const auto file = juce::File(juce::String(destination.string()));
-    if (!file.replaceWithText(juce::JSON::toString(juce::var(root.release()), true), false, false, "\n"))
+    const auto presetJson = juce::JSON::toString(juce::var(root.release()), true);
+    auto wrotePreset = false;
+    if (options.mode == PresetWriteMode::CreateNew)
     {
-        error = "could not write preset file: " + destination.string();
+        wrotePreset = writeNewTextFile(destination, presetJson, error);
+    }
+    else
+    {
+        const auto file = juce::File(juce::String(destination.string()));
+        wrotePreset = file.replaceWithText(presetJson, false, false, "\n");
+        if (!wrotePreset)
+            error = "could not write preset file: " + destination.string();
+    }
+
+    if (!wrotePreset)
+    {
         return false;
     }
 

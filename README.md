@@ -23,6 +23,7 @@ The repo builds a JUCE/CMake instrument scaffold with:
 - A Phase 1 A/B layer and four oscillator-slot backbone in host/preset state; Layer A maps to the current sound path and Layer B is valid but disabled by default.
 - Factory presets, preset schema validation, MIDI fixture rendering, and JSON report generation.
 - A registry-bound editor with factory/user preset load-save-duplicate workflow, TransMod slot editing, and diagnostics.
+- Preset workflow model support for metadata-aware writes, no-clobber create-only safe-save checks, dirty-state baseline fingerprints, and local A/B compare slot state.
 - Core validation for oscillator/filter behavior, modulation routing, voice allocation, dry/wet renders, render determinism, and preset loading.
 
 Phase 1 host validation in Ableton is underway: current proof covers AU/VST3 scan-load-play smoke, current VST3 rescan/create/play, AU/VST3 Live-set state restore, VST3 transport run/stop, VST3 offline bounce artifact creation, AU transport run/stop with the hosted AU editor visible, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 learned-CC capture/persistence, VST3 continuous controller value application, and VST3 host Forget/stepped controller playback. Remaining validation covers automation, AU learned controller mapping/value application, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, and panic.

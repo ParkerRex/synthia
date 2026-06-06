@@ -44,6 +44,7 @@ The current contract validation proves:
 - no unknown preset parameter IDs,
 - TransMod slot objects use valid slot IDs, source/scaler choices, depth domains, and destination IDs.
 - Init, Reset, and seedable Randomize commands prepare ordinary APVTS state without mutating live state before replacement.
+- Preset workflow helpers cover metadata-aware writes, no-clobber create-only safe-save rejection, dirty-state comparison against immutable baseline fingerprints, and local A/B compare slot capture/recall without mutating live state before replacement.
 - MIDI controller-map normalization rejects invalid assignments, resolves CC/parameter conflicts deterministically, and round-trips through the global user sidecar JSON shape.
 
 The current voice-core validation proves:

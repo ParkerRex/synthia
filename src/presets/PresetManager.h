@@ -16,6 +16,12 @@ enum class PresetSource
     LegacyUser,
 };
 
+enum class PresetWriteMode
+{
+    CreateNew,
+    OverwriteExisting,
+};
+
 struct PresetSummary
 {
     std::filesystem::path path;
@@ -52,12 +58,51 @@ struct PresetBrowserCatalog
     std::vector<std::string> tags;
 };
 
+struct PresetStateFingerprint
+{
+    bool valid = false;
+    int comparedParameterCount = 0;
+    std::uint64_t hash = 0;
+};
+
 struct PresetLoadResult
 {
     bool loaded = false;
     std::string message;
     std::string displayName;
     juce::ValueTree state;
+    PresetStateFingerprint fingerprint;
+};
+
+struct PresetWriteMetadata
+{
+    std::string displayName;
+    std::string author = "User";
+    std::string description = "User preset saved from the sylenth-ai editor.";
+    std::vector<std::string> tags { "user" };
+    std::string bank = "User";
+    std::string category = "User";
+};
+
+struct PresetWriteOptions
+{
+    PresetWriteMetadata metadata;
+    PresetWriteMode mode = PresetWriteMode::OverwriteExisting;
+};
+
+struct PresetDirtyState
+{
+    PresetStateFingerprint current;
+    PresetStateFingerprint baseline;
+    bool dirty = false;
+};
+
+struct PresetCompareSlot
+{
+    bool captured = false;
+    std::string label;
+    juce::ValueTree state;
+    PresetStateFingerprint fingerprint;
 };
 
 std::vector<PresetSummary> scanPresetDirectory(const std::filesystem::path& directory, bool factory);
@@ -89,6 +134,14 @@ PresetLoadResult preparePresetState(juce::AudioProcessorValueTreeState& paramete
 PresetLoadResult prepareInitPresetState(juce::AudioProcessorValueTreeState& parameters);
 PresetLoadResult prepareRandomizedPresetState(juce::AudioProcessorValueTreeState& parameters,
                                               std::uint32_t seed);
+PresetStateFingerprint fingerprintCurrentPresetState(const juce::AudioProcessorValueTreeState& parameters);
+PresetStateFingerprint fingerprintPresetState(const juce::ValueTree& state);
+PresetDirtyState comparePresetDirtyState(const juce::AudioProcessorValueTreeState& parameters,
+                                         const PresetStateFingerprint& baseline);
+PresetCompareSlot capturePresetCompareSlot(juce::AudioProcessorValueTreeState& parameters,
+                                           const std::string& label);
+PresetLoadResult preparePresetCompareSlotState(juce::AudioProcessorValueTreeState& parameters,
+                                               const PresetCompareSlot& slot);
 
 juce::ValueTree mergeParameterStateWithDefaults(juce::AudioProcessorValueTreeState& parameters,
                                                 const juce::ValueTree& overrideState);
@@ -99,5 +152,9 @@ PresetLoadResult loadPresetIntoState(juce::AudioProcessorValueTreeState& paramet
 bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
                         const std::filesystem::path& path,
                         const std::string& displayName,
+                        std::string& error);
+bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
+                        const std::filesystem::path& path,
+                        const PresetWriteOptions& options,
                         std::string& error);
 } // namespace synth

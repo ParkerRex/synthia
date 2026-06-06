@@ -150,7 +150,7 @@ Reset depends on the current preset path. If the current state has no file path 
 
 No source-controlled runtime artifacts are produced. Disposable validation reports remain under `build/reports/`.
 
-Remaining follow-up: add UI controls for Init/Randomize/Reset, dirty state, safe overwrite, A/B compare, and measured finite render proof for broader AI/randomized patch classes.
+Remaining follow-up: add UI controls for Init/Randomize/Reset, safe overwrite prompts, dirty indicators, A/B compare controls, and measured finite render proof for broader AI/randomized patch classes. The backend dirty/safe-save/A-B state model landed later in `2026-06-06-build-preset-workflow-state-model.md`.
 
 ## Interfaces and Dependencies
 
