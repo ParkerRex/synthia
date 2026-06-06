@@ -20,6 +20,8 @@
 - `2026-06-06-build-modulation-route-model.md`
 - `2026-06-06-build-midi-controller-workflow.md`
 - `2026-06-06-build-patch-cost-and-voice-math-model.md`
+- `2026-06-06-build-preset-command-model.md`
+- `2026-06-06-build-randomize-render-validation.md`
 - `2026-06-06-validate-ableton-current-build-smoke.md`
 - `2026-06-06-validate-ableton-state-restore-smoke.md`
 - `2026-06-06-validate-ableton-transport-device-smoke.md`
@@ -31,3 +33,5 @@
 - `2026-06-06-validate-ableton-vst3-controller-learn-proof.md`
 - `2026-06-06-validate-ableton-vst3-controller-value-proof.md`
 - `2026-06-06-validate-ableton-vst3-controller-forget-stepped-proof.md`
+- `2026-06-06-validate-ableton-au-controller-value-proof.md`
+- `2026-06-06-validate-ableton-au-controller-learn-proof.md`
