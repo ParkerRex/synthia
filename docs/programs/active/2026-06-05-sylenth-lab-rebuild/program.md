@@ -80,10 +80,11 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed hosted UI lifecycle attempt: proved the hosted AU editor can close while transport is running; a later control pass corrected the failed-reopen conclusion as an automation-targeting miss.
 - [x] 2026-06-06 EDT: Executed hosted AU editor reopen control: restored the original resizable editor, rebuilt/reinstalled, passed CTest/bundle checks/auval, and proved hosted AU editor open/close/reopen while transport runs with a precise CoreGraphics click on Ableton's device-header wrench.
 - [x] 2026-06-06 EDT: Executed VST3 hosted editor lifecycle proof: dragged the current VST3 into a fresh Ableton set, verified VST3 create logs, and proved hosted VST3 editor open/close/reopen while transport runs.
-- [x] 2026-06-06 EDT: Executed VST3 learned-CC capture/persistence proof: routed a temporary CoreMIDI source into Ableton, armed MIDI Learn for `filter.resonance`, captured CC71, persisted the expected controller-map sidecar, and kept AU/controller value-application plus automation replay open.
+- [x] 2026-06-06 EDT: Executed VST3 learned-CC capture/persistence proof: routed a temporary CoreMIDI source into Ableton, armed MIDI Learn for `filter.resonance`, captured CC71, persisted the expected controller-map sidecar, and kept AU controller proof plus automation replay open at that point.
 - [x] 2026-06-06 EDT: Executed VST3 continuous controller value-application proof: seeded the persisted CC71 map, routed a temporary CoreMIDI value source into Ableton, and captured hosted Resonance moving `0.00 -> 1.00 -> 0.00`.
 - [x] 2026-06-06 EDT: Executed VST3 controller Forget/stepped proof: seeded CC73 to `filter.mode`, captured Filter Mode moving `L4 -> Notch4 -> L2`, clicked hosted Forget, verified an empty sidecar, and confirmed later CC73 high no longer changed Filter Mode.
 - [x] 2026-06-06 EDT: Executed AU controller value-application proof: seeded CC72 to `filter.resonance`, loaded the AU from `Audio Units > ParkerX > sylenth-ai`, verified the hosted mapping display, and captured Resonance moving `0.00 -> 1.00 -> 0.00`.
+- [x] 2026-06-06 EDT: Executed AU in-editor MIDI Learn proof: loaded the AU fresh with no sidecar, selected `FILTER / Resonance` in the hosted MIDI CONTROL panel, captured CC74 from a temporary CoreMIDI source, and verified the written `CC74 -> filter.resonance` sidecar.
 - [x] 2026-06-06 EDT: Executed Phase 1 patch recreation suite with five additional lab-authored Factory presets, renderer support for preset-loaded arp/chord state, standalone WAV/JSON proof, and CTest coverage.
 - [x] 2026-06-06 EDT: Executed modulation write adapter slice with route-write compilation to existing `transmod.N.*` APVTS fields, processor write/clear APIs, and contract tests for writes, invalid inputs, clamping, and slot clearing.
 - [x] 2026-06-06 EDT: Executed patch cost and voice math model slice with a shared estimator, processor diagnostic exposure, header active/max voice display, and contract tests for default, high-cost, zero-level, solo/mute, mono/unison/poly, filter, and FX cases.
@@ -139,6 +140,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-vst3-controller-value-proof.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-vst3-controller-forget-stepped-proof.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-au-controller-value-proof.md`
+- `docs/exec-plans/completed/2026-06-06-validate-ableton-au-controller-learn-proof.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
@@ -148,7 +150,7 @@ Product-order next Codex slice: complete the remaining Phase 1 Ableton host matr
 
 Preset browser, arp/step/chord, FX rack, modulation inspection/write adapter, model-backed patch cost, backend preset commands, layer/slot rendering, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; per-route bypass/remove, per-control MIDI context menus, richer browser metadata editing, safe overwrite/dirty/A-B workflow, expanded modulation destinations, and per-layer filter/envelope/master parity remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 automation record/playback, AU in-editor MIDI Learn capture, Ableton-side current preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic. Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, AU seeded controller value proof, and standalone patch recreation are already recorded.
+The remaining non-UI product proof is Ableton AU/VST3 automation record/playback, AU global-panel Forget proof, Ableton-side current preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic. Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, AU seeded controller value proof, AU in-editor MIDI Learn proof, and standalone patch recreation are already recorded.
 
 ## Risks and Watchpoints
 

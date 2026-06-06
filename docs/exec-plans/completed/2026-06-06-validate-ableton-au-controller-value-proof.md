@@ -11,7 +11,7 @@ triggers:
 
 # Validate Ableton AU Controller Value Proof
 
-This ExecPlan closes the AU seeded controller-map loading and continuous value-application proof gap. It does not close AU in-editor MIDI Learn capture or AU/VST3 automation record/playback.
+This ExecPlan closes the AU seeded controller-map loading and continuous value-application proof gap. It did not itself close AU in-editor MIDI Learn capture, which was later covered by `2026-06-06-validate-ableton-au-controller-learn-proof.md`; AU/VST3 automation record/playback remains open.
 
 ## Context
 
@@ -59,12 +59,12 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 
 The AU processor loaded the seeded global user map on construction and the hosted editor displayed the assignment without re-learning it. Live delivered CC72 from the temporary validation source into the AU track through `All Ins`, the plugin footer MIDI count advanced from `0` to `2`, and the Filter section's Resonance readout followed CC72 from `0.00` to `1.00` and back to `0.00`.
 
-This proof is intentionally AU-only and seeded-map-only. AU in-editor MIDI Learn capture remains a separate host proof because this pass did not arm the AU Learn button and capture a fresh assignment inside the AU editor.
+This proof is intentionally AU-only and seeded-map-only. AU in-editor MIDI Learn capture was a separate host proof because this pass did not arm the AU Learn button and capture a fresh assignment inside the AU editor; that follow-on proof is now recorded in `2026-06-06-validate-ableton-au-controller-learn-proof.md`.
 
 ## Remaining Gaps
 
 - AU and VST3 automation record/playback.
-- AU in-editor MIDI Learn capture proof in Ableton.
+- AU global-panel MIDI Forget proof in Ableton.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
