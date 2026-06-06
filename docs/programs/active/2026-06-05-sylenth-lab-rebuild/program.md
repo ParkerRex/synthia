@@ -76,7 +76,8 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed current-build Ableton state restore smoke: AU create/restore, VST3 create/restore, and VST3 post-restore playback with active meters passed.
 - [x] 2026-06-06 EDT: Executed current-build Ableton transport/device smoke: corrected standalone-window evidence, proved VST3 transport run/stop with only Ableton running, and left hosted editor open/close unproven.
 - [x] 2026-06-06 EDT: Executed current-build Ableton offline bounce smoke: exported WAV/MP3 from the restored VST3 set, measured non-silent non-clipping WAV output, and left bounce-versus-realtime comparison open.
-- [x] 2026-06-06 EDT: Executed current-build Ableton AU transport smoke: created the AU from `Audio Units > ParkerX > sylenth-ai`, ran and stopped transport with the hosted AU editor visible, and left explicit hosted editor close/reopen unproven.
+- [x] 2026-06-06 EDT: Executed current-build Ableton AU transport smoke: created the AU from `Audio Units > ParkerX > sylenth-ai`, ran and stopped transport with the hosted AU editor visible, and left explicit hosted editor close/reopen unproven at that point.
+- [x] 2026-06-06 EDT: Executed hosted UI lifecycle attempt: proved the hosted AU editor can close while transport is running, but reopen after close failed through the tested Ableton plug-in edit, global window, and key-map paths.
 - [ ] Hand off UI information architecture and visual polish plans to Claude Code after state contracts are ready.
 - [ ] Complete the remaining Phase 1 Ableton validation matrix against the Sylenth-level build.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
@@ -112,6 +113,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-transport-device-smoke.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-offline-bounce-smoke.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-au-transport-smoke.md`
+- `docs/exec-plans/completed/2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
@@ -121,7 +123,7 @@ Product-order next Codex slice: complete the remaining Phase 1 Ableton host matr
 
 Preset browser, arp/step/chord, FX rack, modulation inspection, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; drag/drop modulation writing, per-route bypass/remove, per-control MIDI context menus, and richer browser metadata editing remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore, VST3 transport run/stop, VST3 offline bounce artifact creation, and AU transport run/stop: automation, learned CC mapping, preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, panic, and explicit hosted UI close/reopen while playing.
+The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore, VST3 transport run/stop, VST3 offline bounce artifact creation, AU transport run/stop, and hosted AU editor close while transport runs: automation, learned CC mapping, preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, panic, hosted AU editor reopen root cause/fix proof, and VST3 hosted editor lifecycle proof.
 
 ## Risks and Watchpoints
 
@@ -141,7 +143,7 @@ Pending implementation.
 Program-level acceptance requires:
 
 - Phase 1 A/B layers, four oscillator slots, arp/step workflow, FX rack, preset browser, MIDI/controller workflow, UI shell, and modulation UX are implemented and validated.
-- AU and VST3 load in Ableton, automate, save/reopen, restore state, prove learned controller mapping, exercise current presets/modulation, export offline bounce artifacts, compare offline bounce against realtime render, handle sample-rate/buffer-size changes, pass all-notes-off/panic checks, and survive explicit hosted UI close/reopen while playing with the Phase 1 build.
+- AU and VST3 load in Ableton, automate, save/reopen, restore state, prove learned controller mapping, exercise current presets/modulation, export offline bounce artifacts, compare offline bounce against realtime render, handle sample-rate/buffer-size changes, pass all-notes-off/panic checks, and survive hosted UI close/reopen while playing with the Phase 1 build.
 - Claude Code UI handoff plans are completed or explicitly closed with screenshots/manual QA notes.
 - Phase 2 AI generation can create finite, valid, editable preset/arp/modulation state.
 - Phase 3 conversational/reference workflows can produce reversible edits with clear reports.

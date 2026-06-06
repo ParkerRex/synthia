@@ -25,7 +25,7 @@ The repo builds a JUCE/CMake instrument scaffold with:
 - A registry-bound editor with factory/user preset load-save-duplicate workflow, TransMod slot editing, and diagnostics.
 - Core validation for oscillator/filter behavior, modulation routing, voice allocation, dry/wet renders, render determinism, and preset loading.
 
-Phase 1 host validation in Ableton is underway: current proof covers AU/VST3 scan-load-play smoke, current VST3 rescan/create/play, AU/VST3 state restore, VST3 transport run/stop, VST3 offline bounce artifact creation, and AU transport run/stop with the hosted AU editor visible. Remaining validation covers automation, learned controller mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, and explicit hosted UI close/reopen while transport is running.
+Phase 1 host validation in Ableton is underway: current proof covers AU/VST3 scan-load-play smoke, current VST3 rescan/create/play, AU/VST3 Live-set state restore, VST3 transport run/stop, VST3 offline bounce artifact creation, AU transport run/stop with the hosted AU editor visible, and hosted AU editor close while transport runs. Remaining validation covers automation, learned controller mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, hosted AU editor reopen after close, and VST3 hosted editor lifecycle proof.
 
 ## Build
 

@@ -241,7 +241,7 @@ Results:
 - Transport start ran the MIDI clip with the AU editor showing active voices, moving peak level, MIDI count, 44100 Hz sample rate, 512-sample block size, and active Live meters.
 - Transport stop halted playback with voices returning to `0`, peak returning to `-inf`, and no visible host crash.
 - Live also logged `Vst3: couldn't get controller state of sylenth-ai: not implemented` at `2026-06-06T03:34:10.014440`. Keep that VST3 controller-state warning on the host-state watchlist; it did not block this AU transport smoke.
-- This proves current-build AU create/play/stop behavior with a hosted editor window visible. It does not prove automation, learned CC mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport is running.
+- This proves current-build AU create/play/stop behavior with a hosted editor window visible. It does not prove automation, learned CC mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport is running. The follow-on hosted UI lifecycle attempt proved close while transport ran, but not reopen.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 
@@ -259,7 +259,47 @@ Remaining host-validation gaps:
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
-- Explicit hosted UI close/reopen while transport is running.
+- Hosted AU editor reopen after close.
+- VST3 hosted editor lifecycle proof.
+
+## Ableton Current-Build Hosted UI Lifecycle Attempt - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: `/Users/parkerrex/Desktop/testing-synth Project/testing-synth.als`
+- plugin format tested in this pass: AU
+- Ableton state at start: hosted `sylenth-ai/1-sylenth-ai` AU editor window visible, AU device active, no standalone `sylenth-ai` process
+
+Results:
+
+- Transport was started with the hosted AU editor visible; the editor remained open while Live playback continued.
+- Closing button 1 of the hosted `sylenth-ai/1-sylenth-ai` window succeeded while transport was running. The only remaining Live window was `testing-synth  [testing-synth]`.
+- After closing the hosted editor, Live continued running without a visible crash, and the process check showed Ableton Live plus Ableton Index, with no standalone `sylenth-ai` process.
+- Reopen attempts did not restore the hosted editor: the AU device header plug-in edit button, corrected-coordinate double click, right-side device controls, `View > Plug-In Windows`, `Cmd+Option+P`, `Cmd+Option+Control+P`, Key Map assignment attempt, and a stopped-transport retry all left only the main Ableton set window visible.
+- The latest Ableton log entries for `sylenth-ai` remained the 03:34 AU creation lines and the existing VST3 controller-state watchpoint; the reopen attempts did not add a new visible `sylenth-ai` Live log entry.
+- This proves hosted AU editor close while transport runs, but it does not complete explicit hosted UI close/reopen validation. Hosted AU editor reopen after close remains open, and VST3 hosted editor lifecycle proof remains unproven.
+
+Evidence screenshots are local build artifacts under `build/reports/ableton/`:
+
+- `hosted-ui-lifecycle-running-open.png`
+- `hosted-ui-lifecycle-running-closed.png`
+- `hosted-ui-lifecycle-keymap-mode-on.png`
+- `hosted-ui-lifecycle-stopped-reopen-attempt.png`
+- `hosted-ui-lifecycle-global-shortcut-attempts.png`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- Learned CC mapping proof in Ableton.
+- Current preset recreation and modulation exercise.
+- Offline bounce versus realtime comparison.
+- Sample-rate and buffer-size changes.
+- All-notes-off/panic proof.
+- Root-cause and fix or prove hosted AU editor reopen after close.
+- VST3 hosted editor lifecycle proof.
 
 ## Historical Ableton Setup - 2026-06-05
 
