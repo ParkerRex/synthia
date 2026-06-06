@@ -1428,6 +1428,44 @@ bool testFxDelaySyncAndTail()
     return delayedPeak > 0.49f && tail >= 6.0f;
 }
 
+bool testFxDelayUsesMacroSpaceWetness()
+{
+    synth::FxChain fx;
+    fx.prepare(48000.0, 1);
+
+    synth::SynthParameters parameters;
+    parameters.fx.enabled = true;
+    parameters.fx.saturationEnabled = false;
+    parameters.fx.phaserEnabled = false;
+    parameters.fx.chorusEnabled = false;
+    parameters.fx.eqEnabled = false;
+    parameters.fx.delayEnabled = true;
+    parameters.fx.delayMix = 0.0f;
+    parameters.fx.delayFeedback = 0.0f;
+    parameters.fx.delaySyncDivision = synth::DelaySyncDivision::Quarter;
+    parameters.fx.reverbEnabled = false;
+    parameters.fx.compressorEnabled = false;
+    parameters.macro.space = 1.0f;
+    parameters.tempoBpm = 120.0f;
+
+    const auto tail = synth::fxTailLengthSeconds(parameters);
+    if (tail <= 0.0f)
+        return false;
+
+    const auto delaySamples = synth::tempoSyncedDelaySamples(48000.0, parameters.tempoBpm,
+                                                             parameters.fx.delaySyncDivision);
+    auto delayedPeak = 0.0f;
+    for (int sample = 0; sample <= delaySamples + 8; ++sample)
+    {
+        const auto input = sample == 0 ? synth::FxStereoFrame { 0.5f, 0.5f } : synth::FxStereoFrame {};
+        const auto output = fx.process(input, parameters);
+        if (sample == delaySamples)
+            delayedPeak = std::max(std::abs(output.left), std::abs(output.right));
+    }
+
+    return delayedPeak > 0.16f && delayedPeak < 0.19f;
+}
+
 bool testPanicClearsFxBuffers()
 {
     synth::SynthParameters parameters;
@@ -1526,6 +1564,147 @@ bool testEngineFxWetOutputSafety()
     std::vector<float> right(12000);
     const auto stats = engine.process(left.data(), right.data(), static_cast<int>(left.size()));
     return stats.invalidSamples == 0 && stats.peak <= 1.0f;
+}
+
+bool testExpandedFxDisabledRackIsDry()
+{
+    synth::FxChain fx;
+    fx.prepare(48000.0, 64);
+
+    synth::SynthParameters parameters;
+    parameters.fx.enabled = true;
+    parameters.fx.saturationEnabled = false;
+    parameters.fx.phaserEnabled = false;
+    parameters.fx.chorusEnabled = false;
+    parameters.fx.eqEnabled = false;
+    parameters.fx.delayEnabled = false;
+    parameters.fx.reverbEnabled = false;
+    parameters.fx.compressorEnabled = false;
+
+    for (int sample = 0; sample < 2048; ++sample)
+    {
+        const auto input = synth::FxStereoFrame {
+            std::sin(static_cast<float>(sample) * 0.031f) * 0.35f,
+            std::cos(static_cast<float>(sample) * 0.027f) * 0.25f
+        };
+        const auto output = fx.process(input, parameters);
+        if (std::abs(output.left - input.left) > 1.0e-7f || std::abs(output.right - input.right) > 1.0e-7f)
+            return false;
+    }
+
+    return true;
+}
+
+bool testExpandedFxModulesAreFiniteAndAudible()
+{
+    synth::FxChain fx;
+    fx.prepare(48000.0, 64);
+
+    synth::SynthParameters parameters;
+    parameters.fx.enabled = true;
+    parameters.fx.saturationEnabled = true;
+    parameters.fx.distortionMode = synth::DistortionMode::Fold;
+    parameters.fx.saturationMix = 0.28f;
+    parameters.fx.saturationDrive = 0.65f;
+    parameters.fx.phaserEnabled = true;
+    parameters.fx.phaserMix = 0.55f;
+    parameters.fx.phaserRateHz = 0.6f;
+    parameters.fx.phaserDepth = 0.8f;
+    parameters.fx.phaserFeedback = 0.35f;
+    parameters.fx.chorusEnabled = false;
+    parameters.fx.eqEnabled = true;
+    parameters.fx.eqLowGainDb = 4.5f;
+    parameters.fx.eqHighGainDb = -3.0f;
+    parameters.fx.delayEnabled = false;
+    parameters.fx.reverbEnabled = false;
+    parameters.fx.compressorEnabled = true;
+    parameters.fx.compressorThresholdDb = -24.0f;
+    parameters.fx.compressorRatio = 4.0f;
+    parameters.fx.compressorMakeupDb = 2.0f;
+    parameters.fx.compressorMix = 0.75f;
+
+    auto maxDifference = 0.0f;
+    auto peak = 0.0f;
+    for (int sample = 0; sample < 4096; ++sample)
+    {
+        const auto input = synth::FxStereoFrame {
+            std::sin(static_cast<float>(sample) * 0.071f) * 0.42f,
+            std::sin(static_cast<float>(sample) * 0.047f + 0.6f) * 0.38f
+        };
+        const auto output = fx.process(input, parameters);
+        if (!std::isfinite(output.left) || !std::isfinite(output.right))
+            return false;
+
+        maxDifference = std::max(maxDifference, std::abs(output.left - input.left));
+        maxDifference = std::max(maxDifference, std::abs(output.right - input.right));
+        peak = std::max(peak, std::abs(output.left));
+        peak = std::max(peak, std::abs(output.right));
+    }
+
+    return maxDifference > 0.01f && peak <= 1.0f;
+}
+
+bool testExpandedFxNonTailModulesDoNotReportTail()
+{
+    synth::SynthParameters parameters;
+    parameters.fx.enabled = true;
+    parameters.fx.saturationEnabled = true;
+    parameters.fx.saturationMix = 1.0f;
+    parameters.fx.phaserEnabled = true;
+    parameters.fx.phaserMix = 1.0f;
+    parameters.fx.chorusEnabled = true;
+    parameters.fx.chorusMix = 1.0f;
+    parameters.fx.eqEnabled = true;
+    parameters.fx.eqLowGainDb = 6.0f;
+    parameters.fx.compressorEnabled = true;
+    parameters.fx.compressorMix = 1.0f;
+    parameters.fx.delayEnabled = false;
+    parameters.fx.reverbEnabled = false;
+
+    return synth::fxTailLengthSeconds(parameters) == 0.0f;
+}
+
+bool testPhaserBypassClearsRecursiveState()
+{
+    synth::FxChain fx;
+    fx.prepare(48000.0, 64);
+
+    synth::SynthParameters parameters;
+    parameters.fx.enabled = true;
+    parameters.fx.saturationEnabled = false;
+    parameters.fx.phaserEnabled = true;
+    parameters.fx.phaserMix = 1.0f;
+    parameters.fx.phaserDepth = 0.9f;
+    parameters.fx.phaserFeedback = 0.6f;
+    parameters.fx.chorusEnabled = false;
+    parameters.fx.eqEnabled = false;
+    parameters.fx.delayEnabled = false;
+    parameters.fx.reverbEnabled = false;
+    parameters.fx.compressorEnabled = false;
+
+    fx.process({ 0.85f, -0.45f }, parameters);
+    for (int sample = 0; sample < 128; ++sample)
+        fx.process({}, parameters);
+
+    parameters.fx.phaserEnabled = false;
+    auto output = fx.process({}, parameters);
+    if (std::abs(output.left) > 1.0e-7f || std::abs(output.right) > 1.0e-7f)
+        return false;
+
+    parameters.fx.phaserEnabled = true;
+    output = fx.process({}, parameters);
+    if (std::abs(output.left) > 1.0e-7f || std::abs(output.right) > 1.0e-7f)
+        return false;
+
+    fx.process({ 0.85f, -0.45f }, parameters);
+    parameters.fx.enabled = false;
+    output = fx.process({}, parameters);
+    if (std::abs(output.left) > 1.0e-7f || std::abs(output.right) > 1.0e-7f)
+        return false;
+
+    parameters.fx.enabled = true;
+    output = fx.process({}, parameters);
+    return std::abs(output.left) <= 1.0e-7f && std::abs(output.right) <= 1.0e-7f;
 }
 } // namespace
 
@@ -1729,6 +1908,12 @@ int main()
         return 1;
     }
 
+    if (!testFxDelayUsesMacroSpaceWetness())
+    {
+        std::cerr << "FX delay macro-space wetness test failed.\n";
+        return 1;
+    }
+
     if (!testPanicClearsFxBuffers())
     {
         std::cerr << "FX panic clear test failed.\n";
@@ -1744,6 +1929,30 @@ int main()
     if (!testEngineFxWetOutputSafety())
     {
         std::cerr << "FX wet output safety test failed.\n";
+        return 1;
+    }
+
+    if (!testExpandedFxDisabledRackIsDry())
+    {
+        std::cerr << "Expanded FX disabled-rack dry equivalence test failed.\n";
+        return 1;
+    }
+
+    if (!testExpandedFxModulesAreFiniteAndAudible())
+    {
+        std::cerr << "Expanded FX finite/audible test failed.\n";
+        return 1;
+    }
+
+    if (!testExpandedFxNonTailModulesDoNotReportTail())
+    {
+        std::cerr << "Expanded FX non-tail report test failed.\n";
+        return 1;
+    }
+
+    if (!testPhaserBypassClearsRecursiveState())
+    {
+        std::cerr << "Phaser bypass cleanup test failed.\n";
         return 1;
     }
 

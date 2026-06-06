@@ -90,6 +90,13 @@ enum class DelaySyncDivision
     Half = 4
 };
 
+enum class DistortionMode
+{
+    Soft = 0,
+    Clip = 1,
+    Fold = 2
+};
+
 enum class ArpMode
 {
     Up = 0,
@@ -256,8 +263,14 @@ struct FxParameters
 {
     bool enabled = false;
     bool saturationEnabled = true;
+    DistortionMode distortionMode = DistortionMode::Soft;
     float saturationMix = 0.0f;
     float saturationDrive = 0.35f;
+    bool phaserEnabled = false;
+    float phaserMix = 0.0f;
+    float phaserRateHz = 0.25f;
+    float phaserDepth = 0.45f;
+    float phaserFeedback = 0.15f;
     bool delayEnabled = true;
     float delayMix = 0.0f;
     DelaySyncDivision delaySyncDivision = DelaySyncDivision::Eighth;
@@ -269,6 +282,14 @@ struct FxParameters
     float chorusMix = 0.0f;
     float chorusRateHz = 0.35f;
     float chorusDepthMs = 5.0f;
+    bool eqEnabled = false;
+    float eqLowGainDb = 0.0f;
+    float eqHighGainDb = 0.0f;
+    bool compressorEnabled = false;
+    float compressorThresholdDb = -18.0f;
+    float compressorRatio = 2.0f;
+    float compressorMakeupDb = 0.0f;
+    float compressorMix = 0.0f;
 };
 
 struct QualityParameters

@@ -138,9 +138,12 @@ private:
     Panel* filterCutoffModPanel = nullptr;
     std::array<Panel*, synth::transModSlotCount> transModPanels {};
     Panel* saturationPanel = nullptr;
+    Panel* phaserPanel = nullptr;
     Panel* chorusPanel = nullptr;
+    Panel* eqPanel = nullptr;
     Panel* delayPanel = nullptr;
     Panel* reverbPanel = nullptr;
+    Panel* compressorPanel = nullptr;
     Panel* masterFxPanel = nullptr;
 
     Page currentPage = Page::Sound;

@@ -262,8 +262,13 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
     parameters.macro.width = std::clamp(finiteOr(parameters.macro.width, defaults.macro.width), 0.0f, 1.0f);
     parameters.macro.drive = std::clamp(finiteOr(parameters.macro.drive, defaults.macro.drive), 0.0f, 1.0f);
     parameters.macro.space = std::clamp(finiteOr(parameters.macro.space, defaults.macro.space), 0.0f, 1.0f);
+    parameters.fx.distortionMode = static_cast<DistortionMode>(std::clamp(static_cast<int>(parameters.fx.distortionMode), 0, 2));
     parameters.fx.saturationMix = std::clamp(finiteOr(parameters.fx.saturationMix, defaults.fx.saturationMix), 0.0f, 1.0f);
     parameters.fx.saturationDrive = std::clamp(finiteOr(parameters.fx.saturationDrive, defaults.fx.saturationDrive), 0.0f, 1.0f);
+    parameters.fx.phaserMix = std::clamp(finiteOr(parameters.fx.phaserMix, defaults.fx.phaserMix), 0.0f, 1.0f);
+    parameters.fx.phaserRateHz = std::clamp(finiteOr(parameters.fx.phaserRateHz, defaults.fx.phaserRateHz), 0.02f, 8.0f);
+    parameters.fx.phaserDepth = std::clamp(finiteOr(parameters.fx.phaserDepth, defaults.fx.phaserDepth), 0.0f, 1.0f);
+    parameters.fx.phaserFeedback = std::clamp(finiteOr(parameters.fx.phaserFeedback, defaults.fx.phaserFeedback), 0.0f, 0.95f);
     parameters.fx.delayMix = std::clamp(finiteOr(parameters.fx.delayMix, defaults.fx.delayMix), 0.0f, 1.0f);
     parameters.fx.delaySyncDivision = static_cast<DelaySyncDivision>(std::clamp(static_cast<int>(parameters.fx.delaySyncDivision), 0, 4));
     parameters.fx.delayFeedback = std::clamp(finiteOr(parameters.fx.delayFeedback, defaults.fx.delayFeedback), 0.0f, 0.86f);
@@ -272,6 +277,12 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
     parameters.fx.chorusMix = std::clamp(finiteOr(parameters.fx.chorusMix, defaults.fx.chorusMix), 0.0f, 1.0f);
     parameters.fx.chorusRateHz = std::clamp(finiteOr(parameters.fx.chorusRateHz, defaults.fx.chorusRateHz), 0.02f, 8.0f);
     parameters.fx.chorusDepthMs = std::clamp(finiteOr(parameters.fx.chorusDepthMs, defaults.fx.chorusDepthMs), 0.1f, 24.0f);
+    parameters.fx.eqLowGainDb = std::clamp(finiteOr(parameters.fx.eqLowGainDb, defaults.fx.eqLowGainDb), -12.0f, 12.0f);
+    parameters.fx.eqHighGainDb = std::clamp(finiteOr(parameters.fx.eqHighGainDb, defaults.fx.eqHighGainDb), -12.0f, 12.0f);
+    parameters.fx.compressorThresholdDb = std::clamp(finiteOr(parameters.fx.compressorThresholdDb, defaults.fx.compressorThresholdDb), -36.0f, 0.0f);
+    parameters.fx.compressorRatio = std::clamp(finiteOr(parameters.fx.compressorRatio, defaults.fx.compressorRatio), 1.0f, 8.0f);
+    parameters.fx.compressorMakeupDb = std::clamp(finiteOr(parameters.fx.compressorMakeupDb, defaults.fx.compressorMakeupDb), -12.0f, 12.0f);
+    parameters.fx.compressorMix = std::clamp(finiteOr(parameters.fx.compressorMix, defaults.fx.compressorMix), 0.0f, 1.0f);
     parameters.quality.realtimeMode = static_cast<QualityMode>(std::clamp(static_cast<int>(parameters.quality.realtimeMode), 0, 2));
     parameters.quality.offlineMode = static_cast<QualityMode>(std::clamp(static_cast<int>(parameters.quality.offlineMode), 0, 2));
     parameters.quality.activeMode = static_cast<QualityMode>(std::clamp(static_cast<int>(parameters.quality.activeMode), 0, 2));

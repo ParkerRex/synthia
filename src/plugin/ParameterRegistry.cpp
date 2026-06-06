@@ -69,6 +69,14 @@ bool isArpOrChordParameter(const ParameterSpec& spec) noexcept
     return spec.id.rfind("arp.", 0) == 0 || spec.id.rfind("chord.", 0) == 0;
 }
 
+bool isExpandedFxParameter(const ParameterSpec& spec) noexcept
+{
+    return spec.id == "fx.distortion_mode"
+        || spec.id.rfind("fx.phaser_", 0) == 0
+        || spec.id.rfind("fx.eq_", 0) == 0
+        || spec.id.rfind("fx.compressor_", 0) == 0;
+}
+
 std::vector<ParameterSpec> buildSpecs()
 {
     std::vector<ParameterSpec> specs = {
@@ -158,8 +166,14 @@ std::vector<ParameterSpec> buildSpecs()
 
         boolParam("fx.enabled", "FX Enabled", "fx", false),
         boolParam("fx.saturation_enabled", "Saturation Enabled", "fx", true),
+        choiceParam("fx.distortion_mode", "Distortion Mode", "fx", {"Soft", "Clip", "Fold"}, 0),
         floatParam("fx.saturation_mix", "Saturation Mix", "fx", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
         floatParam("fx.saturation_drive", "Saturation Drive", "fx", "normalized", 0.0f, 1.0f, 0.35f, 0.0001f),
+        boolParam("fx.phaser_enabled", "Phaser Enabled", "fx", false),
+        floatParam("fx.phaser_mix", "Phaser Mix", "fx", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
+        floatParam("fx.phaser_rate_hz", "Phaser Rate", "fx", "Hz", 0.02f, 8.0f, 0.25f, 0.0001f, 0.35f),
+        floatParam("fx.phaser_depth", "Phaser Depth", "fx", "normalized", 0.0f, 1.0f, 0.45f, 0.0001f),
+        floatParam("fx.phaser_feedback", "Phaser Feedback", "fx", "normalized", 0.0f, 0.95f, 0.15f, 0.0001f),
         boolParam("fx.delay_enabled", "Delay Enabled", "fx", true),
         floatParam("fx.delay_mix", "Delay Mix", "fx", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
         choiceParam("fx.delay_sync_division", "Delay Sync", "fx", {"1/16", "1/8", "1/8D", "1/4", "1/2"}, 1),
@@ -171,6 +185,14 @@ std::vector<ParameterSpec> buildSpecs()
         floatParam("fx.chorus_mix", "Chorus Mix", "fx", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
         floatParam("fx.chorus_rate_hz", "Chorus Rate", "fx", "Hz", 0.02f, 8.0f, 0.35f, 0.0001f, 0.35f),
         floatParam("fx.chorus_depth_ms", "Chorus Depth", "fx", "milliseconds", 0.1f, 24.0f, 5.0f, 0.01f, 0.35f),
+        boolParam("fx.eq_enabled", "EQ Enabled", "fx", false),
+        floatParam("fx.eq_low_gain_db", "EQ Low Gain", "fx", "dB", -12.0f, 12.0f, 0.0f, 0.01f),
+        floatParam("fx.eq_high_gain_db", "EQ High Gain", "fx", "dB", -12.0f, 12.0f, 0.0f, 0.01f),
+        boolParam("fx.compressor_enabled", "Compressor Enabled", "fx", false),
+        floatParam("fx.compressor_threshold_db", "Compressor Threshold", "fx", "dB", -36.0f, 0.0f, -18.0f, 0.01f),
+        floatParam("fx.compressor_ratio", "Compressor Ratio", "fx", "ratio", 1.0f, 8.0f, 2.0f, 0.01f),
+        floatParam("fx.compressor_makeup_db", "Compressor Makeup", "fx", "dB", -12.0f, 12.0f, 0.0f, 0.01f),
+        floatParam("fx.compressor_mix", "Compressor Mix", "fx", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f),
 
         choiceParam("quality.realtime_mode", "Realtime Quality", "quality", {"Eco", "Normal", "High"}, 1),
         choiceParam("quality.offline_mode", "Offline Quality", "quality", {"Eco", "Normal", "High"}, 2),
@@ -261,6 +283,8 @@ std::vector<ParameterSpec> buildSpecs()
     {
         if (isArpOrChordParameter(spec))
             spec.auVersionHint = 2;
+        else if (isExpandedFxParameter(spec))
+            spec.auVersionHint = 3;
     }
 
     const auto sources = sourceChoices();

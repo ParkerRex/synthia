@@ -139,6 +139,10 @@ bool checkHostStateDefaultMerge()
     removeParameterChildrenStartingWith(oldState, "layer.");
     removeParameterChildrenStartingWith(oldState, "arp.");
     removeParameterChildrenStartingWith(oldState, "chord.");
+    removeParameterChildrenStartingWith(oldState, "fx.distortion_");
+    removeParameterChildrenStartingWith(oldState, "fx.phaser_");
+    removeParameterChildrenStartingWith(oldState, "fx.eq_");
+    removeParameterChildrenStartingWith(oldState, "fx.compressor_");
 
     StateRoundTripProcessor destination;
     if (!setPhysicalParameter(destination.parameters, "layer.1.enabled", 0.0f)
@@ -148,7 +152,14 @@ bool checkHostStateDefaultMerge()
         || !setPhysicalParameter(destination.parameters, "arp.enabled", 1.0f)
         || !setPhysicalParameter(destination.parameters, "arp.step.1.tie", 1.0f)
         || !setPhysicalParameter(destination.parameters, "chord.enabled", 1.0f)
-        || !setPhysicalParameter(destination.parameters, "chord.voice.3.enabled", 1.0f))
+        || !setPhysicalParameter(destination.parameters, "chord.voice.3.enabled", 1.0f)
+        || !setPhysicalParameter(destination.parameters, "fx.distortion_mode", 2.0f)
+        || !setPhysicalParameter(destination.parameters, "fx.phaser_enabled", 1.0f)
+        || !setPhysicalParameter(destination.parameters, "fx.phaser_mix", 1.0f)
+        || !setPhysicalParameter(destination.parameters, "fx.eq_enabled", 1.0f)
+        || !setPhysicalParameter(destination.parameters, "fx.eq_low_gain_db", 6.0f)
+        || !setPhysicalParameter(destination.parameters, "fx.compressor_enabled", 1.0f)
+        || !setPhysicalParameter(destination.parameters, "fx.compressor_mix", 1.0f))
     {
         return false;
     }
@@ -167,7 +178,14 @@ bool checkHostStateDefaultMerge()
         && parameterValueMatches(destination.parameters, "arp.step.1.tie", 0.0f)
         && parameterValueMatches(destination.parameters, "chord.enabled", 0.0f)
         && parameterValueMatches(destination.parameters, "chord.voice.1.enabled", 1.0f)
-        && parameterValueMatches(destination.parameters, "chord.voice.3.enabled", 0.0f);
+        && parameterValueMatches(destination.parameters, "chord.voice.3.enabled", 0.0f)
+        && parameterValueMatches(destination.parameters, "fx.distortion_mode", 0.0f)
+        && parameterValueMatches(destination.parameters, "fx.phaser_enabled", 0.0f)
+        && parameterValueMatches(destination.parameters, "fx.phaser_mix", 0.0f)
+        && parameterValueMatches(destination.parameters, "fx.eq_enabled", 0.0f)
+        && parameterValueMatches(destination.parameters, "fx.eq_low_gain_db", 0.0f)
+        && parameterValueMatches(destination.parameters, "fx.compressor_enabled", 0.0f)
+        && parameterValueMatches(destination.parameters, "fx.compressor_mix", 0.0f);
 }
 
 bool checkLayerOscillatorVoiceCost()
@@ -516,7 +534,11 @@ int main()
         || synth::findParameterSpec("arp.enabled") == nullptr
         || synth::findParameterSpec("arp.step.16.tie") == nullptr
         || synth::findParameterSpec("chord.enabled") == nullptr
-        || synth::findParameterSpec("chord.voice.8.velocity") == nullptr)
+        || synth::findParameterSpec("chord.voice.8.velocity") == nullptr
+        || synth::findParameterSpec("fx.distortion_mode") == nullptr
+        || synth::findParameterSpec("fx.phaser_mix") == nullptr
+        || synth::findParameterSpec("fx.eq_low_gain_db") == nullptr
+        || synth::findParameterSpec("fx.compressor_mix") == nullptr)
     {
         std::cerr << "Required parameter missing.\n";
         return 1;
@@ -540,6 +562,10 @@ int main()
     const auto* arpStepPitch = synth::findParameterSpec("arp.step.16.pitch_semitones");
     const auto* chordVoiceCount = synth::findParameterSpec("chord.voice_count");
     const auto* chordVoiceOneEnabled = synth::findParameterSpec("chord.voice.1.enabled");
+    const auto* fxDistortionMode = synth::findParameterSpec("fx.distortion_mode");
+    const auto* fxPhaserMix = synth::findParameterSpec("fx.phaser_mix");
+    const auto* fxEqLowGain = synth::findParameterSpec("fx.eq_low_gain_db");
+    const auto* fxCompressorMix = synth::findParameterSpec("fx.compressor_mix");
     if (layerAEnabled == nullptr
         || layerBEnabled == nullptr
         || layerAOscillatorVoices == nullptr
@@ -549,6 +575,10 @@ int main()
         || arpStepPitch == nullptr
         || chordVoiceCount == nullptr
         || chordVoiceOneEnabled == nullptr
+        || fxDistortionMode == nullptr
+        || fxPhaserMix == nullptr
+        || fxEqLowGain == nullptr
+        || fxCompressorMix == nullptr
         || std::abs(layerAEnabled->defaultValue - 1.0f) > 0.0001f
         || std::abs(layerBEnabled->defaultValue) > 0.0001f
         || std::abs(layerAOscillatorVoices->minimum) > 0.0001f
@@ -564,9 +594,13 @@ int main()
         || arpEnabled->auVersionHint < 2
         || arpStepPitch->auVersionHint < 2
         || chordVoiceCount->auVersionHint < 2
-        || chordVoiceOneEnabled->auVersionHint < 2)
+        || chordVoiceOneEnabled->auVersionHint < 2
+        || fxDistortionMode->auVersionHint < 3
+        || fxPhaserMix->auVersionHint < 3
+        || fxEqLowGain->auVersionHint < 3
+        || fxCompressorMix->auVersionHint < 3)
     {
-        std::cerr << "Layer/oscillator/arp/chord registry defaults, ranges, or AU version hints mismatch.\n";
+        std::cerr << "Layer/oscillator/arp/chord/FX registry defaults, ranges, or AU version hints mismatch.\n";
         return 1;
     }
 

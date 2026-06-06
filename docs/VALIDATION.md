@@ -32,7 +32,7 @@ The current smoke render is intentionally note-less and proves initialization, f
 
 The current contract validation proves:
 
-- 332 unique parameter IDs,
+- 346 unique parameter IDs,
 - valid defaults and ranges,
 - APVTS state round-trip,
 - old host-state default merge for new layer, oscillator-slot, arp, step, and chord fields,
@@ -65,7 +65,7 @@ The current DSP validation proves:
 - direct chord expansion, overlapping chord-output release ownership, chord parameter-change note-off symmetry, arp up-mode timing, host-tempo step duration, gate-off timing, octave wrapping, step pitch and velocity scaling, tie/hold behavior, arp enable/disable while input notes are held, hold-disable latch clearing, and panic clearing generated notes.
 - top-level `mod_slots` preset schema objects are applied by render loading, including schema-only modulation fixtures that omit flat APVTS-style `transmod.*` parameters.
 - preset browser metadata validation, saved user preset browser metadata, factory/user/legacy source summaries, sidecar favorite add/remove behavior, search/category/tag/favorite filtering, and browser catalog facets are covered by `SylenthAIContractTest`.
-- FX bypass stays null-equivalent to dry rendering when globally bypassed, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
+- FX bypass stays null-equivalent to dry rendering when globally bypassed, disabled expanded-rack modules are dry-equivalent, phaser/EQ/compressor/distortion-mode processing is finite and measurably audible when enabled, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active time-based FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
 - `SylenthAIRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
 - `SylenthAIRenderCoreSuite` runs the core suite under CTest.
 
@@ -170,7 +170,7 @@ Implemented standalone metrics:
 - `spectral_centroid_hz`: bounded-window DFT centroid for coarse spectral regression.
 - `stereo_correlation`: left/right correlation, useful for spread regressions.
 - `note_local_lfo_spread`: spread of per-voice LFO values while notes overlap.
-- `fx_mode`, `delay_division_beats`, `tempo_synced_delay_samples`, `fx_tail_seconds`, `post_last_event_seconds`, `quality_mode`, `wet_dry_max_abs_diff`, `wet_dry_rms_diff`, and `wet_meaningful_passed`: wet-render proof for the onboard FX path.
+- `fx_mode`, `delay_division_beats`, `tempo_synced_delay_samples`, `fx_tail_seconds`, `post_last_event_seconds`, `quality_mode`, `wet_dry_max_abs_diff`, `wet_dry_rms_diff`, and `wet_meaningful_passed`: wet-render proof for the onboard fixed-order FX path.
 - `mod_slot_schema_passed`: modulation harness check that canonical preset `mod_slots` objects are loaded into runtime TransMod slots.
 - `max_abs_diff`, `rms_diff`, `peak_delta`: deterministic repeat comparison metrics.
 

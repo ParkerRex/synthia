@@ -109,7 +109,7 @@ The parameter registry owns conversion between physical values and host-normaliz
 
 When a preset is loaded through the plugin editor, the processor resets APVTS parameters to registry defaults before applying preset overrides. This prevents values from a previous preset from leaking into presets that intentionally omit optional fields.
 
-Current FX and quality fields are ordinary serialized parameters. `fx.enabled` is the global FX bypass; module bypasses use `fx.saturation_enabled`, `fx.delay_enabled`, `fx.reverb_enabled`, and `fx.chorus_enabled`. Delay sync is stored as an enum string such as `1/8`. Realtime and offline quality are stored as `quality.realtime_mode` and `quality.offline_mode`.
+Current FX and quality fields are ordinary serialized parameters. `fx.enabled` is the global FX bypass. The fixed rack uses `fx.saturation_enabled`, `fx.distortion_mode`, `fx.phaser_*`, `fx.chorus_*`, `fx.eq_*`, `fx.delay_*`, `fx.reverb_*`, and `fx.compressor_*` fields. Delay sync is stored as an enum string such as `1/8`; distortion mode is stored as `Soft`, `Clip`, or `Fold`. Realtime and offline quality are stored as `quality.realtime_mode` and `quality.offline_mode`.
 
 ## Arp, Step, and Chord State
 
@@ -238,7 +238,7 @@ Example:
 }
 ```
 
-The current factory `space` macro declares assignments to `fx.delay_mix` and `fx.reverb_mix`. Runtime processing also maps `macro.space` into delay and reverb wetness so the preset remains useful even before a richer macro-assignment engine exists.
+The current factory `space` macro declares assignments to `fx.delay_mix` and `fx.reverb_mix`. Runtime processing also maps `macro.space` into delay and reverb wetness so the preset remains useful even before a richer macro-assignment engine exists. The added phaser, EQ, compressor, and distortion-mode fields default to bypassed or no-op values so legacy presets keep their prior sound.
 
 ## Migration Rules
 

@@ -1203,17 +1203,28 @@ void SynthAudioProcessorEditor::buildPages()
 
     // ---- FX: a post-voice rack grouped by module, plus master/quality -----
     saturationPanel = addPanel(fxPage, fxPanels, "Saturation", {
-        "fx.saturation_enabled", "fx.saturation_mix", "fx.saturation_drive"
+        "fx.saturation_enabled", "fx.distortion_mode", "fx.saturation_mix", "fx.saturation_drive"
     }, {}, {}, "Saturation ");
+    phaserPanel = addPanel(fxPage, fxPanels, "Phaser", {
+        "fx.phaser_enabled", "fx.phaser_mix", "fx.phaser_rate_hz",
+        "fx.phaser_depth", "fx.phaser_feedback"
+    }, {}, {}, "Phaser ");
     chorusPanel = addPanel(fxPage, fxPanels, "Chorus", {
         "fx.chorus_enabled", "fx.chorus_mix", "fx.chorus_rate_hz", "fx.chorus_depth_ms"
     }, {}, {}, "Chorus ");
+    eqPanel = addPanel(fxPage, fxPanels, "EQ", {
+        "fx.eq_enabled", "fx.eq_low_gain_db", "fx.eq_high_gain_db"
+    }, {}, {}, "EQ ");
     delayPanel = addPanel(fxPage, fxPanels, "Delay", {
         "fx.delay_enabled", "fx.delay_mix", "fx.delay_sync_division", "fx.delay_feedback"
     }, {}, {}, "Delay ");
     reverbPanel = addPanel(fxPage, fxPanels, "Reverb", {
         "fx.reverb_enabled", "fx.reverb_mix", "fx.reverb_decay"
     }, {}, {}, "Reverb ");
+    compressorPanel = addPanel(fxPage, fxPanels, "Compressor", {
+        "fx.compressor_enabled", "fx.compressor_threshold_db", "fx.compressor_ratio",
+        "fx.compressor_makeup_db", "fx.compressor_mix"
+    }, {}, {}, "Compressor ");
     masterFxPanel = addPanel(fxPage, fxPanels, "Master / Quality", {
         "fx.enabled", "quality.realtime_mode", "quality.offline_mode"
     });
@@ -1503,9 +1514,10 @@ void SynthAudioProcessorEditor::layoutActivePage()
     else
     {
         std::vector<std::vector<RowItem>> rows = {
-            { { saturationPanel, 0.25f }, { chorusPanel, 0.25f },
-              { delayPanel, 0.25f }, { reverbPanel, 0.25f } },
-            { { masterFxPanel, 0.5f } },
+            { { saturationPanel, 0.25f }, { phaserPanel, 0.25f },
+              { chorusPanel, 0.25f }, { eqPanel, 0.25f } },
+            { { delayPanel, 0.25f }, { reverbPanel, 0.25f },
+              { compressorPanel, 0.25f }, { masterFxPanel, 0.25f } },
         };
         layoutRows(fxPage, rows, viewWidth);
     }
@@ -1684,9 +1696,12 @@ void SynthAudioProcessorEditor::updateDiagnostics()
     const auto oversample = synth::oversamplingFactor(static_cast<int>(std::round(raw("filter.oversampling", 1.0f))));
     const auto fxOn = raw("fx.enabled", 0.0f) >= 0.5f;
     const auto fxModules = (raw("fx.saturation_enabled", 1.0f) >= 0.5f ? 1 : 0)
+                         + (raw("fx.phaser_enabled", 0.0f) >= 0.5f ? 1 : 0)
                          + (raw("fx.delay_enabled", 1.0f) >= 0.5f ? 1 : 0)
                          + (raw("fx.reverb_enabled", 1.0f) >= 0.5f ? 1 : 0)
-                         + (raw("fx.chorus_enabled", 0.0f) >= 0.5f ? 1 : 0);
+                         + (raw("fx.chorus_enabled", 0.0f) >= 0.5f ? 1 : 0)
+                         + (raw("fx.eq_enabled", 0.0f) >= 0.5f ? 1 : 0)
+                         + (raw("fx.compressor_enabled", 0.0f) >= 0.5f ? 1 : 0);
 
     const auto oscVoices = polyphony * unison * stack;
     const auto filterMultiplier = filterOn ? (0.5f + 0.5f * static_cast<float>(oversample)) : 1.0f;

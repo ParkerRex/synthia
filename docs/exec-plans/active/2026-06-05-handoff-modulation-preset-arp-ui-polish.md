@@ -12,7 +12,7 @@ read_when:
 program_id: sylenth-lab-rebuild
 planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
 handoff_target: Claude Code
-handoff_status: partial_ready_for_preset_and_arp
+handoff_status: partial_ready_for_preset_arp_and_fx
 ---
 
 # Handoff Modulation Preset Arp UI Polish
@@ -31,10 +31,11 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [ ] Confirm modulation route model exists before modulation UI handoff.
 - [x] 2026-06-06 EDT: Confirmed preset browser/source/bank/category/tag/favorite/search model exists before browser UI handoff.
 - [x] 2026-06-06 EDT: Confirmed arp/step/chord engine and APVTS model exists before arp UI handoff.
-- [ ] Confirm FX rack model exists before FX UI handoff.
+- [x] 2026-06-06 EDT: Confirmed fixed-order FX rack model exists before FX UI handoff.
 - [x] 2026-06-06 EDT: Handed the arp/step/chord dependency slice to Claude Code with streaming headless output; the run produced no patch before it stalled.
 - [x] 2026-06-06 EDT: Implemented the bounded arp/step/chord UI surface in `PluginEditor.*` with real APVTS bindings for arp controls, 16 arp steps, and 8 chord voices.
 - [x] 2026-06-06 EDT: Recorded native standalone screenshot evidence that the sequencer row renders at a tall window size; bottom-lane scroll QA remains for host/manual polish.
+- [x] 2026-06-06 EDT: Completed the FX rack model with fixed-order APVTS-backed distortion/saturation, phaser, chorus, EQ, delay, reverb, compressor, quality, and patch-cost state; captured native standalone FX tab screenshot evidence.
 
 ## Surprises & Discoveries
 
@@ -49,7 +50,9 @@ Date: 2026-06-05.
 
 ## Outcomes & Retrospective
 
-Partial arp/step/chord implementation passed build, CTest, adversarial review, and native standalone visual launch/row evidence. Modulation, preset browser, and FX polish remain gated by their own dependency and QA checks.
+Partial arp/step/chord implementation passed build, CTest, adversarial review, and native standalone visual launch/row evidence. FX rack state is now model-ready for Claude visual polish; modulation polish remains gated by its route model.
+
+The next Claude Code pass can target preset browser, arp/step/chord, and FX rack visual polish only. It must not invent modulation-route UI state until the route model lands.
 
 ## Context and Orientation
 
@@ -58,7 +61,7 @@ Do not hand a surface to Claude Code until the relevant dependency exists:
 - Modulation polish requires a route model and destination catalog.
 - Preset browser polish can now bind to `PresetSummary`, `PresetBrowserFilter`, `PresetBrowserCatalog`, source/bank/category/tag fields, and sidecar favorite keys.
 - Arp UI polish now has a bounded APVTS-backed editor surface for `arp.*`, `arp.step.N.*`, `chord.*`, and `chord.voice.N.*`; direct visual QA and any deeper Claude polish remain.
-- FX rack polish requires expanded FX module state and tail/cost diagnostics.
+- FX rack polish can now bind to fixed-order distortion/saturation, phaser, chorus/flanger-style modulation, EQ, delay, reverb, compressor, master bypass, quality, tail, and patch-cost state.
 
 Partial handoff is allowed only if the handoff prompt clearly limits scope to completed dependencies.
 

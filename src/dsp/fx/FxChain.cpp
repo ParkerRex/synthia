@@ -35,6 +35,25 @@ float saturate(float sample, float drive) noexcept
     return std::tanh(sample * gain) / normalizer;
 }
 
+float clipDistort(float sample, float drive) noexcept
+{
+    const auto gain = 1.0f + clampUnit(drive) * 10.0f;
+    return std::clamp(sample * gain, -1.0f, 1.0f);
+}
+
+float foldDistort(float sample, float drive) noexcept
+{
+    auto folded = std::fmod(sample * (1.0f + clampUnit(drive) * 14.0f) + 1.0f, 4.0f);
+    if (folded < 0.0f)
+        folded += 4.0f;
+    return 1.0f - std::abs(folded - 2.0f);
+}
+
+float dbToGain(float db) noexcept
+{
+    return std::pow(10.0f, std::clamp(db, -48.0f, 24.0f) / 20.0f);
+}
+
 int secondsToSamples(double sampleRate, float seconds) noexcept
 {
     return std::max(1, static_cast<int>(std::round(std::max(0.0f, seconds) * static_cast<float>(sampleRate))));
@@ -201,6 +220,10 @@ void FxChain::reset() noexcept
     for (auto& comb : reverbCombs)
         comb.reset();
     reverbDampingStates.fill(0.0f);
+    resetPhaser();
+    eqLowStateLeft = 0.0f;
+    eqLowStateRight = 0.0f;
+    compressorEnvelope = 0.0f;
     chorusPhase = 0.0f;
     reverbWasActive = false;
     lastReverbCombCount = 0;
@@ -212,12 +235,19 @@ FxStereoFrame FxChain::process(FxStereoFrame input, const SynthParameters& param
     input.right = finiteOrZero(input.right);
 
     if (!parameters.fx.enabled)
+    {
+        if (phaserWasActive)
+            resetPhaser();
         return input;
+    }
 
     auto output = processSaturation(input, parameters);
+    output = processPhaser(output, parameters);
     output = processChorus(output, parameters);
+    output = processEq(output, parameters);
     output = processDelay(output, parameters);
     output = processReverb(output, parameters);
+    output = processCompressor(output, parameters);
     output.left = std::clamp(finiteOrZero(output.left), -1.0f, 1.0f);
     output.right = std::clamp(finiteOrZero(output.right), -1.0f, 1.0f);
     return output;
@@ -229,9 +259,48 @@ FxStereoFrame FxChain::processSaturation(FxStereoFrame input, const SynthParamet
         return input;
 
     const auto drive = clampUnit(parameters.fx.saturationDrive + parameters.macro.drive * 0.25f);
+    auto distort = [mode = parameters.fx.distortionMode, drive](float sample) noexcept {
+        switch (mode)
+        {
+            case DistortionMode::Soft: return saturate(sample, drive);
+            case DistortionMode::Clip: return clipDistort(sample, drive);
+            case DistortionMode::Fold: return foldDistort(sample, drive);
+        }
+        return saturate(sample, drive);
+    };
+
     return {
-        mix(input.left, saturate(input.left, drive), parameters.fx.saturationMix),
-        mix(input.right, saturate(input.right, drive), parameters.fx.saturationMix)
+        mix(input.left, distort(input.left), parameters.fx.saturationMix),
+        mix(input.right, distort(input.right), parameters.fx.saturationMix)
+    };
+}
+
+FxStereoFrame FxChain::processPhaser(FxStereoFrame input, const SynthParameters& parameters) noexcept
+{
+    if (!parameters.fx.phaserEnabled || parameters.fx.phaserMix <= 0.0f)
+    {
+        if (phaserWasActive)
+            resetPhaser();
+        return input;
+    }
+
+    phaserWasActive = true;
+    const auto rateHz = std::clamp(parameters.fx.phaserRateHz, 0.02f, 8.0f);
+    phaserPhase += rateHz / static_cast<float>(sampleRate);
+    if (phaserPhase >= 1.0f)
+        phaserPhase -= std::floor(phaserPhase);
+
+    const auto sweep = 0.5f + 0.5f * std::sin(phaserPhase * twoPi);
+    const auto depth = clampUnit(parameters.fx.phaserDepth);
+    const auto coefficient = std::clamp(0.18f + sweep * (0.72f * depth), 0.05f, 0.95f);
+    const auto feedbackAmount = std::clamp(parameters.fx.phaserFeedback, 0.0f, 0.95f) * 0.85f;
+    const auto wetLeft = processPhaserChannel(input.left, phaserStagesLeft, phaserFeedbackLeft,
+                                              coefficient, feedbackAmount);
+    const auto wetRight = processPhaserChannel(input.right, phaserStagesRight, phaserFeedbackRight,
+                                               coefficient * 0.97f, feedbackAmount);
+    return {
+        mix(input.left, wetLeft, parameters.fx.phaserMix),
+        mix(input.right, wetRight, parameters.fx.phaserMix)
     };
 }
 
@@ -267,9 +336,25 @@ FxStereoFrame FxChain::processChorus(FxStereoFrame input, const SynthParameters&
     };
 }
 
+FxStereoFrame FxChain::processEq(FxStereoFrame input, const SynthParameters& parameters) noexcept
+{
+    if (!parameters.fx.eqEnabled)
+    {
+        eqLowStateLeft = input.left;
+        eqLowStateRight = input.right;
+        return input;
+    }
+
+    return {
+        processEqChannel(input.left, eqLowStateLeft, parameters.fx.eqLowGainDb, parameters.fx.eqHighGainDb),
+        processEqChannel(input.right, eqLowStateRight, parameters.fx.eqLowGainDb, parameters.fx.eqHighGainDb)
+    };
+}
+
 FxStereoFrame FxChain::processDelay(FxStereoFrame input, const SynthParameters& parameters) noexcept
 {
-    if (!parameters.fx.delayEnabled || parameters.fx.delayMix <= 0.0f)
+    const auto delayMix = clampUnit(parameters.fx.delayMix + parameters.macro.space * 0.35f);
+    if (!parameters.fx.delayEnabled || delayMix <= 0.0f)
     {
         delayLeft.write(input.left);
         delayRight.write(input.right);
@@ -280,7 +365,6 @@ FxStereoFrame FxChain::processDelay(FxStereoFrame input, const SynthParameters& 
     const auto delayedLeft = delayLeft.read(delaySamples);
     const auto delayedRight = delayRight.read(delaySamples);
     const auto feedback = std::clamp(parameters.fx.delayFeedback, 0.0f, 0.86f);
-    const auto delayMix = clampUnit(parameters.fx.delayMix + parameters.macro.space * 0.35f);
 
     delayLeft.write(input.left + delayedRight * feedback);
     delayRight.write(input.right + delayedLeft * feedback);
@@ -327,6 +411,73 @@ FxStereoFrame FxChain::processReverb(FxStereoFrame input, const SynthParameters&
         std::clamp(input.left + wetLeft * reverbMix, -1.0f, 1.0f),
         std::clamp(input.right + wetRight * reverbMix, -1.0f, 1.0f)
     };
+}
+
+FxStereoFrame FxChain::processCompressor(FxStereoFrame input, const SynthParameters& parameters) noexcept
+{
+    if (!parameters.fx.compressorEnabled || parameters.fx.compressorMix <= 0.0f)
+        return input;
+
+    const auto peak = std::max(std::abs(input.left), std::abs(input.right));
+    const auto attack = 1.0f - std::exp(-1.0f / (0.004f * static_cast<float>(sampleRate)));
+    const auto release = 1.0f - std::exp(-1.0f / (0.080f * static_cast<float>(sampleRate)));
+    const auto coefficient = peak > compressorEnvelope ? attack : release;
+    compressorEnvelope += (peak - compressorEnvelope) * coefficient;
+
+    const auto safeEnvelope = std::max(compressorEnvelope, 1.0e-6f);
+    const auto envelopeDb = 20.0f * std::log10(safeEnvelope);
+    const auto thresholdDb = std::clamp(parameters.fx.compressorThresholdDb, -36.0f, 0.0f);
+    const auto ratio = std::clamp(parameters.fx.compressorRatio, 1.0f, 8.0f);
+    auto gainDb = 0.0f;
+    if (envelopeDb > thresholdDb)
+    {
+        const auto compressedDb = thresholdDb + (envelopeDb - thresholdDb) / ratio;
+        gainDb = compressedDb - envelopeDb;
+    }
+    const auto wetGain = dbToGain(gainDb + parameters.fx.compressorMakeupDb);
+    const auto wetLeft = input.left * wetGain;
+    const auto wetRight = input.right * wetGain;
+    return {
+        mix(input.left, wetLeft, parameters.fx.compressorMix),
+        mix(input.right, wetRight, parameters.fx.compressorMix)
+    };
+}
+
+float FxChain::processPhaserChannel(float input,
+                                    std::array<float, 4>& stages,
+                                    float& feedback,
+                                    float coefficient,
+                                    float feedbackAmount) noexcept
+{
+    auto stageInput = input + feedback * feedbackAmount;
+    for (auto& state : stages)
+    {
+        const auto output = -coefficient * stageInput + state;
+        state = stageInput + coefficient * output;
+        stageInput = output;
+    }
+    feedback = std::clamp(stageInput, -1.0f, 1.0f);
+    return stageInput;
+}
+
+float FxChain::processEqChannel(float input, float& lowState, float lowGainDb, float highGainDb) const noexcept
+{
+    const auto coefficient = std::clamp(160.0f / static_cast<float>(sampleRate), 0.001f, 0.2f);
+    lowState += (input - lowState) * coefficient;
+    const auto high = input - lowState;
+    const auto lowGain = dbToGain(std::clamp(lowGainDb, -12.0f, 12.0f));
+    const auto highGain = dbToGain(std::clamp(highGainDb, -12.0f, 12.0f));
+    return std::clamp(input + (lowGain - 1.0f) * lowState + (highGain - 1.0f) * high, -1.0f, 1.0f);
+}
+
+void FxChain::resetPhaser() noexcept
+{
+    phaserStagesLeft.fill(0.0f);
+    phaserStagesRight.fill(0.0f);
+    phaserFeedbackLeft = 0.0f;
+    phaserFeedbackRight = 0.0f;
+    phaserPhase = 0.0f;
+    phaserWasActive = false;
 }
 
 void FxChain::resetReverb() noexcept

@@ -42,9 +42,19 @@ private:
     };
 
     FxStereoFrame processSaturation(FxStereoFrame input, const SynthParameters& parameters) const noexcept;
+    FxStereoFrame processPhaser(FxStereoFrame input, const SynthParameters& parameters) noexcept;
     FxStereoFrame processChorus(FxStereoFrame input, const SynthParameters& parameters) noexcept;
+    FxStereoFrame processEq(FxStereoFrame input, const SynthParameters& parameters) noexcept;
     FxStereoFrame processDelay(FxStereoFrame input, const SynthParameters& parameters) noexcept;
     FxStereoFrame processReverb(FxStereoFrame input, const SynthParameters& parameters) noexcept;
+    FxStereoFrame processCompressor(FxStereoFrame input, const SynthParameters& parameters) noexcept;
+    float processPhaserChannel(float input,
+                               std::array<float, 4>& stages,
+                               float& feedback,
+                               float coefficient,
+                               float feedbackAmount) noexcept;
+    float processEqChannel(float input, float& lowState, float lowGainDb, float highGainDb) const noexcept;
+    void resetPhaser() noexcept;
     void resetReverb() noexcept;
     float processComb(int index, float input, float feedback, float damping) noexcept;
     int reverbCombCount(QualityMode mode) const noexcept;
@@ -57,6 +67,15 @@ private:
     DelayBuffer chorusRight;
     std::array<DelayBuffer, 8> reverbCombs;
     std::array<float, 8> reverbDampingStates {};
+    std::array<float, 4> phaserStagesLeft {};
+    std::array<float, 4> phaserStagesRight {};
+    float phaserFeedbackLeft = 0.0f;
+    float phaserFeedbackRight = 0.0f;
+    float phaserPhase = 0.0f;
+    bool phaserWasActive = false;
+    float eqLowStateLeft = 0.0f;
+    float eqLowStateRight = 0.0f;
+    float compressorEnvelope = 0.0f;
     float chorusPhase = 0.0f;
     bool reverbWasActive = false;
     int lastReverbCombCount = 0;
