@@ -10,15 +10,22 @@
 
 // Modern Sylenth-style control surface for sylenth-ai.
 //
-// The editor is a fixed dense shell rather than a long scrolling form:
+// The editor is a dense, grouped-module shell rather than a long scrolling form:
 //   * a header with preset navigation, an output meter, live diagnostics, and panic;
 //   * a persistent Layer A/B selector that exposes the live layer.* mix state;
 //   * a SOUND / MOD / FX tabbed workspace whose panels bind to real APVTS parameters.
 //
+// Each module panel carries a functional-zone header tick (source / shaping / performance /
+// modulation / utility) so the surface reads as a rack of grouped modules. The SOUND page
+// leads with the synthesis hero (oscillator slots, tone source, filter/envelopes/LFO,
+// performance modules, arp/step/chord) and keeps the preset browser and MIDI utility panels
+// at the bottom, matching the Sylenth everything-visible grid with minimal scrolling.
+//
 // Honesty boundary: the legacy flat osc.* path remains the Layer A Osc 1 compatibility
-// source and is badged LIVE. Additional layer.N.osc.M.* slots render through the same
-// oscillator stack foundation, while deeper Sylenth parity such as per-layer filters,
-// copy/paste, previews, and full A1 field migration is still future work.
+// source. It is titled "Osc A1 Tone" and badged LIVE so its A1 relationship is explicit.
+// Additional layer.N.osc.M.* slots render through the same oscillator stack foundation,
+// while deeper Sylenth parity such as per-layer filters, copy/paste, previews, and full A1
+// field migration is still future work.
 class SynthAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                         private juce::Timer
 {

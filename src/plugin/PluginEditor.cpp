@@ -22,15 +22,25 @@ const auto accent       = juce::Colour::fromRGB(88, 196, 176);
 const auto live         = juce::Colour::fromRGB(108, 206, 138);
 const auto staged       = juce::Colour::fromRGB(220, 158, 86);
 const auto warn         = juce::Colour::fromRGB(228, 120, 96);
+const auto info         = juce::Colour::fromRGB(108, 158, 226);
 const auto knobFill     = juce::Colour::fromRGB(40, 45, 51);
 const auto knobStroke   = juce::Colour::fromRGB(62, 70, 78);
+
+// Functional zone hues drive each module's header identity tick so the grid reads as a
+// rack of grouped modules rather than a uniform form. Restrained on purpose: source,
+// shaping, performance, and modulation are the only zones; FX keeps per-module badges.
+const auto zoneSource   = live;   // oscillators / tone
+const auto zoneShape    = accent; // filter / envelopes / LFO
+const auto zonePerform  = info;   // voice / amp / ramp / macros
+const auto zoneMod      = accent; // modulation routes
+const auto zoneUtility  = juce::Colour::fromRGB(96, 104, 112); // browser / MIDI
 
 constexpr float rotaryStart = juce::MathConstants<float>::pi * 1.25f;
 constexpr float rotaryEnd   = juce::MathConstants<float>::pi * 2.75f;
 
 // Fixed shell chrome heights (editor body math reads these by name).
 constexpr int headerHeight   = 66;
-constexpr int layerBarHeight  = 92;
+constexpr int layerBarHeight  = 86;
 constexpr int tabBarHeight    = 40;
 constexpr int footerHeight    = 26;
 
@@ -140,6 +150,18 @@ void styleChipValue(juce::Label& label)
     label.setColour(juce::Label::textColourId, text);
     label.setFont(uiFont(15.0f, true));
 }
+
+// Draws the small rounded zone tick at the left of a module header so every panel reads
+// as a labelled module in a rack. Dimmed when the module's power toggle is off.
+void paintModuleHeaderTick(juce::Graphics& g, juce::Rectangle<int> headerArea,
+                           juce::Colour colour, bool enabled = true)
+{
+    const auto tick = juce::Rectangle<float>(3.0f, 13.0f)
+                          .withCentre(headerArea.toFloat().getCentre())
+                          .withX(static_cast<float>(headerArea.getX()) + 6.0f);
+    g.setColour(enabled ? colour : colour.withAlpha(0.32f));
+    g.fillRoundedRectangle(tick, 1.5f);
+}
 } // namespace
 
 // ============================================================================
@@ -197,6 +219,18 @@ public:
             g.setColour(accent);
             g.strokePath(valueArc, juce::PathStrokeType(lineWidth, juce::PathStrokeType::curved,
                                                         juce::PathStrokeType::rounded));
+        }
+
+        // Faint min/max ticks just outside the track give the knob a hardware-instrument read.
+        const auto tickInner = arcRadius + 1.5f;
+        const auto tickOuter = arcRadius + 4.0f;
+        g.setColour(juce::Colour::fromRGB(70, 78, 86));
+        for (const auto angle : { startAngle, endAngle })
+        {
+            const auto sinA = std::sin(angle);
+            const auto cosA = std::cos(angle);
+            g.drawLine(centreX + tickInner * sinA, centreY - tickInner * cosA,
+                       centreX + tickOuter * sinA, centreY - tickOuter * cosA, 1.4f);
         }
 
         const auto bodyRadius = arcRadius - lineWidth * 0.5f - 3.0f;
@@ -508,7 +542,11 @@ public:
         g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
         g.fillRect(headerArea.removeFromBottom(8)); // square off the lower header corners
 
-        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        // Zone identity tick: badgeColour doubles as the functional-zone hue.
+        const auto tickColour = badgeColour.isTransparent() ? accent.withAlpha(0.65f) : badgeColour;
+        paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), tickColour, !hasState || on);
+
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
 
         // Power dot: a scan-friendly on/off indicator for modules with an enable toggle.
         if (hasState)
@@ -587,13 +625,13 @@ private:
     }
 
     static constexpr int headerHeight = 26;
-    static constexpr int unitWidth = 66;
-    static constexpr int cellHeight = 64;
-    static constexpr int gap = 8;
+    static constexpr int unitWidth = 62;
+    static constexpr int cellHeight = 60;
+    static constexpr int gap = 7;
     static constexpr int rowGap = 4;
-    static constexpr int padX = 12;
+    static constexpr int padX = 11;
     static constexpr int padTop = 6;
-    static constexpr int padBottom = 10;
+    static constexpr int padBottom = 9;
 
     juce::String title;
     juce::String badge;
@@ -671,7 +709,8 @@ public:
         g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
         g.fillRect(headerArea.removeFromBottom(8));
 
-        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneUtility);
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
         auto countArea = titleArea.removeFromRight(88).withSizeKeepingCentre(88, 16);
         titleArea.removeFromRight(8);
 
@@ -1064,7 +1103,8 @@ public:
         g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
         g.fillRect(headerArea.removeFromBottom(8));
 
-        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneUtility);
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
         auto badgeArea = titleArea.removeFromRight(70).withSizeKeepingCentre(70, 16);
         titleArea.removeFromRight(8);
 
@@ -1175,7 +1215,8 @@ public:
         g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
         g.fillRect(headerArea.removeFromBottom(8));
 
-        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneMod);
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
         auto badgeArea = titleArea.removeFromRight(52).withSizeKeepingCentre(52, 16);
         titleArea.removeFromRight(8);
 
@@ -1502,7 +1543,8 @@ public:
         g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
         g.fillRect(headerArea.removeFromBottom(8));
 
-        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneSource);
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
         auto badgeArea = titleArea.removeFromRight(54).withSizeKeepingCentre(54, 16);
         titleArea.removeFromRight(8);
 
@@ -1945,12 +1987,12 @@ void SynthAudioProcessorEditor::buildHeader()
 {
     titleLabel.setText("SYLENTH-AI", juce::dontSendNotification);
     titleLabel.setColour(juce::Label::textColourId, text);
-    titleLabel.setFont(uiFont(22.0f, true));
+    titleLabel.setFont(uiFont(18.0f, true));
     addAndMakeVisible(titleLabel);
 
     engineTag.setText("CORE OSC ENGINE", juce::dontSendNotification);
     engineTag.setColour(juce::Label::textColourId, live);
-    engineTag.setFont(uiFont(10.5f, true));
+    engineTag.setFont(uiFont(10.0f, true));
     addAndMakeVisible(engineTag);
 
     styleFlatButton(prevPresetButton, juce::Colour::fromRGB(38, 43, 49));
@@ -2074,51 +2116,53 @@ void SynthAudioProcessorEditor::buildPages()
     midiControllerPanel = std::make_unique<MidiControllerPanel>(*this);
     soundPage.addAndMakeVisible(*midiControllerPanel);
 
-    coreOscPanel = addPanel(soundPage, soundPanels, "Oscillator", {
+    // Legacy flat osc.* is the audible tone source that Osc A1's slot gates and mixes.
+    // The honest title makes that A1 relationship clear instead of a second "Oscillator".
+    coreOscPanel = addPanel(soundPage, soundPanels, "Osc A1 Tone", {
         "osc.pitch_semitones", "osc.fine_cents", "osc.stack_count", "osc.stack_detune",
         "osc.saw_level", "osc.pulse_level", "osc.pulse_width", "osc.noise_level",
         "osc.sub_wave", "osc.sub_octave", "osc.sub_level", "osc.sub_pulse_width",
         "osc.sync_amount", "osc.phase_reset"
-    }, "LIVE", live);
+    }, "LIVE", zoneSource);
 
     filterPanel = addPanel(soundPage, soundPanels, "Filter", {
         "filter.enabled", "filter.mode", "filter.cutoff_semitones", "filter.resonance",
         "filter.drive", "filter.keytrack", "filter.oversampling"
-    });
+    }, {}, zoneShape);
 
     ampEnvPanel = addPanel(soundPage, soundPanels, "Amp Envelope", {
         "amp_env.attack_ms", "amp_env.decay_ms", "amp_env.sustain", "amp_env.release_ms"
-    });
+    }, {}, zoneShape);
 
     modEnvPanel = addPanel(soundPage, soundPanels, "Mod Envelope", {
         "mod_env.attack_ms", "mod_env.decay_ms", "mod_env.sustain", "mod_env.release_ms"
-    });
+    }, {}, zoneShape);
 
     lfoPanel = addPanel(soundPage, soundPanels, "LFO", {
         "lfo.shape", "lfo.rate_mode", "lfo.rate_hz", "lfo.sync_division",
         "lfo.phase_degrees", "lfo.gate_mode", "lfo.mono", "lfo.swing"
-    });
+    }, {}, zoneShape);
 
     voicePanel = addPanel(soundPage, soundPanels, "Voice", {
         "voice.mode", "voice.polyphony", "voice.unison_count", "voice.retrigger",
         "voice.glide_ms", "voice.velocity_glide_ms"
-    });
+    }, {}, zonePerform);
 
     ampPanel = addPanel(soundPage, soundPanels, "Amp / Stereo", {
         "amp.drive", "amp.level_db", "amp.pan", "amp.pan_spread",
         "amp.unison_spread", "amp.analog"
-    });
+    }, {}, zonePerform);
 
     rampPanel = addPanel(soundPage, soundPanels, "Ramp", {
         "ramp.enabled", "ramp.mode", "ramp.delay_ms", "ramp.rise_ms", "ramp.curve"
-    });
+    }, {}, zonePerform);
 
     sequencerPanel = std::make_unique<SequencerPanel>(audioProcessor.getValueTreeState());
     soundPage.addAndMakeVisible(*sequencerPanel);
 
     macroPanel = addPanel(soundPage, soundPanels, "Macros", {
         "macro.motion", "macro.width", "macro.drive", "macro.space"
-    });
+    }, {}, zonePerform);
 
     // ---- MOD: read-only route overview, direct routes, and eight TransMod slots
     modulationOverviewPanel = std::make_unique<ModulationOverviewPanel>(audioProcessor);
@@ -2126,13 +2170,13 @@ void SynthAudioProcessorEditor::buildPages()
 
     oscPitchModPanel = addPanel(modPage, modPanels, "Osc Pitch Mod", {
         "direct.osc_keytrack_semitones", "direct.osc_lfo_semitones", "direct.osc_mod_env_semitones"
-    }, {}, {}, "Osc ");
+    }, {}, zoneMod, "Osc ");
     pulseWidthModPanel = addPanel(modPage, modPanels, "Pulse Width Mod", {
         "direct.pulse_keytrack", "direct.pulse_lfo", "direct.pulse_mod_env"
-    }, {}, {}, "Pulse ");
+    }, {}, zoneMod, "Pulse ");
     filterCutoffModPanel = addPanel(modPage, modPanels, "Filter Cutoff Mod", {
         "direct.filter_keytrack", "direct.filter_lfo_semitones", "direct.filter_mod_env_semitones"
-    }, {}, {}, "Filter ");
+    }, {}, zoneMod, "Filter ");
 
     for (int slot = 1; slot <= synth::transModSlotCount; ++slot)
     {
@@ -2143,7 +2187,7 @@ void SynthAudioProcessorEditor::buildPages()
                 prefix + "enabled", prefix + "source", prefix + "scaler",
                 prefix + "osc_pitch_semitones", prefix + "pulse_width",
                 prefix + "filter_cutoff_semitones", prefix + "amp_level_db", prefix + "pan"
-            }, {}, {}, title + " ", prefix + "enabled");
+            }, {}, zoneMod, title + " ", prefix + "enabled");
     }
 
     // ---- FX: a post-voice rack grouped by module, plus master/quality -----
@@ -2276,6 +2320,16 @@ void SynthAudioProcessorEditor::paint(juce::Graphics& g)
     g.drawHorizontalLine(headerHeight, 0.0f, static_cast<float>(getWidth()));
     g.drawHorizontalLine(headerHeight + layerBarHeight, 0.0f, static_cast<float>(getWidth()));
 
+    // Selected-part accent: underline the active Layer button so the chosen part reads at a
+    // glance, the way Sylenth's Part Select highlights the live part.
+    const auto& activeLayerButton = selectedLayer == 0 ? layerAButton : layerBButton;
+    if (!activeLayerButton.getBounds().isEmpty())
+    {
+        g.setColour(accent);
+        g.fillRect(juce::Rectangle<int>(activeLayerButton.getX(), activeLayerButton.getBottom() + 3,
+                                        activeLayerButton.getWidth(), 2));
+    }
+
     auto footer = getLocalBounds().removeFromBottom(footerHeight);
     g.setColour(headerBg);
     g.fillRect(footer);
@@ -2309,9 +2363,10 @@ void SynthAudioProcessorEditor::layoutHeader(juce::Rectangle<int> area)
 {
     area = area.reduced(16, 9);
 
-    auto left = area.removeFromLeft(154);
-    titleLabel.setBounds(left.removeFromTop(28));
-    engineTag.setBounds(left.removeFromTop(16));
+    auto left = area.removeFromLeft(132);
+    left = left.withSizeKeepingCentre(left.getWidth(), 40);
+    titleLabel.setBounds(left.removeFromTop(24));
+    engineTag.setBounds(left.removeFromTop(14));
 
     auto centreInHeight = [&area](juce::Rectangle<int> slot, int height) {
         return slot.withSizeKeepingCentre(slot.getWidth(), height).translated(0, 0)
@@ -2441,14 +2496,18 @@ void SynthAudioProcessorEditor::layoutActivePage()
         if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr
             || sequencerPanel == nullptr || presetBrowserPanel == nullptr || midiControllerPanel == nullptr)
             return;
+        // Synthesis is the hero: oscillator slots, tone source, filter/envelopes/LFO, and
+        // performance modules read first, matching the Sylenth everything-visible grid. The
+        // preset browser and MIDI utility panels move to the bottom so the core patching
+        // surface fills the first screen with minimal scrolling.
         std::vector<std::vector<RowItem>> rows = {
-            { { presetBrowserPanel.get(), 1.0f } },
-            { { midiControllerPanel.get(), 1.0f } },
             { { slotPanels[0].get(), 0.5f }, { slotPanels[1].get(), 0.5f } },
             { { coreOscPanel, 1.0f } },
-            { { filterPanel, 0.32f }, { ampEnvPanel, 0.14f }, { modEnvPanel, 0.14f }, { lfoPanel, 0.40f } },
+            { { filterPanel, 0.34f }, { ampEnvPanel, 0.16f }, { modEnvPanel, 0.16f }, { lfoPanel, 0.34f } },
             { { voicePanel, 0.26f }, { ampPanel, 0.24f }, { rampPanel, 0.24f }, { macroPanel, 0.26f } },
             { { sequencerPanel.get(), 1.0f } },
+            { { presetBrowserPanel.get(), 1.0f } },
+            { { midiControllerPanel.get(), 1.0f } },
         };
         layoutRows(soundPage, rows, viewWidth);
     }

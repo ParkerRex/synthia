@@ -4,7 +4,14 @@ status: active
 created_at: 2026-06-06
 completed_at: null
 summary: Claude Code handoff plan for reshaping the current model-backed editor into a denser Sylenth-informed visual information architecture without adding fake controls or DSP.
-post_build_recap: null
+post_build_recap: |
+  Reshaped the editor into a grouped-module Sylenth-informed surface in PluginEditor.{h,cpp} only.
+  The Sound page now leads with the synthesis hero (oscillator slots, tone source, filter/envelopes/LFO,
+  performance modules, arp/step/chord) and moves the preset browser and MIDI panels to the bottom, every
+  module carries a functional-zone header tick, the legacy osc.* panel is honestly retitled Osc A1 Tone,
+  and the chrome/knobs are denser. No DSP, parameters, schema, processor APIs, or fake controls were added.
+  Validated with git diff --check, Debug build, CTest 5/5, and the core render suite, with Sound/Modulation/
+  Effects/Browser/compact screenshots under build/reports/ui/. Parker review of the patch is the only open step.
 read_when:
   - Preparing the next Claude Code UI pass after the roadmap truth audit.
   - Making the editor look and scan more like the supplied Sylenth screenshots.
@@ -12,7 +19,7 @@ read_when:
 program_id: sylenth-lab-rebuild
 planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
 handoff_target: Claude Code
-handoff_status: ready_for_visual_ia_pass
+handoff_status: visual_ia_pass_implemented_pending_parker_review
 ---
 
 # Handoff Sylenth Visual Information Architecture
@@ -31,13 +38,28 @@ The goal is not to add backend features. The goal is to make the current real fe
 
 - [x] 2026-06-06 EDT: Created this handoff plan after the roadmap truth audit commit `a30f970`.
 - [x] 2026-06-06 EDT: Confirmed enough model-backed UI state exists for a visual IA pass: layer/slot rendering, preset browser, arp/step/chord, FX rack, read-only modulation overview, and global MIDI Learn.
-- [ ] Hand off to Claude Code.
-- [ ] Review returned patch for real bindings, layout fidelity, and no fake feature controls.
-- [ ] Record screenshot/manual QA and update this plan with outcomes.
+- [x] 2026-06-06 EDT: Handed off to Claude Code.
+- [x] 2026-06-06 EDT: Implemented the bounded visual IA pass in `src/plugin/PluginEditor.{h,cpp}` only: synthesis-first Sound page, functional-zone header ticks, clarified `Osc A1 Tone` naming, denser knob cells, knob end ticks, slimmer brand, shorter layer bar, selected-part accent. No DSP/parameters/schema/processor APIs added; no fake controls.
+- [x] 2026-06-06 EDT: Validated `git diff --check`, Debug build, CTest (5/5), and `SylenthAIRender --suite core` (11 reports); captured Sound/Modulation/Effects/Browser/compact screenshots under `build/reports/ui/`.
+- [ ] Parker review of the patch for real bindings, layout fidelity, and no fake feature controls.
 
 ## Surprises & Discoveries
 
-- Pending implementation.
+### Visual IA interpretation (2026-06-06, from the screenshot corpus)
+
+What the Sylenth1 screenshots imply about hierarchy, density, grouping, and panel rhythm:
+
+- **One integrated top strip, not a marketing band.** `splice-top-panel.png` and the official UI put polyphony, voices, part select, solo, sync, and MIDI learn in a single dense performance strip. The current editor spends ~132px of header on a `SYLENTH-AI` / `CORE OSC ENGINE` brand block and splits performance state across two stacked bars.
+- **Everything-visible module grid.** The official UI shows `OSC A1 | AMP ENV A | OSC A2` across the top, `FILTER + FILTER CONTROL + center LCD + MIXER` in the middle, and `MOD ENV 1/2 + LFO 1/2 + MISC 1/2` across the bottom — all on one fixed surface with no scrolling. The synthesis surface is the hero; utilities (the preset list) are a popover over the center LCD, never a leading panel.
+- **Module = caption bar + tight knob cluster.** Each Sylenth panel is a titled frame with a small caption and a dense row of knobs, each with a short label beneath. Modules read as a rack because each has a clear identity and consistent rhythm.
+- **Restrained colour, grouped by zone.** Sylenth is near-monochrome (warm brown). Identity comes from grouping and labels, not rainbow colour. We keep our own dark/teal trade dress (no brown, no logos, no raster screenshots) but borrow the grouped-module rhythm.
+
+### Applied to this pass (UI-only, real bindings preserved)
+
+- Lead the Sound page with the synthesis hero (`Osc A1 | Osc A2`, tone source, filter/envelopes/LFO, voice/amp/ramp/macros, arp/step/chord) and move the preset browser + MIDI utility panels to the bottom so the core patching surface is the first screen with minimal scrolling.
+- Give every module a colored header identity tick keyed to a functional zone (source = green, shaping = teal, performance = blue, sequencer = green, modulation = teal, FX = per-module) so the grid reads as a rack instead of a uniform form.
+- Reword the vague legacy `osc.*` panel title to `Osc A1 Tone` so the A1 compatibility relationship is honest rather than a second unexplained "Oscillator".
+- Tighten chrome (slimmer brand, shorter layer bar, denser knob cells, knob end ticks) for a more hardware-like density without clipping labels at the compact minimum.
 
 ## Decision Log
 
@@ -51,7 +73,41 @@ Date: 2026-06-06.
 
 ## Outcomes & Retrospective
 
-Pending implementation.
+### What changed (UI-only, bounded to `src/plugin/PluginEditor.{h,cpp}`)
+
+- **Synthesis-first Sound page.** Reordered `layoutActivePage` so the Sound page leads with the synthesis hero — `Osc A1 | Osc A2` slots, the full-width tone source, `Filter | Amp Env | Mod Env | LFO`, and `Voice | Amp | Ramp | Macros` — then the arp/step/chord sequencer, with the preset browser and MIDI utility panels moved to the bottom. The core patching surface now fills the first screen with minimal scrolling, matching the Sylenth everything-visible grid.
+- **Grouped-module identity.** Added a `paintModuleHeaderTick` helper and a restrained functional-zone palette (`zoneSource` green, `zoneShape` teal, `zonePerform` blue, `zoneMod` teal, `zoneUtility` neutral). Every module — `Panel` plus the browser, MIDI, modulation-overview, and sequencer panels — now carries a colored header tick keyed to its zone, dimmed when a module's power toggle is off, so the surface reads as a rack instead of a uniform form.
+- **Honest oscillator naming.** Retitled the vague legacy `osc.*` panel from `Oscillator` to `Osc A1 Tone` so the A1 compatibility relationship is explicit rather than a second unexplained oscillator. No binding changed; it still drives the flat `osc.*` parameters.
+- **Hardware-like density.** Tightened `Panel` cell metrics (unit width 66→62, cell height 64→60, gaps), added faint min/max ticks to the rotary knob in the look-and-feel, slimmed the brand block (22pt→18pt, 154px→132px), shortened the layer bar (92→86), and added a selected-part accent underline beneath the active Layer button.
+
+All visible controls remain bound to real APVTS parameters, processor APIs (`requestPanic`, MIDI learn, route view), browser APIs, or derived diagnostics. No DSP, parameters, preset schema, processor APIs, or audio-thread code were touched. No writable modulation halos/matrix, preset dirty/init/randomize/reset/A-B, LFO2, per-control MIDI menus, or Filter A/B were added.
+
+### Validation (2026-06-06)
+
+- `git diff --check`: clean.
+- `cmake --build build --config Debug`: all targets built (exit 0).
+- `ctest --test-dir build --output-on-failure`: 5/5 passed (smoke, contract, voice-core, dsp-core, render-core-suite).
+- `./build/SylenthAIRender --suite core --output-dir build/reports/core`: wrote 11 reports.
+
+### Screenshot evidence
+
+Captured from the standalone (`build/SylenthAIPlugin_artefacts/Standalone/sylenth-ai.app`) at the default 1320×940 and the compact 1080×760 minimum:
+
+- `build/reports/ui/sylenth-visual-ia-sound.png` — Sound page, synthesis hero with zone ticks.
+- `build/reports/ui/sylenth-visual-ia-modulation.png` — Modulation overview, direct routes, eight TransMod slots.
+- `build/reports/ui/sylenth-visual-ia-effects.png` — fixed-order FX rack with per-module ticks/badges.
+- `build/reports/ui/sylenth-visual-ia-browser.png` — bottom of Sound page: preset browser + MIDI control.
+- `build/reports/ui/sylenth-visual-ia-compact.png` — compact minimum size; both oscillators fit, header compacts, no clipping.
+
+### Residual gaps (backend-dependent, intentionally not done)
+
+- Writable modulation UX: drag/drop, halos on modulated controls, hover inspector, matrix editing, per-route bypass/remove — needs a route write adapter/schema.
+- Preset workflow: dirty state, init, randomize, reset original, safe overwrite, delete, A/B compare, and rich metadata editing.
+- Per-control right-click MIDI Learn/Forget context menus (global panel remains the bridge).
+- LFO2, editable LFO/envelope movement graphs, and a filter response graph with modulation overlays.
+- Per-layer Filter A/B, per-layer envelopes, cross-routing, and post-filter mixer/master parity.
+- Full visualization/migration of legacy flat `osc.*` fields into the Osc A1 slot.
+- Standalone JUCE UI automation for tab/scroll/learn flows (this pass used `screencapture` + peekaboo for manual QA).
 
 ## Context and Orientation
 
