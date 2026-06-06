@@ -241,7 +241,7 @@ Results:
 - Transport start ran the MIDI clip with the AU editor showing active voices, moving peak level, MIDI count, 44100 Hz sample rate, 512-sample block size, and active Live meters.
 - Transport stop halted playback with voices returning to `0`, peak returning to `-inf`, and no visible host crash.
 - Live also logged `Vst3: couldn't get controller state of sylenth-ai: not implemented` at `2026-06-06T03:34:10.014440`. Keep that VST3 controller-state warning on the host-state watchlist; it did not block this AU transport smoke.
-- This proves current-build AU create/play/stop behavior with a hosted editor window visible. It does not prove automation, learned CC mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport is running. The follow-on hosted UI lifecycle attempt proved close while transport ran, but not reopen.
+- This proves current-build AU create/play/stop behavior with a hosted editor window visible. It does not prove automation, learned CC mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport is running. Follow-on hosted UI lifecycle validation later proved hosted AU editor open/close/reopen while transport runs.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 
@@ -259,7 +259,6 @@ Remaining host-validation gaps:
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
-- Hosted AU editor reopen after close.
 - VST3 hosted editor lifecycle proof.
 
 ## Ableton Current-Build Hosted UI Lifecycle Attempt - 2026-06-06
@@ -280,7 +279,7 @@ Results:
 - After closing the hosted editor, Live continued running without a visible crash, and the process check showed Ableton Live plus Ableton Index, with no standalone `sylenth-ai` process.
 - Reopen attempts did not restore the hosted editor: the AU device header plug-in edit button, corrected-coordinate double click, right-side device controls, `View > Plug-In Windows`, `Cmd+Option+P`, `Cmd+Option+Control+P`, Key Map assignment attempt, and a stopped-transport retry all left only the main Ableton set window visible.
 - The latest Ableton log entries for `sylenth-ai` remained the 03:34 AU creation lines and the existing VST3 controller-state watchpoint; the reopen attempts did not add a new visible `sylenth-ai` Live log entry.
-- This proves hosted AU editor close while transport runs, but it does not complete explicit hosted UI close/reopen validation. Hosted AU editor reopen after close remains open, and VST3 hosted editor lifecycle proof remains unproven.
+- Superseding correction from the hosted AU editor reopen control pass below: the failed reopen conclusion was caused by imprecise Ableton UI targeting. A precise CoreGraphics click on the actual device-header wrench reopened the hosted AU editor with the original resizable editor build, including while transport was running. No source change was required.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 
@@ -298,7 +297,48 @@ Remaining host-validation gaps:
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
-- Root-cause and fix or prove hosted AU editor reopen after close.
+- VST3 hosted editor lifecycle proof.
+
+## Ableton Current-Build Hosted AU Editor Reopen Control - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: fresh Ableton `Untitled` validation set
+- plugin format tested in this pass: AU
+- build under test: `build-release-phase1-ableton`, rebuilt and installed after restoring the original resizable editor shell
+
+Results:
+
+- The fixed-size editor experiment was reverted before this control pass. `src/plugin/PluginEditor.cpp` again uses `setResizable(true, true)`, `setResizeLimits(1080, 760, 1800, 1320)`, and `setSize(1320, 940)`.
+- Release build, CTest, bundle checks, local install, and `auval -v aumu SyAI PkRx` passed after the revert.
+- Fresh Ableton launch plus browser search loaded the AU row for `sylenth-ai` and opened the hosted `sylenth-ai/1-sylenth-ai` editor window.
+- With the editor closed, Ableton transport was started from the main Live window. The AU device stayed active while transport ran.
+- A CoreGraphics click at screen point `{750, 1105}` hit the actual Ableton device-header wrench and opened the hosted AU editor while transport was running.
+- Closing button 1 of the hosted `sylenth-ai/1-sylenth-ai` editor left only the main `Untitled` Live window. Repeating the same CoreGraphics wrench click reopened `sylenth-ai/1-sylenth-ai` while transport was still running.
+- The durable result is that hosted AU editor open/close/reopen while transport runs is proven for the original resizable editor. The previous failed reopen attempt was an automation-targeting error, not a plugin lifecycle bug.
+
+Evidence screenshots are local build artifacts under `build/reports/ableton/`:
+
+- `resizable-control-after-au-load.png`
+- `resizable-control-after-close.png`
+- `resizable-control-after-reopen.png`
+- `resizable-control-running-editor-closed-before-open.png`
+- `resizable-control-running-after-open.png`
+- `resizable-control-running-after-close.png`
+- `resizable-control-running-after-reopen.png`
+- `resizable-control-running-after-final-stop.png`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- Learned CC mapping proof in Ableton.
+- Current preset recreation and modulation exercise.
+- Offline bounce versus realtime comparison.
+- Sample-rate and buffer-size changes.
+- All-notes-off/panic proof.
 - VST3 hosted editor lifecycle proof.
 
 ## Historical Ableton Setup - 2026-06-05

@@ -3,8 +3,8 @@ title: Validate Ableton Hosted UI Lifecycle Attempt
 status: completed
 created_at: 2026-06-06
 completed_at: 2026-06-06
-summary: Prove hosted AU editor close while transport runs and record the current reopen-after-close gap in Ableton.
-post_build_recap: Ableton Live 11 kept playback running while the hosted sylenth-ai AU editor was visible, and closing the hosted editor succeeded during transport. Reopening the hosted editor after close failed through the tested plug-in edit, global window, key-map, and stopped-transport paths, so hosted editor reopen remains open.
+summary: Prove hosted AU editor close while transport runs and record the first reopen-after-close attempt in Ableton.
+post_build_recap: Ableton Live 11 kept playback running while the hosted sylenth-ai AU editor was visible, and closing the hosted editor succeeded during transport. Reopen appeared to fail in this pass, but `2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md` later proved that this was an automation-targeting miss rather than a plugin lifecycle bug.
 read_when:
   - Reviewing hosted AU editor lifecycle proof.
   - Debugging Ableton plug-in editor reopen behavior.
@@ -26,7 +26,7 @@ The Ableton host matrix still required explicit hosted UI close/reopen while tra
 
 This slice starts from the hosted `sylenth-ai/1-sylenth-ai` AU editor window, starts transport, closes the hosted editor while Live continues playback, and then attempts to reopen the hosted editor through Ableton's available plug-in window paths.
 
-This is a completed validation attempt, not a pass for the full lifecycle requirement. Close while transport runs passed. Reopen after close remains open.
+This is a completed validation attempt. Close while transport runs passed. A later control pass proved reopen after close with a precise CoreGraphics click on Ableton's device-header wrench.
 
 ## Progress
 
@@ -43,7 +43,7 @@ Ableton's custom-drawn device strip does not expose useful button metadata throu
 
 Ableton's `View > Plug-In Windows` menu item was disabled after the hosted editor was closed. The documented global plug-in-window shortcuts also did not restore the closed editor.
 
-The device header wrench remained visible after close, but clicking it did not reopen the hosted editor in this pass.
+The device header wrench remained visible after close, but the clicks used in this pass did not hit the correct control reliably. A later CoreGraphics control pass hit the actual wrench hotspot and reopened the hosted editor.
 
 ## Decision Log
 
@@ -51,8 +51,8 @@ Decision: Count hosted editor close while transport runs as proven.
 Rationale: The hosted editor window closed during playback, the main Ableton set stayed open, and no standalone `sylenth-ai` process was present.
 Date: 2026-06-06.
 
-Decision: Keep hosted editor reopen after close open.
-Rationale: Reopen attempts through the tested Ableton plug-in window paths left only the main Ableton set window visible.
+Decision: Treat this reopen failure as superseded by the control pass.
+Rationale: `2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md` proved hosted AU editor reopen with the original resizable editor after correcting the Ableton device-header click target.
 Date: 2026-06-06.
 
 Decision: Do not treat coordinate-grid screenshots as validation evidence.
@@ -61,7 +61,7 @@ Date: 2026-06-06.
 
 ## Outcomes & Retrospective
 
-Completed as a validation attempt with a product gap. The current AU hosted editor can be visible during playback and can close while transport runs. Reopen after close failed through the tested host paths and remains a Phase 1 host-validation gap. Reopen attempts did not add new `sylenth-ai` Ableton log entries; the latest relevant entries stayed at the 03:34 AU create lines plus the VST3 controller-state warning.
+Completed as a validation attempt that later proved useful for isolating a test-targeting issue. The current AU hosted editor can be visible during playback and can close while transport runs. Reopen appeared to fail through the tested host paths in this pass, but the later control pass proved hosted AU editor reopen with no source change.
 
 ## Context and Orientation
 
@@ -75,11 +75,11 @@ Read first:
 - Hosted AU editor visibility during playback.
 - Hosted AU editor close while playback continues.
 - Reopen attempts using Ableton plug-in editor/window controls.
-- Documentation of the remaining reopen gap.
+- Documentation of the first reopen attempt and its later superseding correction.
 
 ### Out Of Scope
 
-- Fixing the reopen behavior.
+- Fixing the reopen behavior. A later control pass proved no source fix was needed.
 - AU or VST3 automation record/playback.
 - Learned MIDI CC mapping proof.
 - Current preset recreation or modulation exercise.
@@ -99,7 +99,7 @@ Milestone 2 closes the hosted editor while transport keeps running.
 
 Milestone 3 attempts reopen through Ableton's plug-in edit/window paths.
 
-Milestone 4 records the remaining reopen-after-close gap without overclaiming.
+Milestone 4 records the observed reopen-after-close result without overclaiming.
 
 ## Concrete Steps
 
@@ -138,7 +138,7 @@ Acceptance for this attempt:
 - Hosted AU editor can be closed while playback continues.
 - Process output does not include a standalone `sylenth-ai` process.
 - Reopen attempts are recorded accurately as failed rather than counted as pass.
-- Remaining docs still list hosted AU editor reopen after close as open.
+- Remaining docs no longer list hosted AU editor reopen after close as open after the control pass.
 
 ### Test Commands
 
@@ -148,7 +148,6 @@ Acceptance for this attempt:
 
 ### Follow-Up Host Matrix
 
-- Root-cause and fix or prove hosted AU editor reopen after close.
 - VST3 hosted editor lifecycle proof.
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.

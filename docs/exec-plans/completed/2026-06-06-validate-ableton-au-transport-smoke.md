@@ -4,7 +4,7 @@ status: completed
 created_at: 2026-06-06
 completed_at: 2026-06-06
 summary: Prove Ableton can create the current sylenth-ai AU and run/stop transport with the hosted AU editor visible.
-post_build_recap: Ableton Live 11 exposed `Audio Units > ParkerX > sylenth-ai`, created the current AU, opened a hosted `sylenth-ai/1-sylenth-ai` editor window, ran transport with active voices/meters, and stopped transport cleanly. At this slice's completion, explicit hosted editor close/reopen while transport ran remained open; a later hosted UI lifecycle attempt proved close but not reopen.
+post_build_recap: Ableton Live 11 exposed `Audio Units > ParkerX > sylenth-ai`, created the current AU, opened a hosted `sylenth-ai/1-sylenth-ai` editor window, ran transport with active voices/meters, and stopped transport cleanly. At this slice's completion, explicit hosted editor close/reopen while transport ran remained open; later lifecycle/control passes proved hosted AU editor close and reopen.
 read_when:
   - Reviewing current-build Ableton AU transport proof.
   - Continuing Ableton automation, controller, or hosted UI validation.
@@ -26,7 +26,7 @@ The Ableton matrix still needed current AU transport proof. Earlier host passes 
 
 This slice navigated Ableton's plug-in browser to `Audio Units > ParkerX > sylenth-ai`, created the AU, verified Ableton-owned editor visibility, ran transport against the MIDI test set, stopped transport, and recorded the proof without a standalone `sylenth-ai` process.
 
-It remains a bounded host smoke slice. It does not claim automation, learned CC mapping, preset recreation, modulation exercise, offline-versus-realtime comparison, sample-rate/buffer-size changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport is running. A later hosted UI lifecycle attempt proved close but not reopen.
+It remains a bounded host smoke slice. It does not claim automation, learned CC mapping, preset recreation, modulation exercise, offline-versus-realtime comparison, sample-rate/buffer-size changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport is running. Later lifecycle/control passes proved hosted AU editor close and reopen.
 
 ## Progress
 
@@ -57,7 +57,7 @@ Date: 2026-06-06.
 
 ## Outcomes & Retrospective
 
-Completed. Ableton created the current AU, opened a hosted editor window, ran MIDI playback with active voices and Live meters, then stopped transport cleanly. The remaining host matrix is narrower but still needs automation, learned CC mapping, current preset recreation/modulation exercise, offline bounce versus realtime comparison, sample-rate/buffer-size changes, all-notes-off, panic, and hosted editor lifecycle proof. A later hosted UI lifecycle attempt proved close but not reopen.
+Completed. Ableton created the current AU, opened a hosted editor window, ran MIDI playback with active voices and Live meters, then stopped transport cleanly. The remaining host matrix is narrower but still needs automation, learned CC mapping, current preset recreation/modulation exercise, offline bounce versus realtime comparison, sample-rate/buffer-size changes, all-notes-off, panic, and hosted editor lifecycle proof. Later lifecycle/control passes proved hosted AU editor close and reopen.
 
 ## Context and Orientation
 
@@ -85,7 +85,7 @@ Read first:
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off and panic proof.
-- Hosted AU editor close while transport runs was later proven by `2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`; hosted AU editor reopen after close remains open, and VST3 hosted editor lifecycle proof is still unproven.
+- Hosted AU editor close while transport runs was later proven by `2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`; hosted AU editor reopen after close was later proven by `2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md`; VST3 hosted editor lifecycle proof is still unproven.
 
 ## Plan of Work
 
@@ -138,7 +138,7 @@ Acceptance required:
 - The AU editor window is hosted by Ableton, with no standalone `sylenth-ai` process visible in process output.
 - Transport playback shows active voices/meters and 44100 Hz / 512-sample audio state.
 - Transport stop returns AU voices to `0` and peak to `-inf` without a visible host crash.
-- Docs leave hosted editor lifecycle proof open at this slice's completion. Hosted AU editor close while transport runs was later proven by `2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`; hosted AU editor reopen after close remains open.
+- Docs leave hosted editor lifecycle proof open at this slice's completion. Hosted AU editor close while transport runs was later proven by `2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`; hosted AU editor reopen after close was later proven by `2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md`.
 
 ### Test Commands
 
@@ -154,7 +154,7 @@ Acceptance required:
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
-- Hosted AU editor close while transport runs was later proven by `2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`; hosted AU editor reopen after close remains open, and VST3 hosted editor lifecycle proof is still unproven.
+- Hosted AU editor close while transport runs was later proven by `2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`; hosted AU editor reopen after close was later proven by `2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md`; VST3 hosted editor lifecycle proof is still unproven.
 
 ## Idempotence and Recovery
 
