@@ -84,6 +84,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed VST3 continuous controller value-application proof: seeded the persisted CC71 map, routed a temporary CoreMIDI value source into Ableton, and captured hosted Resonance moving `0.00 -> 1.00 -> 0.00`.
 - [x] 2026-06-06 EDT: Executed VST3 controller Forget/stepped proof: seeded CC73 to `filter.mode`, captured Filter Mode moving `L4 -> Notch4 -> L2`, clicked hosted Forget, verified an empty sidecar, and confirmed later CC73 high no longer changed Filter Mode.
 - [x] Model-ready UI handoff and first local polish passes exist for preset browser, arp/step/chord, FX rack, and read-only modulation inspection.
+- [x] 2026-06-06 EDT: Created a Claude Code visual information architecture handoff to make the model-backed shell look materially closer to the Sylenth screenshot corpus without adding fake controls.
 - [ ] Complete or explicitly close deeper UI visual/control polish follow-ups.
 - [ ] Complete the remaining Phase 1 Ableton validation matrix against the Sylenth-level build.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
@@ -101,6 +102,7 @@ The current Program is not release hardening. It is a product expansion Program.
 
 Active child ExecPlans:
 
+- `docs/exec-plans/active/2026-06-06-handoff-sylenth-visual-information-architecture.md`
 - `docs/exec-plans/active/2026-06-05-handoff-modulation-preset-arp-ui-polish.md`
 
 Completed child ExecPlans:

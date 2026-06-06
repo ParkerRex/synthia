@@ -4,11 +4,12 @@ Current Program: `docs/programs/active/2026-06-05-sylenth-lab-rebuild/program.md
 
 Active child plans:
 
+- `2026-06-06-handoff-sylenth-visual-information-architecture.md` (`handoff_target: Claude Code`)
 - `2026-06-05-handoff-modulation-preset-arp-ui-polish.md` (`handoff_target: Claude Code`)
 
-Active Claude handoff slice: `2026-06-05-handoff-modulation-preset-arp-ui-polish.md`.
+Active Claude handoff slice: `2026-06-06-handoff-sylenth-visual-information-architecture.md`.
 
-UI handoff rule: the modern shell handoff is completed. Preset browser, arp/step/chord, FX rack, and read-only modulation inspection have model-backed UI surfaces and screenshot evidence. Drag/drop modulation writing still needs a later write-adapter/schema slice.
+UI handoff rule: the modern shell handoff is completed, and the roadmap truth audit says A/B layer plus four-slot rendering is real enough for a broad visual information architecture pass. Preset browser, arp/step/chord, FX rack, and read-only modulation inspection have model-backed UI surfaces and screenshot evidence. Drag/drop modulation writing still needs a later write-adapter/schema slice.
 
 Product-order Codex slice: complete the remaining Ableton Phase 1 host matrix against AU/VST3 with automation record/playback, AU controller mapping/value application, preset recreation, modulation exercise, bounce-versus-realtime comparison, buffer/sample-rate, and all-notes-off/panic proof.
 
