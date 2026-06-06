@@ -3,19 +3,22 @@
 #include <JuceHeader.h>
 
 #include "../dsp/SynthEngine.h"
+#include "../midi/MidiControllerMap.h"
 #include "../modulation/ModulationRouteModel.h"
 #include "ParameterRegistry.h"
 
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 class SynthAudioProcessor final : public juce::AudioProcessor
+                                , private juce::Timer
 {
 public:
     SynthAudioProcessor();
-    ~SynthAudioProcessor() override = default;
+    ~SynthAudioProcessor() override;
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -76,10 +79,22 @@ public:
     juce::String getCurrentPresetName() const;
     juce::String getCurrentPresetFilePath() const;
     synth::ModulationRouteView getModulationRouteView() const;
+    std::vector<synth::MidiControllerAssignment> getMidiControllerAssignments() const;
+    juce::String getMidiControllerStatus() const;
+    bool assignMidiController(int controllerNumber, const juce::String& parameterId, juce::String& message);
+    bool forgetMidiControllerForParameter(const juce::String& parameterId, juce::String& message);
+    bool startMidiLearn(const juce::String& parameterId, juce::String& message);
+    void cancelMidiLearn();
     DiagnosticsSnapshot getDiagnosticsSnapshot() const;
     void requestPanic() noexcept;
 
 private:
+    struct PendingMidiControllerValue
+    {
+        std::atomic<int> value { -1 };
+        std::atomic<std::uint32_t> sequence { 0 };
+    };
+
     struct RawParameterPointers
     {
         struct RawLayerOscillator
@@ -256,14 +271,36 @@ private:
     synth::SynthParameters readParameters(float tempoBpm, bool offlineRender) const noexcept;
     float currentTempoBpm() const noexcept;
     void handleMidiMessage(const juce::MidiMessage& message) noexcept;
+    void handleMappedController(int controllerNumber, int controllerValue) noexcept;
     synth::RenderStats renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept;
     void setPresetMetadata(const juce::String& presetName,
                            const juce::String& status,
                            const juce::String& presetFilePath);
+    void timerCallback() override;
+    void loadMidiControllerAssignments();
+    void publishMidiControllerAssignments();
+    bool assignMidiControllerInternal(int controllerNumber,
+                                      const juce::String& parameterId,
+                                      juce::String& message,
+                                      bool persist);
+    int parameterIndexForId(const juce::String& parameterId) const;
+    void applyPendingMidiLearns();
+    void applyPendingMappedControllers();
+    void applyMappedControllerValue(int parameterIndex, int controllerValue);
+    void setMidiControllerStatus(const juce::String& status);
 
     juce::AudioProcessorValueTreeState parameters;
     synth::SynthEngine engine;
     RawParameterPointers raw;
+    std::array<std::atomic<int>, 128> midiControllerParameterIndices {};
+    std::array<PendingMidiControllerValue, 128> pendingMidiControllerValues {};
+    std::array<std::uint32_t, 128> appliedMidiControllerSequences {};
+    std::atomic<int> pendingMidiLearnParameterIndex { -1 };
+    std::atomic<int> learnedMidiControllerNumber { -1 };
+    std::atomic<int> learnedMidiParameterIndex { -1 };
+    mutable juce::CriticalSection midiControllerLock;
+    std::vector<synth::MidiControllerAssignment> midiControllerAssignments;
+    juce::String midiControllerStatus { "MIDI learn ready" };
     static constexpr int scratchCapacity = 32768;
     std::array<float, scratchCapacity> scratchLeft {};
     std::array<float, scratchCapacity> scratchRight {};

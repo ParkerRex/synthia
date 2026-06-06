@@ -1,5 +1,6 @@
 #include "../../src/plugin/ParameterRegistry.h"
 #include "../../src/dsp/SynthParameters.h"
+#include "../../src/midi/MidiControllerMap.h"
 #include "../../src/modulation/ModulationRouteModel.h"
 #include "../../src/presets/PresetManager.h"
 #include "../../src/presets/PresetValidator.h"
@@ -312,6 +313,63 @@ bool checkLayerOscillatorVoiceCost()
     if (synth::layerOscillatorVoiceCost(parameters) != 0)
     {
         std::cerr << "Muted solo layer should have zero voice cost.\n";
+        return false;
+    }
+
+    return true;
+}
+
+bool checkMidiControllerMap()
+{
+    auto normalized = synth::normalizeMidiControllerAssignments({
+        { 74, "filter.cutoff_semitones" },
+        { -1, "macro.motion" },
+        { 7, "" },
+        { 74, "amp.level_db" },
+        { 1, "amp.level_db" },
+        { 91, "fx.reverb_mix" }
+    });
+
+    if (normalized.size() != 2
+        || normalized[0].controllerNumber != 1
+        || normalized[0].parameterId != "amp.level_db"
+        || normalized[1].controllerNumber != 91
+        || normalized[1].parameterId != "fx.reverb_mix")
+    {
+        std::cerr << "MIDI controller map normalization did not dedupe by latest CC/parameter assignment.\n";
+        return false;
+    }
+
+    const auto mapDirectory = juce::File::getSpecialLocation(juce::File::tempDirectory)
+        .getChildFile("sylenth-ai-midi-controller-map-contract");
+    mapDirectory.deleteRecursively();
+
+    const auto mapFile = mapDirectory.getChildFile("MidiControllerMap.json");
+    std::string error;
+    if (!synth::writeMidiControllerAssignments(mapFile.getFullPathName().toStdString(),
+                                               {
+                                                   { 91, "fx.reverb_mix" },
+                                                   { 1, "macro.motion" },
+                                                   { 74, "filter.cutoff_semitones" }
+                                               },
+                                               error))
+    {
+        std::cerr << error << "\n";
+        return false;
+    }
+
+    const auto assignments = synth::readMidiControllerAssignments(mapFile.getFullPathName().toStdString());
+    mapDirectory.deleteRecursively();
+
+    if (assignments.size() != 3
+        || assignments[0].controllerNumber != 1
+        || assignments[0].parameterId != "macro.motion"
+        || assignments[1].controllerNumber != 74
+        || assignments[1].parameterId != "filter.cutoff_semitones"
+        || assignments[2].controllerNumber != 91
+        || assignments[2].parameterId != "fx.reverb_mix")
+    {
+        std::cerr << "MIDI controller map read/write round-trip failed.\n";
         return false;
     }
 
@@ -713,6 +771,9 @@ int main()
     }
 
     if (!checkLayerOscillatorVoiceCost())
+        return 1;
+
+    if (!checkMidiControllerMap())
         return 1;
 
     if (!checkPresetManagerLoadAndSave())

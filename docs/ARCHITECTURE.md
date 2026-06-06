@@ -16,7 +16,7 @@ Current scaffold:
 - `SylenthAIPlugin` builds shared plugin code plus AU, VST3, and Standalone formats with host-facing product name `sylenth-ai`.
 - `SylenthAIRender` is the command-line validation executable.
 - `SylenthAISmokeTest` is the first CTest target.
-- `SylenthAIContractTest` validates parameter registry, layer/oscillator-slot defaults, preset files, and APVTS state round-trip.
+- `SylenthAIContractTest` validates parameter registry, layer/oscillator-slot defaults, preset files, MIDI controller-map persistence, and APVTS state round-trip.
 - `SylenthAIVoiceCoreTest` validates envelope, LFO reset, voice allocation, and engine note release.
 - `SylenthAIDspCoreTest` validates oscillator, filter, arp/chord scheduling, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, layer slot rendering, and FX bypass, delay/tail, panic-clear, and reverb-state safety.
 - `SylenthAIRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`, including dry and wet factory pluck reports.
@@ -116,6 +116,8 @@ Existing scaffold files:
 - `src/plugin/PluginEditor.cpp`
 - `src/plugin/ParameterRegistry.h`
 - `src/plugin/ParameterRegistry.cpp`
+- `src/midi/MidiControllerMap.h`
+- `src/midi/MidiControllerMap.cpp`
 - `src/presets/PresetManager.h`
 - `src/presets/PresetManager.cpp`
 - `src/dsp/Envelope.h`
@@ -174,9 +176,10 @@ Current registry status:
 
 Current editor and preset status:
 
-- `PluginEditor` is a compact, fixed-shell control surface modeled on the Sylenth workflow: a header (preset prev/next/load/save/duplicate, output meter, active voices, derived patch-load estimate, panic, and an always-visible SR/block/peak/MIDI/invalid/architecture diagnostics footer), a persistent Layer A/B selector exposing the `layer.*` mix state, and a `Sound` / `Modulation` / `Effects` tabbed workspace. The `Sound` tab keeps the live core controls visible without scrolling at the default window size and exposes a scrollable APVTS-bound arp/step/chord sequencer row; `Modulation` holds the destination-grouped direct routes plus the eight TransMod slots; `Effects` exposes the fixed-order rack modules with master/quality. Controls are drawn with an original rotary/switch/combo look and grid-packed into stable cells with formatted value readouts. Render-boundary honesty is encoded in the UI: Layer A oscillator 1 remains the legacy flat `osc.*` compatibility source and is badged `LIVE`; A2/B1/B2, layer mix controls, arp/step/chord controls, and FX rack controls bind to real state.
+- `PluginEditor` is a compact, fixed-shell control surface modeled on the Sylenth workflow: a header (preset prev/next/load/save/duplicate, output meter, active voices, derived patch-load estimate, panic, and an always-visible SR/block/peak/MIDI/invalid/architecture diagnostics footer), a persistent Layer A/B selector exposing the `layer.*` mix state, and a `Sound` / `Modulation` / `Effects` tabbed workspace. The `Sound` tab exposes a preset browser drawer, a compact global MIDI Learn panel, the live core controls, and a scrollable APVTS-bound arp/step/chord sequencer row; `Modulation` holds the destination-grouped direct routes plus the eight TransMod slots and a read-only route overview; `Effects` exposes the fixed-order rack modules with master/quality. Controls are drawn with an original rotary/switch/combo look and grid-packed into stable cells with formatted value readouts. Render-boundary honesty is encoded in the UI: Layer A oscillator 1 remains the legacy flat `osc.*` compatibility source and is badged `LIVE`; A2/B1/B2, layer mix controls, arp/step/chord controls, and FX rack controls bind to real state.
 - Editor controls are constructed against `ParameterRegistry` IDs and use APVTS attachments for sliders, combo boxes, and toggles so UI edits reach the same host-automatable parameters as presets and host state.
 - `PresetManager` scans bundled factory presets with a source-directory development fallback, scans user presets from `~/Music/ParkerX/sylenth-ai/Presets`, also reads legacy `~/Music/ParkerX/Synth/Presets` presets during the rename transition, validates preset JSON before load, prepares defaults-plus-overrides APVTS state for one-shot replacement, maps canonical `mod_slots` objects into flat TransMod parameters, writes schema-valid user preset JSON, and exposes browser-facing summaries with source, bank, category, tags, favorite keys, sidecar favorite state, search/filter helpers, and catalog facets.
+- `MidiControllerMap` reads and writes the global user CC sidecar at `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json`. `PluginProcessor` loads it on the message/control path, publishes fixed atomic CC-to-parameter indexes for audio-thread MIDI lookup, captures MIDI Learn events through atomics, and applies mapped CC values to APVTS parameters from its message-thread timer. The audio thread never writes the sidecar, locks the map, or mutates APVTS parameters directly.
 - Processor diagnostics expose sample rate, block size, active voices, MIDI event count, invalid sample count, peak, current preset, and binary architecture to the editor without filesystem or UI work on the audio thread.
 
 Current layer and oscillator-slot status:

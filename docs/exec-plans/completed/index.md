@@ -18,3 +18,4 @@
 - `2026-06-06-build-preset-browser-and-bank-workflow.md`
 - `2026-06-06-build-fx-rack-expansion.md`
 - `2026-06-06-build-modulation-route-model.md`
+- `2026-06-06-build-midi-controller-workflow.md`

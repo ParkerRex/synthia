@@ -71,6 +71,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed bounded arp/step/chord UI exposure with real APVTS bindings and opened the stacked UI PR.
 - [x] 2026-06-06 EDT: Executed Phase 1 FX rack expansion with fixed-order rack state, distortion/phaser/EQ/compressor DSP, editor bindings, adversarial fixes, and validation.
 - [x] 2026-06-06 EDT: Executed Phase 1 modulation route model and destination catalog over the existing TransMod engine, with adversarial fixes and validation.
+- [x] 2026-06-06 EDT: Executed Phase 1 MIDI controller workflow with a global user CC map, realtime-safe learn capture, message-thread APVTS application, compact Sound-tab panel, and validation.
 - [ ] Hand off UI information architecture and visual polish plans to Claude Code after state contracts are ready.
 - [ ] Execute Phase 1 Ableton validation against the Sylenth-level build.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
@@ -100,14 +101,17 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-05-rename-project-identity-to-sylenth-ai.md`
 - `docs/exec-plans/completed/2026-06-06-build-fx-rack-expansion.md`
 - `docs/exec-plans/completed/2026-06-06-build-modulation-route-model.md`
+- `docs/exec-plans/completed/2026-06-06-build-midi-controller-workflow.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
 ## Next Slice
 
-Product-order next slice: `docs/exec-plans/active/2026-06-05-handoff-modulation-preset-arp-ui-polish.md`.
+Product-order next Codex slice: Phase 1 Ableton validation against the current AU/VST3 build.
 
-Preset browser, arp/step/chord, FX rack, and modulation inspection state now exist. Claude Code can take a bounded visual polish pass over those ready surfaces; drag/drop modulation writing and per-route bypass/remove remain a later write-adapter/schema slice.
+Preset browser, arp/step/chord, FX rack, modulation inspection, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; drag/drop modulation writing, per-route bypass/remove, per-control MIDI context menus, and richer browser metadata editing remain later slices.
+
+The next non-UI product proof is Ableton AU/VST3 validation: scan/load/play, automation, learned CC mapping, state save/reopen, bounce, sample-rate and buffer-size changes, transport stop/all-notes-off, panic, and UI open/close while playing.
 
 ## Risks and Watchpoints
 

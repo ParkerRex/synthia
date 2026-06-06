@@ -4,6 +4,7 @@
 #include "../presets/PresetManager.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace
 {
@@ -35,6 +36,16 @@ juce::String binaryArchitecture()
     return "unknown";
 #endif
 }
+
+bool validMidiControllerNumber(int controllerNumber) noexcept
+{
+    return controllerNumber >= 0 && controllerNumber <= 127;
+}
+
+bool reservedMidiControllerNumber(int controllerNumber) noexcept
+{
+    return controllerNumber == 64 || controllerNumber == 120 || controllerNumber == 123;
+}
 } // namespace
 
 SynthAudioProcessor::SynthAudioProcessor()
@@ -42,7 +53,17 @@ SynthAudioProcessor::SynthAudioProcessor()
           .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       parameters(*this, nullptr, "SYLENTH_AI_STATE", synth::createParameterLayout())
 {
+    for (auto& parameterIndex : midiControllerParameterIndices)
+        parameterIndex.store(-1, std::memory_order_relaxed);
+
     cacheParameterPointers();
+    loadMidiControllerAssignments();
+    startTimerHz(60);
+}
+
+SynthAudioProcessor::~SynthAudioProcessor()
+{
+    stopTimer();
 }
 
 void SynthAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -161,6 +182,31 @@ void SynthAudioProcessor::handleMidiMessage(const juce::MidiMessage& message) no
         engine.setAftertouch(static_cast<float>(message.getAfterTouchValue()) / 127.0f);
     else if (message.isChannelPressure())
         engine.setAftertouch(static_cast<float>(message.getChannelPressureValue()) / 127.0f);
+
+    if (message.isController())
+        handleMappedController(message.getControllerNumber(), message.getControllerValue());
+}
+
+void SynthAudioProcessor::handleMappedController(int controllerNumber, int controllerValue) noexcept
+{
+    if (!validMidiControllerNumber(controllerNumber))
+        return;
+
+    const auto controllerIndex = static_cast<std::size_t>(controllerNumber);
+    const auto learnedParameter = pendingMidiLearnParameterIndex.exchange(-1, std::memory_order_acq_rel);
+    if (learnedParameter >= 0)
+    {
+        learnedMidiParameterIndex.store(learnedParameter, std::memory_order_release);
+        learnedMidiControllerNumber.store(controllerNumber, std::memory_order_release);
+    }
+
+    const auto parameterIndex = midiControllerParameterIndices[controllerIndex].load(std::memory_order_relaxed);
+    if (parameterIndex < 0)
+        return;
+
+    pendingMidiControllerValues[controllerIndex].value.store(std::clamp(controllerValue, 0, 127),
+                                                            std::memory_order_relaxed);
+    pendingMidiControllerValues[controllerIndex].sequence.fetch_add(1, std::memory_order_release);
 }
 
 synth::RenderStats SynthAudioProcessor::renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept
@@ -695,6 +741,108 @@ synth::ModulationRouteView SynthAudioProcessor::getModulationRouteView() const
     return synth::buildModulationRouteView(readParameters(128.0f, false).transMod);
 }
 
+std::vector<synth::MidiControllerAssignment> SynthAudioProcessor::getMidiControllerAssignments() const
+{
+    const juce::CriticalSection::ScopedLockType lock(midiControllerLock);
+    return midiControllerAssignments;
+}
+
+juce::String SynthAudioProcessor::getMidiControllerStatus() const
+{
+    const juce::CriticalSection::ScopedLockType lock(midiControllerLock);
+    return midiControllerStatus;
+}
+
+bool SynthAudioProcessor::assignMidiController(int controllerNumber,
+                                               const juce::String& parameterId,
+                                               juce::String& message)
+{
+    return assignMidiControllerInternal(controllerNumber, parameterId, message, true);
+}
+
+bool SynthAudioProcessor::forgetMidiControllerForParameter(const juce::String& parameterId, juce::String& message)
+{
+    const auto trimmedParameterId = parameterId.trim();
+    if (trimmedParameterId.isEmpty())
+    {
+        message = "Choose a parameter first";
+        return false;
+    }
+
+    std::vector<synth::MidiControllerAssignment> nextAssignments;
+    bool removed = false;
+    {
+        const juce::CriticalSection::ScopedLockType lock(midiControllerLock);
+        nextAssignments = midiControllerAssignments;
+    }
+
+    const auto before = nextAssignments.size();
+    nextAssignments.erase(std::remove_if(nextAssignments.begin(),
+                                         nextAssignments.end(),
+                                         [&trimmedParameterId](const auto& assignment) {
+                                             return assignment.parameterId == trimmedParameterId.toStdString();
+                                         }),
+                          nextAssignments.end());
+    removed = nextAssignments.size() != before;
+
+    if (removed)
+    {
+        nextAssignments = synth::normalizeMidiControllerAssignments(std::move(nextAssignments));
+    }
+
+    if (!removed)
+    {
+        message = "No MIDI CC mapping for " + trimmedParameterId;
+        setMidiControllerStatus(message);
+        return false;
+    }
+
+    std::string error;
+    if (!synth::writeMidiControllerAssignments(synth::defaultMidiControllerMapFile(),
+                                               nextAssignments,
+                                               error))
+    {
+        message = "MIDI map save failed: " + juce::String(error);
+        setMidiControllerStatus(message);
+        return false;
+    }
+
+    {
+        const juce::CriticalSection::ScopedLockType lock(midiControllerLock);
+        midiControllerAssignments = std::move(nextAssignments);
+    }
+    publishMidiControllerAssignments();
+    message = "Forgot MIDI CC for " + trimmedParameterId;
+    setMidiControllerStatus(message);
+    return true;
+}
+
+bool SynthAudioProcessor::startMidiLearn(const juce::String& parameterId, juce::String& message)
+{
+    const auto parameterIndex = parameterIndexForId(parameterId);
+    if (parameterIndex < 0)
+    {
+        message = "Choose a learnable parameter first";
+        setMidiControllerStatus(message);
+        return false;
+    }
+
+    pendingMidiLearnParameterIndex.store(parameterIndex, std::memory_order_release);
+    learnedMidiControllerNumber.store(-1, std::memory_order_release);
+    learnedMidiParameterIndex.store(-1, std::memory_order_release);
+    message = "MIDI learn armed for " + parameterId;
+    setMidiControllerStatus(message);
+    return true;
+}
+
+void SynthAudioProcessor::cancelMidiLearn()
+{
+    pendingMidiLearnParameterIndex.store(-1, std::memory_order_release);
+    learnedMidiControllerNumber.store(-1, std::memory_order_release);
+    learnedMidiParameterIndex.store(-1, std::memory_order_release);
+    setMidiControllerStatus("MIDI learn canceled");
+}
+
 SynthAudioProcessor::DiagnosticsSnapshot SynthAudioProcessor::getDiagnosticsSnapshot() const
 {
     DiagnosticsSnapshot snapshot;
@@ -714,6 +862,192 @@ SynthAudioProcessor::DiagnosticsSnapshot SynthAudioProcessor::getDiagnosticsSnap
 void SynthAudioProcessor::requestPanic() noexcept
 {
     panicRequested.store(true, std::memory_order_release);
+}
+
+void SynthAudioProcessor::timerCallback()
+{
+    applyPendingMidiLearns();
+    applyPendingMappedControllers();
+}
+
+void SynthAudioProcessor::loadMidiControllerAssignments()
+{
+    {
+        const juce::CriticalSection::ScopedLockType lock(midiControllerLock);
+        midiControllerAssignments = synth::readMidiControllerAssignments(synth::defaultMidiControllerMapFile());
+        midiControllerStatus = midiControllerAssignments.empty()
+            ? "MIDI learn ready"
+            : "Loaded " + juce::String(midiControllerAssignments.size()) + " MIDI CC mappings";
+    }
+    publishMidiControllerAssignments();
+}
+
+void SynthAudioProcessor::publishMidiControllerAssignments()
+{
+    for (auto& parameterIndex : midiControllerParameterIndices)
+        parameterIndex.store(-1, std::memory_order_release);
+
+    const auto assignments = getMidiControllerAssignments();
+    for (const auto& assignment : assignments)
+    {
+        if (!validMidiControllerNumber(assignment.controllerNumber)
+            || reservedMidiControllerNumber(assignment.controllerNumber))
+            continue;
+
+        const auto parameterIndex = parameterIndexForId(juce::String(assignment.parameterId));
+        if (parameterIndex < 0)
+            continue;
+
+        midiControllerParameterIndices[static_cast<std::size_t>(assignment.controllerNumber)]
+            .store(parameterIndex, std::memory_order_release);
+    }
+}
+
+bool SynthAudioProcessor::assignMidiControllerInternal(int controllerNumber,
+                                                       const juce::String& parameterId,
+                                                       juce::String& message,
+                                                       bool persist)
+{
+    const auto trimmedParameterId = parameterId.trim();
+    const auto parameterIndex = parameterIndexForId(trimmedParameterId);
+    if (!validMidiControllerNumber(controllerNumber))
+    {
+        message = "MIDI CC must be 0-127";
+        setMidiControllerStatus(message);
+        return false;
+    }
+    if (reservedMidiControllerNumber(controllerNumber))
+    {
+        message = "MIDI CC" + juce::String(controllerNumber) + " is reserved";
+        setMidiControllerStatus(message);
+        return false;
+    }
+    if (parameterIndex < 0)
+    {
+        message = "Choose a learnable parameter first";
+        setMidiControllerStatus(message);
+        return false;
+    }
+
+    std::vector<synth::MidiControllerAssignment> nextAssignments;
+    {
+        const juce::CriticalSection::ScopedLockType lock(midiControllerLock);
+        nextAssignments = midiControllerAssignments;
+    }
+
+    nextAssignments.erase(std::remove_if(nextAssignments.begin(),
+                                         nextAssignments.end(),
+                                         [controllerNumber, &trimmedParameterId](const auto& assignment) {
+                                             return assignment.controllerNumber == controllerNumber
+                                                    || assignment.parameterId == trimmedParameterId.toStdString();
+                                         }),
+                          nextAssignments.end());
+    nextAssignments.push_back({ controllerNumber, trimmedParameterId.toStdString() });
+    nextAssignments = synth::normalizeMidiControllerAssignments(std::move(nextAssignments));
+
+    if (persist)
+    {
+        std::string error;
+        if (!synth::writeMidiControllerAssignments(synth::defaultMidiControllerMapFile(),
+                                                   nextAssignments,
+                                                   error))
+        {
+            message = "MIDI map save failed: " + juce::String(error);
+            setMidiControllerStatus(message);
+            return false;
+        }
+    }
+
+    {
+        const juce::CriticalSection::ScopedLockType lock(midiControllerLock);
+        midiControllerAssignments = std::move(nextAssignments);
+    }
+    publishMidiControllerAssignments();
+    message = "Mapped CC" + juce::String(controllerNumber) + " to " + trimmedParameterId;
+    setMidiControllerStatus(message);
+    return true;
+}
+
+int SynthAudioProcessor::parameterIndexForId(const juce::String& parameterId) const
+{
+    const auto id = parameterId.trim().toStdString();
+    const auto& specs = synth::getParameterSpecs();
+    for (int index = 0; index < static_cast<int>(specs.size()); ++index)
+    {
+        const auto& spec = specs[static_cast<std::size_t>(index)];
+        if (spec.id == id && spec.automatable)
+            return index;
+    }
+    return -1;
+}
+
+void SynthAudioProcessor::applyPendingMidiLearns()
+{
+    const auto controllerNumber = learnedMidiControllerNumber.exchange(-1, std::memory_order_acq_rel);
+    const auto parameterIndex = learnedMidiParameterIndex.exchange(-1, std::memory_order_acq_rel);
+    if (!validMidiControllerNumber(controllerNumber) || parameterIndex < 0)
+        return;
+
+    const auto& specs = synth::getParameterSpecs();
+    if (parameterIndex >= static_cast<int>(specs.size()))
+        return;
+
+    juce::String message;
+    assignMidiControllerInternal(controllerNumber,
+                                 juce::String(specs[static_cast<std::size_t>(parameterIndex)].id),
+                                 message,
+                                 true);
+}
+
+void SynthAudioProcessor::applyPendingMappedControllers()
+{
+    for (int controllerNumber = 0; controllerNumber < static_cast<int>(pendingMidiControllerValues.size()); ++controllerNumber)
+    {
+        const auto controllerIndex = static_cast<std::size_t>(controllerNumber);
+        const auto sequence = pendingMidiControllerValues[controllerIndex].sequence.load(std::memory_order_acquire);
+        if (sequence == appliedMidiControllerSequences[controllerIndex])
+            continue;
+
+        appliedMidiControllerSequences[controllerIndex] = sequence;
+        const auto parameterIndex = midiControllerParameterIndices[controllerIndex].load(std::memory_order_acquire);
+        const auto controllerValue = pendingMidiControllerValues[controllerIndex].value.load(std::memory_order_relaxed);
+        if (parameterIndex >= 0 && controllerValue >= 0)
+            applyMappedControllerValue(parameterIndex, controllerValue);
+    }
+}
+
+void SynthAudioProcessor::applyMappedControllerValue(int parameterIndex, int controllerValue)
+{
+    const auto& specs = synth::getParameterSpecs();
+    if (parameterIndex < 0 || parameterIndex >= static_cast<int>(specs.size()))
+        return;
+
+    const auto& spec = specs[static_cast<std::size_t>(parameterIndex)];
+    auto* parameter = parameters.getParameter(juce::String(spec.id));
+    if (parameter == nullptr)
+        return;
+
+    const auto normalizedController = static_cast<float>(std::clamp(controllerValue, 0, 127)) / 127.0f;
+    auto normalizedParameter = normalizedController;
+    if (spec.kind == synth::ParameterKind::Bool)
+        normalizedParameter = controllerValue >= 64 ? 1.0f : 0.0f;
+    else if (spec.kind == synth::ParameterKind::Choice)
+    {
+        const auto maxChoice = std::max(0, static_cast<int>(spec.choices.size()) - 1);
+        const auto choice = static_cast<float>(juce::jlimit(0, maxChoice,
+            static_cast<int>(std::round(normalizedController * static_cast<float>(maxChoice)))));
+        normalizedParameter = parameter->convertTo0to1(choice);
+    }
+
+    parameter->beginChangeGesture();
+    parameter->setValueNotifyingHost(juce::jlimit(0.0f, 1.0f, normalizedParameter));
+    parameter->endChangeGesture();
+}
+
+void SynthAudioProcessor::setMidiControllerStatus(const juce::String& status)
+{
+    const juce::CriticalSection::ScopedLockType lock(midiControllerLock);
+    midiControllerStatus = status;
 }
 
 void SynthAudioProcessor::setPresetMetadata(const juce::String& presetName,

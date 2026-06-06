@@ -40,6 +40,7 @@ The current contract validation proves:
 - two factory preset JSON files,
 - no unknown preset parameter IDs,
 - TransMod slot objects use valid slot IDs, source/scaler choices, depth domains, and destination IDs.
+- MIDI controller-map normalization rejects invalid assignments, resolves CC/parameter conflicts deterministically, and round-trips through the global user sidecar JSON shape.
 
 The current voice-core validation proves:
 
@@ -66,6 +67,7 @@ The current DSP validation proves:
 - top-level `mod_slots` preset schema objects are applied by render loading, including schema-only modulation fixtures that omit flat APVTS-style `transmod.*` parameters.
 - modulation route model catalogs and derived route rows are covered by `SylenthAIContractTest`, including source/scaler IDs, destination IDs, active route filtering, and legacy `transmod.N.depth` cutoff contribution.
 - preset browser metadata validation, saved user preset browser metadata, factory/user/legacy source summaries, sidecar favorite add/remove behavior, search/category/tag/favorite filtering, and browser catalog facets are covered by `SylenthAIContractTest`.
+- MIDI controller-map persistence is covered by `SylenthAIContractTest`; remaining host proof must show learned CCs updating APVTS parameters in AU and VST3.
 - FX bypass stays null-equivalent to dry rendering when globally bypassed, disabled expanded-rack modules are dry-equivalent, phaser/EQ/compressor/distortion-mode processing is finite and measurably audible when enabled, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active time-based FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
 - `SylenthAIRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
 - `SylenthAIRenderCoreSuite` runs the core suite under CTest.
@@ -129,6 +131,7 @@ Required Ableton checks:
 - sample-rate changes,
 - transport stop and all-notes-off,
 - UI open/close while playing.
+- MIDI Learn and Forget from the global controller panel, plus mapped CC playback against at least one continuous and one stepped parameter.
 
 Recommended additional hosts:
 

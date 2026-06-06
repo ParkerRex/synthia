@@ -36,6 +36,7 @@ private:
     class Panel;
     class SequencerPanel;
     class PresetBrowserPanel;
+    class MidiControllerPanel;
     class ModulationOverviewPanel;
     class Meter;
 
@@ -124,6 +125,7 @@ private:
     std::vector<std::unique_ptr<Panel>> soundPanels;
     std::array<std::unique_ptr<Panel>, synth::oscillatorSlotsPerLayer> slotPanels;
     std::unique_ptr<PresetBrowserPanel> presetBrowserPanel;
+    std::unique_ptr<MidiControllerPanel> midiControllerPanel;
     std::unique_ptr<SequencerPanel> sequencerPanel;
     std::unique_ptr<ModulationOverviewPanel> modulationOverviewPanel;
     std::vector<std::unique_ptr<Panel>> modPanels;

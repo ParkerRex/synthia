@@ -917,6 +917,176 @@ private:
 };
 
 // ============================================================================
+// MidiControllerPanel: global MIDI learn/forget surface for automatable params.
+// ============================================================================
+class SynthAudioProcessorEditor::MidiControllerPanel final : public LayoutSection
+{
+public:
+    explicit MidiControllerPanel(SynthAudioProcessorEditor& editor)
+        : owner(editor)
+    {
+        parameterBox.setTextWhenNothingSelected("Select parameter");
+        int itemId = 1;
+        for (const auto& spec : synth::getParameterSpecs())
+        {
+            if (!spec.automatable)
+                continue;
+
+            parameterIds.push_back(spec.id);
+            parameterBox.addItem(juce::String(spec.group).toUpperCase() + " / " + spec.name, itemId++);
+        }
+        addAndMakeVisible(parameterBox);
+
+        styleFlatButton(learnButton, accent.darker(0.18f), juce::Colour::fromRGB(12, 14, 16));
+        styleFlatButton(forgetButton, juce::Colour::fromRGB(42, 48, 54), text);
+        styleFlatButton(cancelButton, juce::Colour::fromRGB(42, 48, 54), mutedText);
+        addAndMakeVisible(learnButton);
+        addAndMakeVisible(forgetButton);
+        addAndMakeVisible(cancelButton);
+
+        learnButton.onClick = [this] {
+            juce::String message;
+            if (owner.audioProcessor.startMidiLearn(selectedParameterId(), message))
+                refresh();
+            owner.updateStatus(message);
+        };
+        forgetButton.onClick = [this] {
+            juce::String message;
+            owner.audioProcessor.forgetMidiControllerForParameter(selectedParameterId(), message);
+            refresh();
+            owner.updateStatus(message);
+        };
+        cancelButton.onClick = [this] {
+            owner.audioProcessor.cancelMidiLearn();
+            refresh();
+            owner.updateStatus("MIDI learn canceled");
+        };
+
+        statusLabel.setColour(juce::Label::textColourId, mutedText);
+        statusLabel.setFont(uiFont(11.0f));
+        statusLabel.setMinimumHorizontalScale(0.65f);
+        addAndMakeVisible(statusLabel);
+
+        assignmentLabel.setColour(juce::Label::textColourId, text);
+        assignmentLabel.setFont(uiFont(11.0f));
+        assignmentLabel.setMinimumHorizontalScale(0.55f);
+        addAndMakeVisible(assignmentLabel);
+
+        refresh();
+    }
+
+    int preferredHeight(int width) const override
+    {
+        return width < 760 ? 142 : 112;
+    }
+
+    void refresh()
+    {
+        statusLabel.setText(owner.audioProcessor.getMidiControllerStatus(), juce::dontSendNotification);
+
+        const auto assignments = owner.audioProcessor.getMidiControllerAssignments();
+        juce::StringArray visible;
+        for (int index = 0; index < juce::jmin(4, static_cast<int>(assignments.size())); ++index)
+        {
+            const auto& assignment = assignments[static_cast<std::size_t>(index)];
+            visible.add("CC" + juce::String(assignment.controllerNumber) + " -> "
+                        + juce::String(assignment.parameterId));
+        }
+
+        const auto hiddenAssignmentCount = static_cast<int>(assignments.size()) - visible.size();
+        if (hiddenAssignmentCount > 0)
+            visible.add("+" + juce::String(hiddenAssignmentCount) + " more");
+
+        assignmentLabel.setText(visible.isEmpty() ? "No MIDI CC mappings" : visible.joinIntoString("   "),
+                                juce::dontSendNotification);
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
+        g.setColour(panelBg);
+        g.fillRoundedRectangle(bounds, 6.0f);
+        g.setColour(strokeSoft);
+        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+
+        auto headerArea = getLocalBounds().removeFromTop(headerHeight);
+        g.setColour(panelHeader);
+        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
+        g.fillRect(headerArea.removeFromBottom(8));
+
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        auto badgeArea = titleArea.removeFromRight(70).withSizeKeepingCentre(70, 16);
+        titleArea.removeFromRight(8);
+
+        g.setColour(text);
+        g.setFont(uiFont(12.0f, true));
+        g.drawText("MIDI CONTROL", titleArea, juce::Justification::centredLeft, true);
+
+        g.setColour(accent.withAlpha(0.18f));
+        g.fillRoundedRectangle(badgeArea.toFloat(), 8.0f);
+        g.setColour(accent);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText("GLOBAL", badgeArea, juce::Justification::centred, false);
+    }
+
+    void resized() override
+    {
+        auto content = getLocalBounds();
+        content.removeFromTop(headerHeight);
+        content = content.reduced(12, 8);
+
+        if (content.getWidth() < 760)
+        {
+            parameterBox.setBounds(content.removeFromTop(28));
+            content.removeFromTop(6);
+
+            auto buttons = content.removeFromTop(28);
+            learnButton.setBounds(buttons.removeFromLeft(70));
+            buttons.removeFromLeft(6);
+            forgetButton.setBounds(buttons.removeFromLeft(72));
+            buttons.removeFromLeft(6);
+            cancelButton.setBounds(buttons.removeFromLeft(70));
+        }
+        else
+        {
+            auto controls = content.removeFromTop(28);
+            parameterBox.setBounds(controls.removeFromLeft(360));
+            controls.removeFromLeft(8);
+            learnButton.setBounds(controls.removeFromLeft(70));
+            controls.removeFromLeft(6);
+            forgetButton.setBounds(controls.removeFromLeft(72));
+            controls.removeFromLeft(6);
+            cancelButton.setBounds(controls.removeFromLeft(70));
+        }
+
+        content.removeFromTop(5);
+        statusLabel.setBounds(content.removeFromTop(18));
+        assignmentLabel.setBounds(content.removeFromTop(18));
+    }
+
+private:
+    juce::String selectedParameterId() const
+    {
+        const auto selectedIndex = parameterBox.getSelectedId() - 1;
+        if (selectedIndex < 0 || selectedIndex >= static_cast<int>(parameterIds.size()))
+            return {};
+
+        return juce::String(parameterIds[static_cast<std::size_t>(selectedIndex)]);
+    }
+
+    static constexpr int headerHeight = 26;
+
+    SynthAudioProcessorEditor& owner;
+    juce::ComboBox parameterBox;
+    juce::TextButton learnButton { "Learn" };
+    juce::TextButton forgetButton { "Forget" };
+    juce::TextButton cancelButton { "Cancel" };
+    juce::Label statusLabel;
+    juce::Label assignmentLabel;
+    std::vector<std::string> parameterIds;
+};
+
+// ============================================================================
 // ModulationOverviewPanel: read-only source and route inspection.
 // ============================================================================
 class SynthAudioProcessorEditor::ModulationOverviewPanel final : public LayoutSection
@@ -1843,6 +2013,8 @@ void SynthAudioProcessorEditor::buildPages()
     // ---- SOUND: the live core sound-design surface ------------------------
     presetBrowserPanel = std::make_unique<PresetBrowserPanel>(*this);
     soundPage.addAndMakeVisible(*presetBrowserPanel);
+    midiControllerPanel = std::make_unique<MidiControllerPanel>(*this);
+    soundPage.addAndMakeVisible(*midiControllerPanel);
 
     coreOscPanel = addPanel(soundPage, soundPanels, "Oscillator", {
         "osc.pitch_semitones", "osc.fine_cents", "osc.stack_count", "osc.stack_detune",
@@ -2208,10 +2380,11 @@ void SynthAudioProcessorEditor::layoutActivePage()
     if (currentPage == Page::Sound)
     {
         if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr
-            || sequencerPanel == nullptr || presetBrowserPanel == nullptr)
+            || sequencerPanel == nullptr || presetBrowserPanel == nullptr || midiControllerPanel == nullptr)
             return;
         std::vector<std::vector<RowItem>> rows = {
             { { presetBrowserPanel.get(), 1.0f } },
+            { { midiControllerPanel.get(), 1.0f } },
             { { slotPanels[0].get(), 0.5f }, { slotPanels[1].get(), 0.5f } },
             { { coreOscPanel, 1.0f } },
             { { filterPanel, 0.32f }, { ampEnvPanel, 0.14f }, { modEnvPanel, 0.14f }, { lfoPanel, 0.40f } },
@@ -2497,6 +2670,8 @@ void SynthAudioProcessorEditor::updateDiagnostics()
 void SynthAudioProcessorEditor::timerCallback()
 {
     updateDiagnostics();
+    if (midiControllerPanel != nullptr)
+        midiControllerPanel->refresh();
     if (currentPage == Page::Mod && modulationOverviewPanel != nullptr)
         modulationOverviewPanel->refresh();
 }

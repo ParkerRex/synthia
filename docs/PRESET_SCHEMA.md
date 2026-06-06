@@ -95,6 +95,39 @@ The sidecar shape is:
 
 Keeping favorites in a sidecar lets factory presets remain read-only and lets future browser UI toggle favorites without mutating sound patches.
 
+## MIDI Controller Map
+
+MIDI controller assignments are global user-library state, not preset sound state and not APVTS parameters. They must not be stored in factory preset JSON or read from the audio thread.
+
+The current user MIDI map file is:
+
+- `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json`
+
+The sidecar shape is:
+
+```json
+{
+  "schema_version": 1,
+  "mappings": [
+    {
+      "cc": 74,
+      "parameter_id": "filter.cutoff_semitones"
+    }
+  ]
+}
+```
+
+Map rules:
+
+- `cc` must be `0` through `127`.
+- `parameter_id` must name an automatable parameter from the registry.
+- each CC may map to one parameter,
+- each parameter may have one learned CC,
+- later conflicting assignments replace earlier assignments during normalization,
+- reserved performance/safety CCs such as sustain, all-sound-off, and all-notes-off are rejected by the processor assignment path.
+
+The processor loads this file on construction, publishes fixed atomic CC-to-parameter indexes for realtime MIDI lookup, and applies learned/mapped CC changes on the message-thread timer. Writes happen only from the control path when the user learns or forgets an assignment.
+
 ## Parameter Values
 
 Parameter values should be stored in physical/display domains when stable and clear:
