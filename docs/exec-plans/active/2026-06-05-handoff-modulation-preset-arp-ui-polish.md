@@ -36,10 +36,16 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [x] 2026-06-06 EDT: Implemented the bounded arp/step/chord UI surface in `PluginEditor.*` with real APVTS bindings for arp controls, 16 arp steps, and 8 chord voices.
 - [x] 2026-06-06 EDT: Recorded native standalone screenshot evidence that the sequencer row renders at a tall window size; bottom-lane scroll QA remains for host/manual polish.
 - [x] 2026-06-06 EDT: Completed the FX rack model with fixed-order APVTS-backed distortion/saturation, phaser, chorus, EQ, delay, reverb, compressor, quality, and patch-cost state; captured native standalone FX tab screenshot evidence.
+- [x] 2026-06-06 EDT: Verified the current Claude Code headless workflow from docs/local CLI help: use `claude -p` with `--output-format stream-json --verbose` for observable non-interactive UI handoff runs.
+- [x] 2026-06-06 EDT: Handed preset/browser, arp/chord, and FX polish to Claude Code with screenshot references; stopped the run after it stayed in research mode and produced no patch.
+- [x] 2026-06-06 EDT: Applied bounded local UI polish in `PluginEditor.cpp`: preset popup sections, ordered FX rack stage titles/badges, reserved title/badge spacing, and framed arp/chord grids.
+- [x] 2026-06-06 EDT: Captured native standalone screenshot evidence at `build/reports/ui/preset-arp-fx-polish-sound.png`, `build/reports/ui/preset-arp-fx-polish-sound-paged.png`, and `build/reports/ui/preset-arp-fx-polish-effects.png`.
+- [x] 2026-06-06 EDT: Passed `git diff --check`, standalone rebuild, CTest, and `SylenthAIRender --suite core` for the UI polish slice.
 
 ## Surprises & Discoveries
 
 - Claude Code headless streaming works with `claude -p --output-format stream-json --verbose`, but the first broad screenshot-heavy prompt over-researched and emitted no patch. Future Claude prompts for this repo should use tight file/edit constraints and bounded turns.
+- A second tighter screenshot-referenced Claude handoff still spent the run reading and reasoning without patching. For UI polish, use Claude as a fast bounded reviewer/polisher, but keep a local implementation path ready when the patch does not appear quickly.
 - Native standalone screenshot automation confirmed the app opens after the editor patch. A taller window captured the new sequencer row itself, while PageDown and direct Accessibility scroll-bar automation did not move the JUCE viewport far enough to inspect the bottom lanes.
 
 ## Decision Log
@@ -50,9 +56,9 @@ Date: 2026-06-05.
 
 ## Outcomes & Retrospective
 
-Partial arp/step/chord implementation passed build, CTest, adversarial review, and native standalone visual launch/row evidence. FX rack state is now model-ready for Claude visual polish; modulation polish remains gated by its route model.
+Partial arp/step/chord implementation passed build, CTest, adversarial review, and native standalone visual launch/row evidence. FX rack state is now model-backed and has a first local visual polish pass with ordered module badges. Modulation polish remains gated by its route model.
 
-The next Claude Code pass can target preset browser, arp/step/chord, and FX rack visual polish only. It must not invent modulation-route UI state until the route model lands.
+The next Claude Code pass can target deeper preset browser, arp/step/chord, and FX rack visual polish only. It must not invent modulation-route UI state until the route model lands.
 
 ## Context and Orientation
 

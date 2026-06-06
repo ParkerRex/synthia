@@ -473,14 +473,20 @@ public:
         g.fillRect(headerArea.removeFromBottom(8)); // square off the lower header corners
 
         auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        juce::Rectangle<int> badgeArea;
+        if (badge.isNotEmpty())
+        {
+            const auto badgeWidth = badge.length() * 8 + 16;
+            badgeArea = titleArea.removeFromRight(badgeWidth).withSizeKeepingCentre(badgeWidth, 16);
+            titleArea.removeFromRight(8);
+        }
+
         g.setColour(text);
         g.setFont(uiFont(12.0f, true));
         g.drawText(title.toUpperCase(), titleArea, juce::Justification::centredLeft, true);
 
         if (badge.isNotEmpty())
         {
-            const auto badgeWidth = badge.length() * 8 + 16;
-            auto badgeArea = titleArea.removeFromRight(badgeWidth).withSizeKeepingCentre(badgeWidth, 16);
             g.setColour(badgeColour.withAlpha(0.18f));
             g.fillRoundedRectangle(badgeArea.toFloat(), 8.0f);
             g.setColour(badgeColour);
@@ -617,11 +623,13 @@ public:
         g.fillRect(headerArea.removeFromBottom(8));
 
         auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        auto badgeArea = titleArea.removeFromRight(54).withSizeKeepingCentre(54, 16);
+        titleArea.removeFromRight(8);
+
         g.setColour(text);
         g.setFont(uiFont(12.0f, true));
         g.drawText("ARP / STEP / CHORD", titleArea, juce::Justification::centredLeft, true);
 
-        auto badgeArea = titleArea.removeFromRight(54).withSizeKeepingCentre(54, 16);
         g.setColour(live.withAlpha(0.18f));
         g.fillRoundedRectangle(badgeArea.toFloat(), 8.0f);
         g.setColour(live);
@@ -851,6 +859,8 @@ private:
 
     void paintStepLabels(juce::Graphics& g, juce::Rectangle<int> bounds) const
     {
+        paintGridFrame(g, bounds);
+
         const auto stepWidth = std::max(28, (bounds.getWidth() - rowLabelWidth - (synth::arpStepCount - 1) * cellGap)
                                             / synth::arpStepCount);
         const auto gridWidth = rowLabelWidth + synth::arpStepCount * stepWidth + (synth::arpStepCount - 1) * cellGap;
@@ -880,6 +890,8 @@ private:
 
     void paintChordLabels(juce::Graphics& g, juce::Rectangle<int> bounds) const
     {
+        paintGridFrame(g, bounds);
+
         const auto voiceWidth = std::max(48, (bounds.getWidth() - rowLabelWidth - (synth::chordVoiceCount - 1) * cellGap)
                                              / synth::chordVoiceCount);
         const auto gridWidth = rowLabelWidth + synth::chordVoiceCount * voiceWidth + (synth::chordVoiceCount - 1) * cellGap;
@@ -908,6 +920,15 @@ private:
         g.setColour(mutedText);
         g.setFont(uiFont(10.0f, true));
         g.drawText(label, x, y, rowLabelWidth - 6, sliderRowHeight, juce::Justification::centredLeft, false);
+    }
+
+    void paintGridFrame(juce::Graphics& g, juce::Rectangle<int> bounds) const
+    {
+        const auto frame = bounds.toFloat().reduced(0.5f);
+        g.setColour(juce::Colour::fromRGB(23, 27, 31));
+        g.fillRoundedRectangle(frame, 4.0f);
+        g.setColour(strokeSoft.withAlpha(0.72f));
+        g.drawRoundedRectangle(frame, 4.0f, 1.0f);
     }
 
     juce::AudioProcessorValueTreeState& valueTreeState;
@@ -972,6 +993,40 @@ juce::File presetJsonFile(juce::File file)
         return file;
 
     return file.withFileExtension(".json");
+}
+
+juce::String nonEmptyPresetField(const juce::String& value, const juce::String& fallback)
+{
+    const auto trimmed = value.trim();
+    return trimmed.isNotEmpty() ? trimmed : fallback;
+}
+
+juce::String presetMenuSection(const SynthAudioProcessor::PresetListItem& item)
+{
+    return nonEmptyPresetField(item.sourceLabel, "Preset")
+           + " / " + nonEmptyPresetField(item.bank, "Unbanked");
+}
+
+juce::String presetMenuLabel(const SynthAudioProcessor::PresetListItem& item)
+{
+    auto name = nonEmptyPresetField(item.displayName, item.file.getFileNameWithoutExtension());
+    auto label = nonEmptyPresetField(item.sourceLabel, "Preset")
+                 + " / " + nonEmptyPresetField(item.category, "Uncategorized")
+                 + " - " + name;
+
+    if (item.favorite)
+        label = "FAV  " + label;
+
+    if (!item.tags.isEmpty())
+    {
+        juce::StringArray visibleTags;
+        for (int i = 0; i < juce::jmin(2, item.tags.size()); ++i)
+            visibleTags.add(item.tags[i]);
+
+        label << "  [" << visibleTags.joinIntoString(", ") << "]";
+    }
+
+    return label;
 }
 } // namespace
 
@@ -1202,32 +1257,32 @@ void SynthAudioProcessorEditor::buildPages()
     }
 
     // ---- FX: a post-voice rack grouped by module, plus master/quality -----
-    saturationPanel = addPanel(fxPage, fxPanels, "Saturation", {
+    saturationPanel = addPanel(fxPage, fxPanels, "01 Saturation", {
         "fx.saturation_enabled", "fx.distortion_mode", "fx.saturation_mix", "fx.saturation_drive"
-    }, {}, {}, "Saturation ");
-    phaserPanel = addPanel(fxPage, fxPanels, "Phaser", {
+    }, "DRIVE", staged, "Saturation ");
+    phaserPanel = addPanel(fxPage, fxPanels, "02 Phaser", {
         "fx.phaser_enabled", "fx.phaser_mix", "fx.phaser_rate_hz",
         "fx.phaser_depth", "fx.phaser_feedback"
-    }, {}, {}, "Phaser ");
-    chorusPanel = addPanel(fxPage, fxPanels, "Chorus", {
+    }, "PHASE", accent, "Phaser ");
+    chorusPanel = addPanel(fxPage, fxPanels, "03 Chorus", {
         "fx.chorus_enabled", "fx.chorus_mix", "fx.chorus_rate_hz", "fx.chorus_depth_ms"
-    }, {}, {}, "Chorus ");
-    eqPanel = addPanel(fxPage, fxPanels, "EQ", {
+    }, "MOD", accent, "Chorus ");
+    eqPanel = addPanel(fxPage, fxPanels, "04 EQ", {
         "fx.eq_enabled", "fx.eq_low_gain_db", "fx.eq_high_gain_db"
-    }, {}, {}, "EQ ");
-    delayPanel = addPanel(fxPage, fxPanels, "Delay", {
+    }, "TONE", live, "EQ ");
+    delayPanel = addPanel(fxPage, fxPanels, "05 Delay", {
         "fx.delay_enabled", "fx.delay_mix", "fx.delay_sync_division", "fx.delay_feedback"
-    }, {}, {}, "Delay ");
-    reverbPanel = addPanel(fxPage, fxPanels, "Reverb", {
+    }, "ECHO", accent, "Delay ");
+    reverbPanel = addPanel(fxPage, fxPanels, "06 Reverb", {
         "fx.reverb_enabled", "fx.reverb_mix", "fx.reverb_decay"
-    }, {}, {}, "Reverb ");
-    compressorPanel = addPanel(fxPage, fxPanels, "Compressor", {
+    }, "SPACE", accent, "Reverb ");
+    compressorPanel = addPanel(fxPage, fxPanels, "07 Compressor", {
         "fx.compressor_enabled", "fx.compressor_threshold_db", "fx.compressor_ratio",
         "fx.compressor_makeup_db", "fx.compressor_mix"
-    }, {}, {}, "Compressor ");
-    masterFxPanel = addPanel(fxPage, fxPanels, "Master / Quality", {
+    }, "DYN", staged, "Compressor ");
+    masterFxPanel = addPanel(fxPage, fxPanels, "08 Master / Quality", {
         "fx.enabled", "quality.realtime_mode", "quality.offline_mode"
-    });
+    }, "HOST", live);
 }
 
 void SynthAudioProcessorEditor::setSelectedLayer(int layerIndex)
@@ -1528,20 +1583,27 @@ void SynthAudioProcessorEditor::refreshPresetMenu()
     presetItems = audioProcessor.getPresetList();
     presetCombo.clear(juce::dontSendNotification);
 
+    juce::String currentSection;
     for (int i = 0; i < static_cast<int>(presetItems.size()); ++i)
     {
         const auto& item = presetItems[static_cast<std::size_t>(i)];
-        auto label = item.sourceLabel + " / " + item.bank + " / " + item.category + ": " + item.displayName;
-        if (item.favorite)
-            label = "* " + label;
-        presetCombo.addItem(label, i + 1);
+        const auto section = presetMenuSection(item);
+        if (section != currentSection)
+        {
+            presetCombo.addSectionHeading(section);
+            currentSection = section;
+        }
+
+        presetCombo.addItem(presetMenuLabel(item), i + 1);
     }
 
     if (presetItems.empty())
     {
-        presetCombo.setTextWhenNothingSelected("No presets found");
+        presetCombo.setTextWhenNothingSelected("Preset browser: no presets scanned");
         return;
     }
+
+    presetCombo.setTextWhenNothingSelected("Select preset");
 
     const auto currentFilePath = audioProcessor.getCurrentPresetFilePath();
     if (currentFilePath.isNotEmpty())
