@@ -35,6 +35,7 @@ private:
     class ParameterControl;
     class Panel;
     class SequencerPanel;
+    class PresetBrowserPanel;
     class ModulationOverviewPanel;
     class Meter;
 
@@ -63,6 +64,8 @@ private:
     void layoutActivePage();
 
     void refreshPresetMenu();
+    void loadPresetAtIndex(int itemIndex);
+    void togglePresetFavoriteAtIndex(int itemIndex);
     void loadSelectedPreset();
     void stepPreset(int direction);
     void savePresetAs();
@@ -120,6 +123,7 @@ private:
     juce::Component fxPage;
     std::vector<std::unique_ptr<Panel>> soundPanels;
     std::array<std::unique_ptr<Panel>, synth::oscillatorSlotsPerLayer> slotPanels;
+    std::unique_ptr<PresetBrowserPanel> presetBrowserPanel;
     std::unique_ptr<SequencerPanel> sequencerPanel;
     std::unique_ptr<ModulationOverviewPanel> modulationOverviewPanel;
     std::vector<std::unique_ptr<Panel>> modPanels;

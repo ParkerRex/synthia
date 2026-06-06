@@ -1,5 +1,7 @@
 #include "PluginEditor.h"
 
+#include "../presets/PresetManager.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -551,6 +553,367 @@ private:
     juce::String badge;
     juce::Colour badgeColour;
     std::vector<std::unique_ptr<ParameterControl>> controls;
+};
+
+// ============================================================================
+// PresetBrowserPanel: searchable preset list over the real preset catalog.
+// ============================================================================
+class SynthAudioProcessorEditor::PresetBrowserPanel final : public LayoutSection,
+                                                           private juce::ListBoxModel
+{
+public:
+    explicit PresetBrowserPanel(SynthAudioProcessorEditor& editor)
+        : owner(editor)
+    {
+        searchEditor.setTextToShowWhenEmpty("Search", mutedText);
+        searchEditor.setFont(uiFont(12.0f));
+        searchEditor.onTextChange = [this] { applyFilters(); };
+        addAndMakeVisible(searchEditor);
+
+        categoryBox.setTextWhenNothingSelected("All Categories");
+        categoryBox.onChange = [this] {
+            if (rebuildingCategoryBox)
+                return;
+
+            selectedCategory = categoryBox.getSelectedId() <= 1 ? juce::String{} : categoryBox.getText();
+            applyFilters();
+        };
+        addAndMakeVisible(categoryBox);
+
+        configureFilterButton(factoryButton, "Factory", true);
+        configureFilterButton(userButton, "User", true);
+        configureFilterButton(legacyButton, "Legacy", true);
+        configureFilterButton(favoritesButton, "Fav", false);
+        refreshFilterButtons();
+
+        presetList.setModel(this);
+        presetList.setRowHeight(rowHeight);
+        presetList.setMultipleSelectionEnabled(false);
+        presetList.setColour(juce::ListBox::backgroundColourId, fieldBg);
+        presetList.setOutlineThickness(0);
+        addAndMakeVisible(presetList);
+    }
+
+    int preferredHeight(int) const override
+    {
+        return 226;
+    }
+
+    void setItems(std::vector<SynthAudioProcessor::PresetListItem> items,
+                  const juce::String& activePresetPath,
+                  const juce::String& activePresetName)
+    {
+        allItems = std::move(items);
+        currentPresetPath = activePresetPath;
+        currentPresetName = activePresetName;
+        rebuildCategoryFilter();
+        applyFilters();
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
+        g.setColour(panelBg);
+        g.fillRoundedRectangle(bounds, 6.0f);
+        g.setColour(strokeSoft);
+        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+
+        auto headerArea = getLocalBounds().removeFromTop(headerHeight);
+        g.setColour(panelHeader);
+        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
+        g.fillRect(headerArea.removeFromBottom(8));
+
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+        auto countArea = titleArea.removeFromRight(88).withSizeKeepingCentre(88, 16);
+        titleArea.removeFromRight(8);
+
+        g.setColour(text);
+        g.setFont(uiFont(12.0f, true));
+        g.drawText("PRESET BROWSER", titleArea, juce::Justification::centredLeft, true);
+
+        g.setColour(accent.withAlpha(0.18f));
+        g.fillRoundedRectangle(countArea.toFloat(), 8.0f);
+        g.setColour(accent);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText(juce::String(filteredItemIndices.size()) + " / " + juce::String(allItems.size()),
+                   countArea, juce::Justification::centred, false);
+    }
+
+    void resized() override
+    {
+        auto content = getLocalBounds();
+        content.removeFromTop(headerHeight);
+        content = content.reduced(padX, padY);
+
+        auto filters = content.removeFromTop(filterHeight);
+        searchEditor.setBounds(filters.removeFromLeft(260));
+        filters.removeFromLeft(8);
+        categoryBox.setBounds(filters.removeFromLeft(176));
+        filters.removeFromLeft(12);
+
+        const auto placeButton = [&filters](juce::TextButton& button, int width) {
+            button.setBounds(filters.removeFromLeft(width));
+            filters.removeFromLeft(6);
+        };
+
+        placeButton(factoryButton, 74);
+        placeButton(userButton, 58);
+        placeButton(legacyButton, 64);
+        placeButton(favoritesButton, 52);
+
+        content.removeFromTop(8);
+        presetList.setBounds(content);
+    }
+
+private:
+    static constexpr int headerHeight = 26;
+    static constexpr int padX = 12;
+    static constexpr int padY = 8;
+    static constexpr int filterHeight = 28;
+    static constexpr int rowHeight = 28;
+    static constexpr int favoriteHitWidth = 34;
+
+    void configureFilterButton(juce::TextButton& button, const juce::String& label, bool active)
+    {
+        button.setButtonText(label);
+        button.setClickingTogglesState(true);
+        button.setToggleState(active, juce::dontSendNotification);
+        button.onClick = [this] {
+            refreshFilterButtons();
+            applyFilters();
+        };
+        addAndMakeVisible(button);
+    }
+
+    void refreshFilterButtons()
+    {
+        auto refreshButton = [](juce::TextButton& button) {
+            const auto active = button.getToggleState();
+            styleFlatButton(button,
+                            active ? accent.darker(0.18f) : fieldBg,
+                            active ? juce::Colour::fromRGB(12, 14, 16) : mutedText);
+        };
+
+        refreshButton(factoryButton);
+        refreshButton(userButton);
+        refreshButton(legacyButton);
+        refreshButton(favoritesButton);
+    }
+
+    void rebuildCategoryFilter()
+    {
+        juce::StringArray categories;
+        for (const auto& item : allItems)
+        {
+            const auto category = item.category.trim();
+            if (category.isNotEmpty() && !categories.contains(category, true))
+                categories.add(category);
+        }
+        categories.sort(true);
+
+        const auto previousCategory = selectedCategory;
+        rebuildingCategoryBox = true;
+        categoryBox.clear(juce::dontSendNotification);
+        categoryBox.addItem("All Categories", 1);
+
+        selectedCategory = {};
+        int selectedId = 1;
+        for (int index = 0; index < categories.size(); ++index)
+        {
+            const auto id = index + 2;
+            categoryBox.addItem(categories[index], id);
+            if (categories[index] == previousCategory)
+            {
+                selectedCategory = previousCategory;
+                selectedId = id;
+            }
+        }
+
+        categoryBox.setSelectedId(selectedId, juce::dontSendNotification);
+        rebuildingCategoryBox = false;
+    }
+
+    bool sourceIncluded(const SynthAudioProcessor::PresetListItem& item) const
+    {
+        const auto source = item.sourceLabel.trim().toLowerCase();
+        if (item.factory)
+            return factoryButton.getToggleState();
+        if (source == "legacy user")
+            return legacyButton.getToggleState();
+        return userButton.getToggleState();
+    }
+
+    bool matchesSearch(const SynthAudioProcessor::PresetListItem& item, const juce::String& query) const
+    {
+        if (query.isEmpty())
+            return true;
+
+        auto containsQuery = [&query](const juce::String& value) {
+            return value.toLowerCase().contains(query);
+        };
+
+        if (containsQuery(item.displayName) || containsQuery(item.bank) || containsQuery(item.category)
+            || containsQuery(item.sourceLabel) || containsQuery(item.file.getFileNameWithoutExtension()))
+            return true;
+
+        for (const auto& tag : item.tags)
+        {
+            if (containsQuery(tag))
+                return true;
+        }
+
+        return false;
+    }
+
+    void applyFilters()
+    {
+        filteredItemIndices.clear();
+        const auto query = searchEditor.getText().trim().toLowerCase();
+
+        for (int index = 0; index < static_cast<int>(allItems.size()); ++index)
+        {
+            const auto& item = allItems[static_cast<std::size_t>(index)];
+            if (!sourceIncluded(item))
+                continue;
+            if (favoritesButton.getToggleState() && !item.favorite)
+                continue;
+            if (selectedCategory.isNotEmpty() && item.category != selectedCategory)
+                continue;
+            if (!matchesSearch(item, query))
+                continue;
+
+            filteredItemIndices.push_back(index);
+        }
+
+        presetList.updateContent();
+        const auto activeRow = activeFilteredRow();
+        if (activeRow >= 0)
+            presetList.selectRow(activeRow, false, true);
+        else
+            presetList.deselectAllRows();
+        presetList.repaint();
+    }
+
+    int activeFilteredRow() const
+    {
+        for (int row = 0; row < static_cast<int>(filteredItemIndices.size()); ++row)
+        {
+            const auto itemIndex = filteredItemIndices[static_cast<std::size_t>(row)];
+            const auto& item = allItems[static_cast<std::size_t>(itemIndex)];
+            if (isCurrentPreset(item))
+                return row;
+        }
+        return -1;
+    }
+
+    int getNumRows() override
+    {
+        return static_cast<int>(filteredItemIndices.size());
+    }
+
+    void paintListBoxItem(int rowNumber,
+                          juce::Graphics& g,
+                          int width,
+                          int height,
+                          bool rowIsSelected) override
+    {
+        if (rowNumber < 0 || rowNumber >= getNumRows())
+            return;
+
+        const auto itemIndex = filteredItemIndices[static_cast<std::size_t>(rowNumber)];
+        const auto& item = allItems[static_cast<std::size_t>(itemIndex)];
+        const auto active = isCurrentPreset(item);
+
+        auto row = juce::Rectangle<int>(0, 0, width, height).reduced(1, 1);
+        g.setColour(active ? accent.withAlpha(0.18f)
+                           : (rowIsSelected ? strokeSoft.brighter(0.18f) : fieldBg));
+        g.fillRoundedRectangle(row.toFloat(), 4.0f);
+
+        auto favoriteArea = row.removeFromLeft(favoriteHitWidth);
+        const auto starBounds = favoriteArea.withSizeKeepingCentre(20, 18).toFloat();
+        g.setColour(item.favorite ? staged.withAlpha(0.22f) : strokeSoft.withAlpha(0.55f));
+        g.fillRoundedRectangle(starBounds, 5.0f);
+        g.setColour(item.favorite ? staged : mutedText);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText("F", favoriteArea, juce::Justification::centred, false);
+
+        row.removeFromLeft(4);
+        auto sourceArea = row.removeFromRight(92);
+        row.removeFromRight(8);
+        auto metaArea = row.removeFromRight(218);
+        row.removeFromRight(8);
+
+        const auto displayName = item.displayName.isNotEmpty()
+            ? item.displayName
+            : item.file.getFileNameWithoutExtension();
+
+        g.setColour(active ? text : juce::Colour::fromRGB(218, 224, 229));
+        g.setFont(uiFont(12.0f, active));
+        g.drawFittedText(displayName, row, juce::Justification::centredLeft, 1, 0.68f);
+
+        auto meta = item.bank;
+        if (item.category.isNotEmpty())
+            meta << " / " << item.category;
+        if (!item.tags.isEmpty())
+        {
+            juce::StringArray visibleTags;
+            for (int index = 0; index < juce::jmin(2, item.tags.size()); ++index)
+                visibleTags.add(item.tags[index]);
+            meta << " / " << visibleTags.joinIntoString(", ");
+        }
+
+        g.setColour(mutedText);
+        g.setFont(uiFont(10.5f));
+        g.drawFittedText(meta, metaArea, juce::Justification::centredRight, 1, 0.58f);
+
+        g.setColour(item.factory ? live : (item.sourceLabel == "Legacy User" ? staged : accent));
+        g.setFont(uiFont(10.0f, true));
+        g.drawFittedText(item.sourceLabel, sourceArea, juce::Justification::centredRight, 1, 0.62f);
+    }
+
+    void listBoxItemClicked(int row, const juce::MouseEvent& event) override
+    {
+        if (row < 0 || row >= getNumRows())
+            return;
+
+        const auto itemIndex = filteredItemIndices[static_cast<std::size_t>(row)];
+        if (event.x < favoriteHitWidth)
+            owner.togglePresetFavoriteAtIndex(itemIndex);
+        else
+            owner.loadPresetAtIndex(itemIndex);
+    }
+
+    void listBoxItemDoubleClicked(int row, const juce::MouseEvent& event) override
+    {
+        if (event.x < favoriteHitWidth)
+            return;
+
+        if (row >= 0 && row < getNumRows())
+            owner.loadPresetAtIndex(filteredItemIndices[static_cast<std::size_t>(row)]);
+    }
+
+    bool isCurrentPreset(const SynthAudioProcessor::PresetListItem& item) const
+    {
+        if (currentPresetPath.isNotEmpty())
+            return item.file.getFullPathName() == currentPresetPath;
+
+        return currentPresetName.isNotEmpty() && item.displayName == currentPresetName;
+    }
+
+    SynthAudioProcessorEditor& owner;
+    juce::TextEditor searchEditor;
+    juce::ComboBox categoryBox;
+    juce::TextButton factoryButton;
+    juce::TextButton userButton;
+    juce::TextButton legacyButton;
+    juce::TextButton favoritesButton;
+    juce::ListBox presetList;
+    std::vector<SynthAudioProcessor::PresetListItem> allItems;
+    std::vector<int> filteredItemIndices;
+    juce::String currentPresetPath;
+    juce::String currentPresetName;
+    juce::String selectedCategory;
+    bool rebuildingCategoryBox = false;
 };
 
 // ============================================================================
@@ -1478,6 +1841,9 @@ SynthAudioProcessorEditor::Panel* SynthAudioProcessorEditor::addPanel(
 void SynthAudioProcessorEditor::buildPages()
 {
     // ---- SOUND: the live core sound-design surface ------------------------
+    presetBrowserPanel = std::make_unique<PresetBrowserPanel>(*this);
+    soundPage.addAndMakeVisible(*presetBrowserPanel);
+
     coreOscPanel = addPanel(soundPage, soundPanels, "Oscillator", {
         "osc.pitch_semitones", "osc.fine_cents", "osc.stack_count", "osc.stack_detune",
         "osc.saw_level", "osc.pulse_level", "osc.pulse_width", "osc.noise_level",
@@ -1841,9 +2207,11 @@ void SynthAudioProcessorEditor::layoutActivePage()
 
     if (currentPage == Page::Sound)
     {
-        if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr || sequencerPanel == nullptr)
+        if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr
+            || sequencerPanel == nullptr || presetBrowserPanel == nullptr)
             return;
         std::vector<std::vector<RowItem>> rows = {
+            { { presetBrowserPanel.get(), 1.0f } },
             { { slotPanels[0].get(), 0.5f }, { slotPanels[1].get(), 0.5f } },
             { { coreOscPanel, 1.0f } },
             { { filterPanel, 0.32f }, { ampEnvPanel, 0.14f }, { modEnvPanel, 0.14f }, { lfoPanel, 0.40f } },
@@ -1883,6 +2251,8 @@ void SynthAudioProcessorEditor::refreshPresetMenu()
 {
     presetItems = audioProcessor.getPresetList();
     presetCombo.clear(juce::dontSendNotification);
+    const auto currentFilePath = audioProcessor.getCurrentPresetFilePath();
+    const auto currentName = audioProcessor.getCurrentPresetName();
 
     juce::String currentSection;
     for (int i = 0; i < static_cast<int>(presetItems.size()); ++i)
@@ -1901,38 +2271,54 @@ void SynthAudioProcessorEditor::refreshPresetMenu()
     if (presetItems.empty())
     {
         presetCombo.setTextWhenNothingSelected("Preset browser: no presets scanned");
+        if (presetBrowserPanel != nullptr)
+            presetBrowserPanel->setItems(presetItems, currentFilePath, currentName);
         return;
     }
 
     presetCombo.setTextWhenNothingSelected("Select preset");
 
-    const auto currentFilePath = audioProcessor.getCurrentPresetFilePath();
+    int selectedPresetIndex = -1;
     if (currentFilePath.isNotEmpty())
     {
         for (int i = 0; i < static_cast<int>(presetItems.size()); ++i)
         {
             if (presetItems[static_cast<std::size_t>(i)].file.getFullPathName() == currentFilePath)
             {
-                presetCombo.setSelectedItemIndex(i, juce::dontSendNotification);
-                return;
+                selectedPresetIndex = i;
+                break;
             }
         }
     }
 
-    const auto currentName = audioProcessor.getCurrentPresetName();
-    for (int i = 0; i < static_cast<int>(presetItems.size()); ++i)
+    if (selectedPresetIndex < 0)
     {
-        if (presetItems[static_cast<std::size_t>(i)].displayName == currentName)
+        for (int i = 0; i < static_cast<int>(presetItems.size()); ++i)
         {
-            presetCombo.setSelectedItemIndex(i, juce::dontSendNotification);
-            return;
+            if (presetItems[static_cast<std::size_t>(i)].displayName == currentName)
+            {
+                selectedPresetIndex = i;
+                break;
+            }
         }
     }
+
+    if (selectedPresetIndex >= 0)
+        presetCombo.setSelectedItemIndex(selectedPresetIndex, juce::dontSendNotification);
+
+    if (presetBrowserPanel != nullptr)
+        presetBrowserPanel->setItems(presetItems, currentFilePath, currentName);
 }
 
 void SynthAudioProcessorEditor::loadSelectedPreset()
 {
     const auto index = presetCombo.getSelectedItemIndex();
+    loadPresetAtIndex(index);
+}
+
+void SynthAudioProcessorEditor::loadPresetAtIndex(int itemIndex)
+{
+    const auto index = itemIndex;
     if (index < 0 || index >= static_cast<int>(presetItems.size()))
     {
         updateStatus("Choose a preset first");
@@ -1948,6 +2334,34 @@ void SynthAudioProcessorEditor::loadSelectedPreset()
     }
 
     updateStatus(message);
+}
+
+void SynthAudioProcessorEditor::togglePresetFavoriteAtIndex(int itemIndex)
+{
+    if (itemIndex < 0 || itemIndex >= static_cast<int>(presetItems.size()))
+        return;
+
+    const auto& item = presetItems[static_cast<std::size_t>(itemIndex)];
+    if (item.favoriteKey.isEmpty())
+    {
+        updateStatus("Preset favorite unavailable");
+        return;
+    }
+
+    std::string error;
+    const auto shouldFavorite = !item.favorite;
+    if (!synth::setPresetFavorite(synth::defaultPresetFavoritesFile(),
+                                  item.favoriteKey.toStdString(),
+                                  shouldFavorite,
+                                  error))
+    {
+        updateStatus("Favorite update failed: " + juce::String(error));
+        return;
+    }
+
+    updateStatus((shouldFavorite ? "Favorited preset: " : "Removed favorite: ")
+                 + (item.displayName.isNotEmpty() ? item.displayName : item.file.getFileNameWithoutExtension()));
+    refreshPresetMenu();
 }
 
 void SynthAudioProcessorEditor::stepPreset(int direction)
