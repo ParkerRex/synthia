@@ -75,7 +75,7 @@ Evidence screenshots are ignored build artifacts under `build/reports/ableton/`:
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
-- VST3 hosted editor lifecycle proof.
+- VST3 hosted editor lifecycle proof was later resolved by `2026-06-06-validate-ableton-vst3-hosted-editor-lifecycle.md`.
 
 ## Retrospective
 

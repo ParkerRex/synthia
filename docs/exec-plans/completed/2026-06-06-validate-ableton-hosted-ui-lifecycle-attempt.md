@@ -148,7 +148,7 @@ Acceptance for this attempt:
 
 ### Follow-Up Host Matrix
 
-- VST3 hosted editor lifecycle proof.
+- VST3 hosted editor lifecycle proof was later resolved by `2026-06-06-validate-ableton-vst3-hosted-editor-lifecycle.md`.
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.
 - Current preset recreation and modulation exercise.

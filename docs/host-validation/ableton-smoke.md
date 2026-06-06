@@ -259,7 +259,6 @@ Remaining host-validation gaps:
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
-- VST3 hosted editor lifecycle proof.
 
 ## Ableton Current-Build Hosted UI Lifecycle Attempt - 2026-06-06
 
@@ -297,7 +296,6 @@ Remaining host-validation gaps:
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
-- VST3 hosted editor lifecycle proof.
 
 ## Ableton Current-Build Hosted AU Editor Reopen Control - 2026-06-06
 
@@ -339,7 +337,47 @@ Remaining host-validation gaps:
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
-- VST3 hosted editor lifecycle proof.
+
+## Ableton Current-Build VST3 Hosted Editor Lifecycle - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: fresh Ableton `Untitled` validation set
+- plugin format tested in this pass: VST3
+- build under test: installed local `build-release-phase1-ableton` VST3 from the previous validation pass
+
+Results:
+
+- Ableton browser search exposed two `sylenth-ai` rows. The top VST3 row did not instantiate by Return or double-click in this UI state, but dragging the selected top row into the MIDI track device area loaded the VST3.
+- Ableton logged `Vst3: Going to create: sylenth-ai` at `2026-06-06T04:53:46.797564` and `Vst3: Created: sylenth-ai` at `2026-06-06T04:53:46.892768`.
+- Live also logged `Vst3: couldn't get controller state of sylenth-ai: not implemented` at `2026-06-06T04:53:46.940881`. Keep this on the VST3 host-state watchlist; it did not block VST3 create or hosted editor lifecycle behavior.
+- VST3 creation opened a `sylenth-ai/1-sylenth-ai` editor window owned by Live. No standalone `sylenth-ai` process was used for this proof.
+- Closing button 1 of the hosted editor left only the main `Untitled` Live window.
+- With transport running, a CoreGraphics click at screen point `{750, 1105}` hit the Ableton device-header wrench and opened the hosted VST3 editor.
+- Closing button 1 again left only the main `Untitled` Live window; repeating the same CoreGraphics wrench click reopened `sylenth-ai/1-sylenth-ai` while transport was still running.
+- The durable result is that hosted VST3 editor open/close/reopen while transport runs is proven. This completes the current hosted editor lifecycle gap for both AU and VST3.
+
+Evidence screenshots are local build artifacts under `build/reports/ableton/`:
+
+- `vst3-lifecycle-after-drag-vst3-to-device-area.png`
+- `vst3-lifecycle-open-after-load.png`
+- `vst3-lifecycle-running-editor-closed-before-open.png`
+- `vst3-lifecycle-running-after-open.png`
+- `vst3-lifecycle-running-after-close.png`
+- `vst3-lifecycle-running-after-reopen.png`
+- `vst3-lifecycle-stopped-cleanup.png`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- Learned CC mapping proof in Ableton.
+- Current preset recreation and modulation exercise.
+- Offline bounce versus realtime comparison.
+- Sample-rate and buffer-size changes.
+- All-notes-off/panic proof.
 
 ## Historical Ableton Setup - 2026-06-05
 

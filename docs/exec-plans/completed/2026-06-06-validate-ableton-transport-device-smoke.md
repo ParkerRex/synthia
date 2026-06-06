@@ -70,7 +70,7 @@ Read first:
 - Current VST3 transport run proof.
 - Current VST3 transport stop proof.
 - Correction of standalone-window evidence.
-- Documentation of hosted editor open/close as still unproven.
+- Documentation of hosted editor open/close as still unproven at this slice's completion.
 
 ### Out Of Scope
 

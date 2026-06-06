@@ -79,6 +79,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed current-build Ableton AU transport smoke: created the AU from `Audio Units > ParkerX > sylenth-ai`, ran and stopped transport with the hosted AU editor visible, and left explicit hosted editor close/reopen unproven at that point.
 - [x] 2026-06-06 EDT: Executed hosted UI lifecycle attempt: proved the hosted AU editor can close while transport is running; a later control pass corrected the failed-reopen conclusion as an automation-targeting miss.
 - [x] 2026-06-06 EDT: Executed hosted AU editor reopen control: restored the original resizable editor, rebuilt/reinstalled, passed CTest/bundle checks/auval, and proved hosted AU editor open/close/reopen while transport runs with a precise CoreGraphics click on Ableton's device-header wrench.
+- [x] 2026-06-06 EDT: Executed VST3 hosted editor lifecycle proof: dragged the current VST3 into a fresh Ableton set, verified VST3 create logs, and proved hosted VST3 editor open/close/reopen while transport runs.
 - [ ] Hand off UI information architecture and visual polish plans to Claude Code after state contracts are ready.
 - [ ] Complete the remaining Phase 1 Ableton validation matrix against the Sylenth-level build.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
@@ -116,6 +117,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-au-transport-smoke.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md`
+- `docs/exec-plans/completed/2026-06-06-validate-ableton-vst3-hosted-editor-lifecycle.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
@@ -125,7 +127,7 @@ Product-order next Codex slice: complete the remaining Phase 1 Ableton host matr
 
 Preset browser, arp/step/chord, FX rack, modulation inspection, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; drag/drop modulation writing, per-route bypass/remove, per-control MIDI context menus, and richer browser metadata editing remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore, VST3 transport run/stop, VST3 offline bounce artifact creation, AU transport run/stop, and hosted AU editor open/close/reopen while transport runs: automation, learned CC mapping, preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, panic, and VST3 hosted editor lifecycle proof.
+The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore, VST3 transport run/stop, VST3 offline bounce artifact creation, AU transport run/stop, and AU/VST3 hosted editor open/close/reopen while transport runs: automation, learned CC mapping, preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic.
 
 ## Risks and Watchpoints
 
