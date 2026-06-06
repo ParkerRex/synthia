@@ -49,15 +49,76 @@ Results:
 - `auval -v aumu SyAI PkRx` passed against the installed AU with AU Validation Tool `1.10.0`.
 - No `vst3validator` or `pluginval` executable was available on this machine; VST3 scan/load/play, automation, state restore, and bounce still require the Ableton manual checklist below.
 
-## Ableton Setup
+## Command Revalidation - 2026-06-06
+
+Current-build validation was run from branch `validate/phase1-ableton` on top of `a1ab086`.
+
+```bash
+cmake -S . -B build-release-phase1-ableton -DCMAKE_BUILD_TYPE=Release -DSYLENTH_AI_ENABLE_TESTS=ON -DSYLENTH_AI_JUCE_PATH=/Users/parkerrex/Developer/sylenth-ai/build/_deps/juce-src
+cmake --build build-release-phase1-ableton --config Release -j2
+ctest --test-dir build-release-phase1-ableton --output-on-failure
+./build-release-phase1-ableton/SylenthAIRender --suite core --output-dir build-release-phase1-ableton/reports/core
+scripts/check-plugin-bundles.sh build-release-phase1-ableton
+scripts/install-local-plugins.sh build-release-phase1-ableton Release
+scripts/uninstall-local-plugins.sh --dry-run
+auval -v aumu SyAI PkRx
+```
+
+Results:
+
+- Release configure/build passed with the existing local JUCE source path; a fresh build directory was used because `build-release` still had an old absolute source path from before the repo rename.
+- CTest passed `5/5` tests, and `SylenthAIRender --suite core` wrote 11 reports.
+- Bundle check passed for Standalone, AU, and VST3 universal `x86_64 arm64` artifacts with `com.parkerx.sylenth-ai` metadata and bundled factory presets.
+- Local install copied and ad-hoc signed `~/Library/Audio/Plug-Ins/Components/sylenth-ai.component` and `~/Library/Audio/Plug-Ins/VST3/sylenth-ai.vst3`.
+- Uninstall dry-run confirmed it would remove only the installed sylenth-ai AU/VST3 bundles and no legacy `Synth` bundles.
+- `auval -v aumu SyAI PkRx` passed. It repeated the known non-fatal `Delay Feedback` maximum-value retention warning and ended with `AU VALIDATION SUCCEEDED`.
+- No `vst3validator` or `pluginval` executable was available on this machine.
+
+## Ableton Current-Build VST3 Smoke - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- build directory: `build-release-phase1-ableton`
+- plugin format tested in this pass: VST3
+- Ableton audio state visible during playback: 44100 Hz, 512-sample block
+
+Results:
+
+- Ableton initially showed the old `Synth` browser/device label because the running Live session had not rescanned since the project rename.
+- A normal Preferences > Plug-Ins > Rescan updated `PluginScanner.txt`; Ableton found `sylenth-ai` at `~/Library/Audio/Plug-Ins/VST3/sylenth-ai.vst3` with `device-class-id` ending `?n=sylenth-ai`.
+- Ableton's browser then showed `Plug-Ins > VST3 > ParkerX > sylenth-ai`.
+- Double-clicking the browser entry created the current VST3. Ableton logged `Vst3: Going to create: sylenth-ai`, loaded ParkerX `sylenth-ai` v0.1.0 with class id `{ABCDEF01-9182-FAEB-506B-527853794149}`, reported 2427 parameters, and logged `Vst3: Created: sylenth-ai`.
+- Playback against the existing MIDI clip ran with the editor open. The editor showed 4 active voices, a `-13.8 dB` load/output estimate, and the Ableton track meters were active.
+
+Evidence screenshots are local build artifacts under `build/reports/ableton/`:
+
+- `phase1-ableton-after-rescan-cgevent.png`
+- `phase1-ableton-vst3-created.png`
+- `phase1-ableton-vst3-transport-running.png`
+- `phase1-ableton-vst3-transport-stopped.png`
+
+Remaining host-validation gaps:
+
+- Current-build AU instantiation in Ableton after the rename rescan.
+- AU and VST3 automation record/playback.
+- Learned CC mapping proof in Ableton.
+- Current-build save/reopen/state restore after creating the renamed VST3.
+- Offline bounce comparison.
+- Sample-rate and buffer-size changes.
+- Transport stop/all-notes-off/panic proof.
+
+## Historical Ableton Setup - 2026-06-05
 
 - [x] Enable Audio Units.
 - [x] Enable VST3.
 - [x] Rescan plug-ins after install.
-- [ ] Confirm `sylenth-ai` appears as AU.
-- [ ] Confirm `sylenth-ai` appears as VST3.
+- [x] Confirm `sylenth-ai` appeared as AU in the 2026-06-05 early smoke pass.
+- [x] Confirm `sylenth-ai` appeared as VST3 in the 2026-06-05 early smoke pass.
 
-## AU Smoke
+## Historical AU Smoke - 2026-06-05
 
 - [x] Load AU on a MIDI track.
 - [x] Play notes and confirm finite audible output.
@@ -80,7 +141,7 @@ Preset recreation, full modulation-mode exercise, automation, and bounce were
 not completed in this early host smoke pass.
 ```
 
-## VST3 Smoke
+## Historical VST3 Smoke - 2026-06-05
 
 - [x] Load VST3 on a MIDI track.
 - [x] Play notes and confirm finite audible output.

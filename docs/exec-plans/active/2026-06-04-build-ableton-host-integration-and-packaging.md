@@ -37,6 +37,7 @@ sylenth-ai is not useful until it loads and restores correctly in Ableton. After
 - [x] Run early Ableton AU and VST3 scan/load/play/reopen smoke validation.
 - [x] 2026-06-05 EDT: Added `scripts/uninstall-local-plugins.sh`, local install troubleshooting docs, and default ad-hoc signing of installed AU/VST3 bundles for local host scanning.
 - [x] 2026-06-05 EDT: Revalidated Release build, CTest, core suite, bundle checks, install signing, uninstall dry-run, and AU validation for the current FX/quality build.
+- [x] 2026-06-06 EDT: Revalidated the current renamed build with `build-release-phase1-ableton`; Ableton rescanned `sylenth-ai.vst3`, created ParkerX `sylenth-ai` v0.1.0, opened the editor, and played MIDI with active voices/meters.
 - [ ] Run full Ableton automation and bounce validation against the current UI/preset/FX build.
 - [x] Document install, uninstall, and host troubleshooting.
 
@@ -51,6 +52,8 @@ sylenth-ai is not useful until it loads and restores correctly in Ableton. After
 2026-06-05: The install script now ad-hoc signs the installed per-user AU and VST3 bundles by default. This is local-development signing only and does not replace distribution signing, hardened runtime, notarization, or clean-machine verification.
 
 2026-06-05: `auval -v aumu SyAI PkRx` passed against the installed AU after the FX/quality build. `auval` emitted a non-fatal warning for `Delay Feedback` maximum-value retention but ended with `AU VALIDATION SUCCEEDED`.
+
+2026-06-06: The current renamed VST3 required a normal Ableton Preferences > Plug-Ins > Rescan before Live stopped showing the old `Synth` browser label from its stale scan state. After rescan, `PluginScanner.txt` found `sylenth-ai.vst3`; Ableton created `sylenth-ai`, reported 2427 parameters, and playback showed 4 editor voices plus active track meters.
 
 Record Ableton scan, plugin cache, code signing, architecture, and state-restore issues here.
 
