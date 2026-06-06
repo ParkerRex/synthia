@@ -41,6 +41,7 @@ private:
     class LayoutSection;
     class ParameterControl;
     class Panel;
+    class PresetWorkflowPanel;
     class SequencerPanel;
     class PresetBrowserPanel;
     class MidiControllerPanel;
@@ -78,6 +79,12 @@ private:
     void stepPreset(int direction);
     void savePresetAs();
     void duplicatePreset();
+    void initializePreset();
+    void resetPreset();
+    void randomizePreset();
+    void captureCompareSlot(int slotIndex);
+    void recallCompareSlot(int slotIndex);
+    void refreshPresetWorkflow();
 
     void updateStatus(const juce::String& message);
     void updateDiagnostics();
@@ -107,6 +114,7 @@ private:
     juce::TextButton saveButton { "Save As" };
     juce::TextButton duplicateButton { "Duplicate" };
     juce::TextButton panicButton { "Panic" };
+    juce::Label dirtyStatePill;
     std::unique_ptr<Meter> meter;
     juce::Label voicesValue;
     juce::Label voicesCaption;
@@ -132,6 +140,7 @@ private:
     juce::Component fxPage;
     std::vector<std::unique_ptr<Panel>> soundPanels;
     std::array<std::unique_ptr<Panel>, synth::oscillatorSlotsPerLayer> slotPanels;
+    std::unique_ptr<PresetWorkflowPanel> presetWorkflowPanel;
     std::unique_ptr<PresetBrowserPanel> presetBrowserPanel;
     std::unique_ptr<MidiControllerPanel> midiControllerPanel;
     std::unique_ptr<SequencerPanel> sequencerPanel;

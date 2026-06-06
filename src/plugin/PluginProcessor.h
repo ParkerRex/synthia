@@ -5,6 +5,7 @@
 #include "../dsp/SynthEngine.h"
 #include "../midi/MidiControllerMap.h"
 #include "../modulation/ModulationRouteModel.h"
+#include "../presets/PresetManager.h"
 #include "ParameterRegistry.h"
 
 #include <array>
@@ -73,6 +74,18 @@ public:
         juce::String lastPresetStatus;
     };
 
+    struct PresetWorkflowSnapshot
+    {
+        bool dirty = false;
+        bool baselineValid = false;
+        bool compareSlotAReady = false;
+        bool compareSlotBReady = false;
+        bool resetAvailable = false;
+        juce::String currentPreset;
+        juce::String currentPresetPath;
+        juce::String lastPresetStatus;
+    };
+
     std::vector<PresetListItem> getPresetList() const;
     juce::File getUserPresetDirectory() const;
     bool loadPresetFile(const juce::File& file, juce::String& message);
@@ -81,6 +94,9 @@ public:
     bool resetCurrentPreset(juce::String& message);
     bool randomizeCurrentPreset(juce::String& message);
     bool randomizeCurrentPresetWithSeed(std::uint32_t seed, juce::String& message);
+    PresetWorkflowSnapshot getPresetWorkflowSnapshot() const;
+    bool capturePresetCompareSlot(int slotIndex, juce::String& message);
+    bool recallPresetCompareSlot(int slotIndex, juce::String& message);
     juce::String getCurrentPresetName() const;
     juce::String getCurrentPresetFilePath() const;
     synth::ModulationRouteView getModulationRouteView() const;
@@ -283,6 +299,7 @@ private:
     void setPresetMetadata(const juce::String& presetName,
                            const juce::String& status,
                            const juce::String& presetFilePath);
+    void setPresetBaselineFingerprint(const synth::PresetStateFingerprint& fingerprint);
     void timerCallback() override;
     void loadMidiControllerAssignments();
     void publishMidiControllerAssignments();
@@ -293,6 +310,7 @@ private:
     bool applyModulationRouteParameterEdits(const std::vector<synth::ModulationRouteParameterEdit>& edits,
                                             juce::String& message);
     bool applyPreparedPresetState(juce::ValueTree state,
+                                  const synth::PresetStateFingerprint& baselineFingerprint,
                                   const juce::String& status,
                                   const juce::String& presetName,
                                   const juce::String& presetFilePath,
@@ -331,6 +349,9 @@ private:
     juce::String currentPresetName { "Init" };
     juce::String currentPresetFilePath;
     juce::String lastPresetStatus { "Init state" };
+    mutable juce::CriticalSection presetWorkflowLock;
+    synth::PresetStateFingerprint presetBaselineFingerprint;
+    std::array<synth::PresetCompareSlot, 2> presetCompareSlots {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthAudioProcessor)
 };

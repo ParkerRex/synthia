@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <functional>
 
 namespace
 {
@@ -1006,6 +1007,130 @@ private:
 };
 
 // ============================================================================
+// PresetWorkflowPanel: real preset command and A/B compare controls.
+// ============================================================================
+class SynthAudioProcessorEditor::PresetWorkflowPanel final : public LayoutSection
+{
+public:
+    explicit PresetWorkflowPanel(SynthAudioProcessorEditor& editor)
+        : owner(editor)
+    {
+        configureCommandButton(initButton, "Init", [this] { owner.initializePreset(); });
+        configureCommandButton(randomButton, "Random", [this] { owner.randomizePreset(); });
+        configureCommandButton(resetButton, "Reset", [this] { owner.resetPreset(); });
+        configureCommandButton(storeAButton, "A Store", [this] { owner.captureCompareSlot(0); });
+        configureCommandButton(loadAButton, "A Load", [this] { owner.recallCompareSlot(0); });
+        configureCommandButton(storeBButton, "B Store", [this] { owner.captureCompareSlot(1); });
+        configureCommandButton(loadBButton, "B Load", [this] { owner.recallCompareSlot(1); });
+
+        statusPill.setJustificationType(juce::Justification::centred);
+        statusPill.setFont(uiFont(11.0f, true));
+        addAndMakeVisible(statusPill);
+    }
+
+    int preferredHeight(int) const override
+    {
+        return 94;
+    }
+
+    void refresh(const SynthAudioProcessor::PresetWorkflowSnapshot& snapshot)
+    {
+        const auto dirtyText = snapshot.dirty ? "EDITED" : "CLEAN";
+        const auto detail = snapshot.currentPreset.isNotEmpty() ? snapshot.currentPreset : "Init";
+        const auto textToShow = dirtyText + juce::String(" / ") + detail;
+        if (statusPill.getText() != textToShow)
+            statusPill.setText(textToShow, juce::dontSendNotification);
+
+        statusPill.setColour(juce::Label::backgroundColourId,
+                             (snapshot.dirty ? staged : live).withAlpha(0.18f));
+        statusPill.setColour(juce::Label::textColourId, snapshot.dirty ? staged : live);
+        resetButton.setEnabled(snapshot.resetAvailable);
+        loadAButton.setEnabled(snapshot.compareSlotAReady);
+        loadBButton.setEnabled(snapshot.compareSlotBReady);
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
+        g.setColour(panelBg);
+        g.fillRoundedRectangle(bounds, 6.0f);
+        g.setColour(strokeSoft);
+        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+
+        auto headerArea = getLocalBounds().removeFromTop(headerHeight);
+        g.setColour(panelHeader);
+        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
+        g.fillRect(headerArea.removeFromBottom(8));
+
+        paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneUtility);
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
+        auto badgeArea = titleArea.removeFromRight(82).withSizeKeepingCentre(82, 16);
+        titleArea.removeFromRight(8);
+
+        g.setColour(text);
+        g.setFont(uiFont(12.0f, true));
+        g.drawText("PRESET WORKFLOW", titleArea, juce::Justification::centredLeft, true);
+
+        g.setColour(info.withAlpha(0.18f));
+        g.fillRoundedRectangle(badgeArea.toFloat(), 8.0f);
+        g.setColour(info);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText("A/B READY", badgeArea, juce::Justification::centred, false);
+    }
+
+    void resized() override
+    {
+        auto content = getLocalBounds();
+        content.removeFromTop(headerHeight);
+        content = content.reduced(12, 8);
+
+        const auto compact = content.getWidth() < 760;
+        auto row = content.removeFromTop(28);
+        statusPill.setBounds(row.removeFromLeft(compact ? 150 : 210));
+        row.removeFromLeft(8);
+
+        const auto commandWidth = compact ? 62 : 74;
+        placeButton(row, initButton, commandWidth);
+        placeButton(row, randomButton, compact ? 74 : 86);
+        placeButton(row, resetButton, commandWidth);
+
+        row.removeFromLeft(8);
+        placeButton(row, storeAButton, compact ? 72 : 82);
+        placeButton(row, loadAButton, compact ? 68 : 78);
+        row.removeFromLeft(4);
+        placeButton(row, storeBButton, compact ? 72 : 82);
+        placeButton(row, loadBButton, compact ? 68 : 78);
+    }
+
+private:
+    static constexpr int headerHeight = 26;
+
+    void configureCommandButton(juce::TextButton& button, const juce::String& label, std::function<void()> handler)
+    {
+        button.setButtonText(label);
+        styleFlatButton(button, juce::Colour::fromRGB(42, 48, 54), text);
+        button.onClick = std::move(handler);
+        addAndMakeVisible(button);
+    }
+
+    static void placeButton(juce::Rectangle<int>& row, juce::TextButton& button, int width)
+    {
+        button.setBounds(row.removeFromLeft(width));
+        row.removeFromLeft(6);
+    }
+
+    SynthAudioProcessorEditor& owner;
+    juce::Label statusPill;
+    juce::TextButton initButton;
+    juce::TextButton randomButton;
+    juce::TextButton resetButton;
+    juce::TextButton storeAButton;
+    juce::TextButton loadAButton;
+    juce::TextButton storeBButton;
+    juce::TextButton loadBButton;
+};
+
+// ============================================================================
 // MidiControllerPanel: global MIDI learn/forget surface for automatable params.
 // ============================================================================
 class SynthAudioProcessorEditor::MidiControllerPanel final : public LayoutSection
@@ -1369,15 +1494,15 @@ private:
 
     juce::String sourceLabel(synth::ModSource source) const
     {
-        if (const auto* info = synth::findModulationSourceInfo(source))
-            return juce::String(info->label);
+        if (const auto* sourceInfo = synth::findModulationSourceInfo(source))
+            return juce::String(sourceInfo->label);
         return "None";
     }
 
     juce::String destinationLabel(synth::ModulationDestination destination) const
     {
-        if (const auto* info = synth::findModulationDestinationInfo(destination))
-            return juce::String(info->label);
+        if (const auto* destinationInfo = synth::findModulationDestinationInfo(destination))
+            return juce::String(destinationInfo->label);
         return "Target";
     }
 
@@ -1971,6 +2096,7 @@ SynthAudioProcessorEditor::SynthAudioProcessorEditor(SynthAudioProcessor& p)
     setSelectedLayer(0);
     setPage(Page::Sound);
     updateDiagnostics();
+    refreshPresetWorkflow();
     startTimerHz(15);
 
     setResizable(true, true);
@@ -2001,12 +2127,15 @@ void SynthAudioProcessorEditor::buildHeader()
     styleFlatButton(saveButton, juce::Colour::fromRGB(58, 84, 108));
     styleFlatButton(duplicateButton, juce::Colour::fromRGB(58, 84, 108));
     styleFlatButton(panicButton, warn.darker(0.1f));
+    dirtyStatePill.setJustificationType(juce::Justification::centred);
+    dirtyStatePill.setFont(uiFont(10.5f, true));
     addAndMakeVisible(prevPresetButton);
     addAndMakeVisible(nextPresetButton);
     addAndMakeVisible(loadButton);
     addAndMakeVisible(saveButton);
     addAndMakeVisible(duplicateButton);
     addAndMakeVisible(panicButton);
+    addAndMakeVisible(dirtyStatePill);
 
     addAndMakeVisible(presetCombo);
     presetCombo.setTextWhenNothingSelected("Select preset");
@@ -2111,6 +2240,8 @@ SynthAudioProcessorEditor::Panel* SynthAudioProcessorEditor::addPanel(
 void SynthAudioProcessorEditor::buildPages()
 {
     // ---- SOUND: the live core sound-design surface ------------------------
+    presetWorkflowPanel = std::make_unique<PresetWorkflowPanel>(*this);
+    soundPage.addAndMakeVisible(*presetWorkflowPanel);
     presetBrowserPanel = std::make_unique<PresetBrowserPanel>(*this);
     soundPage.addAndMakeVisible(*presetBrowserPanel);
     midiControllerPanel = std::make_unique<MidiControllerPanel>(*this);
@@ -2388,6 +2519,9 @@ void SynthAudioProcessorEditor::layoutHeader(juce::Rectangle<int> area)
     voicesValue.setBounds(voicesChip);
     area.removeFromRight(14);
 
+    dirtyStatePill.setBounds(centreInHeight(area.removeFromRight(70), 22));
+    area.removeFromRight(10);
+
     // Middle cluster: preset nav with a flexible combo.
     auto nav = area;
     const auto compactPresetNav = nav.getWidth() < 650;
@@ -2494,7 +2628,8 @@ void SynthAudioProcessorEditor::layoutActivePage()
     if (currentPage == Page::Sound)
     {
         if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr
-            || sequencerPanel == nullptr || presetBrowserPanel == nullptr || midiControllerPanel == nullptr)
+            || sequencerPanel == nullptr || presetWorkflowPanel == nullptr
+            || presetBrowserPanel == nullptr || midiControllerPanel == nullptr)
             return;
         // Synthesis is the hero: oscillator slots, tone source, filter/envelopes/LFO, and
         // performance modules read first, matching the Sylenth everything-visible grid. The
@@ -2506,6 +2641,7 @@ void SynthAudioProcessorEditor::layoutActivePage()
             { { filterPanel, 0.34f }, { ampEnvPanel, 0.16f }, { modEnvPanel, 0.16f }, { lfoPanel, 0.34f } },
             { { voicePanel, 0.26f }, { ampPanel, 0.24f }, { rampPanel, 0.24f }, { macroPanel, 0.26f } },
             { { sequencerPanel.get(), 1.0f } },
+            { { presetWorkflowPanel.get(), 1.0f } },
             { { presetBrowserPanel.get(), 1.0f } },
             { { midiControllerPanel.get(), 1.0f } },
         };
@@ -2622,6 +2758,7 @@ void SynthAudioProcessorEditor::loadPresetAtIndex(int itemIndex)
     {
         nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
         refreshPresetMenu();
+        refreshPresetWorkflow();
     }
 
     updateStatus(message);
@@ -2699,6 +2836,7 @@ void SynthAudioProcessorEditor::savePresetAs()
                                      safeEditor->refreshPresetMenu();
 
                                  safeEditor->updateStatus(message);
+                                 safeEditor->refreshPresetWorkflow();
                              });
 }
 
@@ -2724,6 +2862,80 @@ void SynthAudioProcessorEditor::duplicatePreset()
     }
 
     updateStatus(message);
+    refreshPresetWorkflow();
+}
+
+void SynthAudioProcessorEditor::initializePreset()
+{
+    juce::String message;
+    if (audioProcessor.initializeCurrentPreset(message))
+    {
+        nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
+        refreshPresetMenu();
+    }
+
+    updateStatus(message);
+    refreshPresetWorkflow();
+}
+
+void SynthAudioProcessorEditor::resetPreset()
+{
+    juce::String message;
+    if (audioProcessor.resetCurrentPreset(message))
+    {
+        nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
+        refreshPresetMenu();
+    }
+
+    updateStatus(message);
+    refreshPresetWorkflow();
+}
+
+void SynthAudioProcessorEditor::randomizePreset()
+{
+    juce::String message;
+    if (audioProcessor.randomizeCurrentPreset(message))
+    {
+        nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
+        refreshPresetMenu();
+    }
+
+    updateStatus(message);
+    refreshPresetWorkflow();
+}
+
+void SynthAudioProcessorEditor::captureCompareSlot(int slotIndex)
+{
+    juce::String message;
+    audioProcessor.capturePresetCompareSlot(slotIndex, message);
+    updateStatus(message);
+    refreshPresetWorkflow();
+}
+
+void SynthAudioProcessorEditor::recallCompareSlot(int slotIndex)
+{
+    juce::String message;
+    if (audioProcessor.recallPresetCompareSlot(slotIndex, message))
+    {
+        nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
+        refreshPresetMenu();
+    }
+
+    updateStatus(message);
+    refreshPresetWorkflow();
+}
+
+void SynthAudioProcessorEditor::refreshPresetWorkflow()
+{
+    const auto snapshot = audioProcessor.getPresetWorkflowSnapshot();
+    const auto dirtyText = snapshot.dirty ? juce::String("EDITED") : juce::String("CLEAN");
+    dirtyStatePill.setText(dirtyText, juce::dontSendNotification);
+    dirtyStatePill.setColour(juce::Label::backgroundColourId,
+                             (snapshot.dirty ? staged : live).withAlpha(0.18f));
+    dirtyStatePill.setColour(juce::Label::textColourId, snapshot.dirty ? staged : live);
+
+    if (presetWorkflowPanel != nullptr)
+        presetWorkflowPanel->refresh(snapshot);
 }
 
 void SynthAudioProcessorEditor::updateStatus(const juce::String& message)
@@ -2766,6 +2978,7 @@ void SynthAudioProcessorEditor::updateDiagnostics()
 void SynthAudioProcessorEditor::timerCallback()
 {
     updateDiagnostics();
+    refreshPresetWorkflow();
     if (midiControllerPanel != nullptr)
         midiControllerPanel->refresh();
 

@@ -22,7 +22,7 @@ The repo builds a JUCE/CMake instrument scaffold with:
 - An 8-slot TransMod-style modulation layer with source/scaler routing and physical destination depths.
 - A Phase 1 A/B layer and four oscillator-slot backbone in host/preset state; Layer A maps to the current sound path and Layer B is valid but disabled by default.
 - Factory presets, preset schema validation, MIDI fixture rendering, and JSON report generation.
-- A registry-bound editor with factory/user preset load-save-duplicate workflow, TransMod slot editing, and diagnostics.
+- A registry-bound editor with factory/user preset load-save-duplicate workflow, preset dirty/init/randomize/reset/A-B controls, TransMod slot editing, and diagnostics.
 - Preset workflow model support for metadata-aware writes, no-clobber create-only safe-save checks, dirty-state baseline fingerprints, and local A/B compare slot state.
 - Core validation for oscillator/filter behavior, modulation routing, voice allocation, dry/wet renders, render determinism, and preset loading.
 
