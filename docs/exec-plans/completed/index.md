@@ -24,6 +24,7 @@
 - `2026-06-06-build-randomize-render-validation.md`
 - `2026-06-06-build-modulation-route-render-proof.md`
 - `2026-06-06-build-preset-workflow-state-model.md`
+- `2026-06-06-build-preset-workflow-ui-controls.md`
 - `2026-06-06-validate-ableton-current-build-smoke.md`
 - `2026-06-06-validate-ableton-state-restore-smoke.md`
 - `2026-06-06-validate-ableton-transport-device-smoke.md`

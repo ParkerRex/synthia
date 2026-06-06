@@ -57,6 +57,7 @@ SynthAudioProcessor::SynthAudioProcessor()
         parameterIndex.store(-1, std::memory_order_relaxed);
 
     cacheParameterPointers();
+    setPresetBaselineFingerprint(synth::fingerprintCurrentPresetState(parameters));
     loadMidiControllerAssignments();
     startTimerHz(60);
 }
@@ -693,6 +694,7 @@ bool SynthAudioProcessor::loadPresetFile(const juce::File& file, juce::String& m
         const auto presetName = result.displayName.empty() ? file.getFileNameWithoutExtension()
                                                            : juce::String(result.displayName);
         setPresetMetadata(presetName, message, file.getFullPathName());
+        setPresetBaselineFingerprint(result.fingerprint);
         panicRequested.store(true, std::memory_order_release);
     }
     else
@@ -716,6 +718,7 @@ bool SynthAudioProcessor::savePresetFile(const juce::File& file,
         const auto presetFile = file.hasFileExtension(".json") ? file : file.withFileExtension(".json");
         message = "Saved preset: " + presetName;
         setPresetMetadata(presetName, message, presetFile.getFullPathName());
+        setPresetBaselineFingerprint(synth::fingerprintCurrentPresetState(parameters));
         return true;
     }
 
@@ -734,7 +737,8 @@ bool SynthAudioProcessor::initializeCurrentPreset(juce::String& message)
         return false;
     }
 
-    return applyPreparedPresetState(result.state, juce::String(result.message), "Init", "", message);
+    return applyPreparedPresetState(result.state, result.fingerprint, juce::String(result.message),
+                                   "Init", "", message);
 }
 
 bool SynthAudioProcessor::resetCurrentPreset(juce::String& message)
@@ -762,7 +766,89 @@ bool SynthAudioProcessor::randomizeCurrentPresetWithSeed(std::uint32_t seed, juc
         return false;
     }
 
-    return applyPreparedPresetState(result.state, juce::String(result.message),
+    return applyPreparedPresetState(result.state, result.fingerprint, juce::String(result.message),
+                                   juce::String(result.displayName), "", message);
+}
+
+SynthAudioProcessor::PresetWorkflowSnapshot SynthAudioProcessor::getPresetWorkflowSnapshot() const
+{
+    PresetWorkflowSnapshot snapshot;
+    {
+        const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
+        snapshot.currentPreset = currentPresetName;
+        snapshot.currentPresetPath = currentPresetFilePath;
+        snapshot.lastPresetStatus = lastPresetStatus;
+        snapshot.resetAvailable = currentPresetFilePath.isNotEmpty();
+    }
+
+    synth::PresetStateFingerprint baseline;
+    {
+        const juce::CriticalSection::ScopedLockType lock(presetWorkflowLock);
+        baseline = presetBaselineFingerprint;
+        snapshot.compareSlotAReady = presetCompareSlots[0].captured;
+        snapshot.compareSlotBReady = presetCompareSlots[1].captured;
+    }
+
+    const auto dirtyState = synth::comparePresetDirtyState(parameters, baseline);
+    snapshot.baselineValid = dirtyState.baseline.valid;
+    snapshot.dirty = dirtyState.dirty;
+    return snapshot;
+}
+
+bool SynthAudioProcessor::capturePresetCompareSlot(int slotIndex, juce::String& message)
+{
+    if (slotIndex < 0 || slotIndex >= static_cast<int>(presetCompareSlots.size()))
+    {
+        message = "Compare slot unavailable";
+        return false;
+    }
+
+    const auto label = slotIndex == 0 ? std::string("Compare A") : std::string("Compare B");
+    auto slot = synth::capturePresetCompareSlot(parameters, label);
+    if (!slot.captured)
+    {
+        message = "Compare capture failed";
+        return false;
+    }
+
+    {
+        const juce::CriticalSection::ScopedLockType lock(presetWorkflowLock);
+        presetCompareSlots[static_cast<std::size_t>(slotIndex)] = std::move(slot);
+    }
+
+    message = slotIndex == 0 ? "Captured compare A" : "Captured compare B";
+    setPresetMetadata(getCurrentPresetName(), message, getCurrentPresetFilePath());
+    return true;
+}
+
+bool SynthAudioProcessor::recallPresetCompareSlot(int slotIndex, juce::String& message)
+{
+    if (slotIndex < 0 || slotIndex >= static_cast<int>(presetCompareSlots.size()))
+    {
+        message = "Compare slot unavailable";
+        return false;
+    }
+
+    synth::PresetCompareSlot slot;
+    {
+        const juce::CriticalSection::ScopedLockType lock(presetWorkflowLock);
+        slot = presetCompareSlots[static_cast<std::size_t>(slotIndex)];
+    }
+
+    if (!slot.captured)
+    {
+        message = slotIndex == 0 ? "Compare A is empty" : "Compare B is empty";
+        return false;
+    }
+
+    const auto result = synth::preparePresetCompareSlotState(parameters, slot);
+    if (!result.loaded)
+    {
+        message = juce::String(result.message);
+        return false;
+    }
+
+    return applyPreparedPresetState(result.state, result.fingerprint, juce::String(result.message),
                                    juce::String(result.displayName), "", message);
 }
 
@@ -1097,6 +1183,7 @@ bool SynthAudioProcessor::applyModulationRouteParameterEdits(
 }
 
 bool SynthAudioProcessor::applyPreparedPresetState(juce::ValueTree state,
+                                                   const synth::PresetStateFingerprint& baselineFingerprint,
                                                    const juce::String& status,
                                                    const juce::String& presetName,
                                                    const juce::String& presetFilePath,
@@ -1116,6 +1203,7 @@ bool SynthAudioProcessor::applyPreparedPresetState(juce::ValueTree state,
 
     message = status;
     setPresetMetadata(presetName, message, presetFilePath);
+    setPresetBaselineFingerprint(baselineFingerprint);
     panicRequested.store(true, std::memory_order_release);
     return true;
 }
@@ -1212,6 +1300,12 @@ void SynthAudioProcessor::setPresetMetadata(const juce::String& presetName,
     lastPresetStatus = status;
 }
 
+void SynthAudioProcessor::setPresetBaselineFingerprint(const synth::PresetStateFingerprint& fingerprint)
+{
+    const juce::CriticalSection::ScopedLockType lock(presetWorkflowLock);
+    presetBaselineFingerprint = fingerprint;
+}
+
 void SynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = parameters.copyState();
@@ -1241,6 +1335,7 @@ void SynthAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
                     parameters.replaceState(migratedState);
                 }
                 setPresetMetadata(presetName, "Host state restored", presetPath);
+                setPresetBaselineFingerprint(synth::fingerprintPresetState(migratedState));
                 panicRequested.store(true, std::memory_order_release);
             }
         }
