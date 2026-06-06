@@ -1,8 +1,11 @@
 #include "ModulationRouteModel.h"
 
+#include "../plugin/ParameterRegistry.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <utility>
 
 namespace synth
 {
@@ -124,6 +127,41 @@ std::vector<ModulationDestinationInfo> buildDestinationCatalog()
           "pan", "normalized", -1.0f, 1.0f }
     };
 }
+
+bool validSlotNumber(int slotNumber) noexcept
+{
+    return slotNumber >= 1 && slotNumber <= transModSlotCount;
+}
+
+std::string transModParameterId(int slotNumber, const char* suffix)
+{
+    if (!validSlotNumber(slotNumber))
+        return {};
+
+    return "transmod." + std::to_string(slotNumber) + "." + suffix;
+}
+
+float clampedRegisteredParameterValue(const std::string& parameterId, float value) noexcept
+{
+    if (const auto* spec = findParameterSpec(parameterId))
+        return clampPhysicalParameterValue(*spec, value);
+
+    return value;
+}
+
+void addEdit(std::vector<ModulationRouteParameterEdit>& edits,
+             std::string parameterId,
+             float value)
+{
+    edits.push_back({ std::move(parameterId), value });
+}
+
+void addDepthClearEdits(std::vector<ModulationRouteParameterEdit>& edits, int slotNumber)
+{
+    addEdit(edits, transModParameterId(slotNumber, "depth"), 0.0f);
+    for (const auto& destination : modulationDestinationCatalog())
+        addEdit(edits, transModDepthParameterId(slotNumber, destination), 0.0f);
+}
 } // namespace
 
 const std::vector<ModulationSourceInfo>& modulationSourceCatalog()
@@ -244,5 +282,78 @@ ModulationRouteView buildModulationRouteView(const TransModParameters& transMod)
     }
 
     return view;
+}
+
+ModulationRouteWriteResult buildModulationRouteWrite(const ModulationRouteWriteRequest& request)
+{
+    ModulationRouteWriteResult result;
+    if (!validSlotNumber(request.slotNumber))
+    {
+        result.message = "modulation slot must be 1 through 8";
+        return result;
+    }
+
+    const auto* source = findModulationSourceInfo(request.sourceId);
+    if (source == nullptr || source->source == ModSource::None)
+    {
+        result.message = "modulation source is unknown or None";
+        return result;
+    }
+
+    const auto scalerId = request.scalerId.empty() ? std::string("none") : request.scalerId;
+    const auto* scaler = findModulationSourceInfo(scalerId);
+    if (scaler == nullptr)
+    {
+        result.message = "modulation scaler is unknown";
+        return result;
+    }
+
+    const auto* destination = findModulationDestinationInfo(request.destinationId);
+    if (destination == nullptr)
+    {
+        result.message = "modulation destination is unknown";
+        return result;
+    }
+
+    if (!std::isfinite(request.depth) || std::abs(request.depth) <= 0.000001f)
+    {
+        result.message = "modulation depth must be finite and nonzero";
+        return result;
+    }
+
+    const auto slotNumber = request.slotNumber;
+    const auto depthParameterId = transModDepthParameterId(slotNumber, *destination);
+    const auto depth = clampedRegisteredParameterValue(depthParameterId, request.depth);
+
+    addEdit(result.edits, transModParameterId(slotNumber, "enabled"), 1.0f);
+    addEdit(result.edits, transModParameterId(slotNumber, "source"),
+            static_cast<float>(static_cast<int>(source->source)));
+    addEdit(result.edits, transModParameterId(slotNumber, "scaler"),
+            static_cast<float>(static_cast<int>(scaler->source)));
+    addDepthClearEdits(result.edits, slotNumber);
+    addEdit(result.edits, depthParameterId, depth);
+
+    result.ok = true;
+    result.message = "modulation route write compiled";
+    return result;
+}
+
+ModulationRouteWriteResult buildModulationSlotClear(int slotNumber)
+{
+    ModulationRouteWriteResult result;
+    if (!validSlotNumber(slotNumber))
+    {
+        result.message = "modulation slot must be 1 through 8";
+        return result;
+    }
+
+    addEdit(result.edits, transModParameterId(slotNumber, "enabled"), 0.0f);
+    addEdit(result.edits, transModParameterId(slotNumber, "source"), 0.0f);
+    addEdit(result.edits, transModParameterId(slotNumber, "scaler"), 0.0f);
+    addDepthClearEdits(result.edits, slotNumber);
+
+    result.ok = true;
+    result.message = "modulation slot clear compiled";
+    return result;
 }
 } // namespace synth

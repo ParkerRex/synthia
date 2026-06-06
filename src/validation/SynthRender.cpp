@@ -2,6 +2,7 @@
 #include "../dsp/OscillatorStack.h"
 #include "../dsp/SynthEngine.h"
 #include "../plugin/ParameterRegistry.h"
+#include "../presets/PresetManager.h"
 #include "../presets/PresetValidator.h"
 
 #include <juce_audio_basics/juce_audio_basics.h>
@@ -29,6 +30,7 @@ struct Options
     bool oscTest = false;
     bool filterTest = false;
     bool modulationTest = false;
+    bool randomizeTest = false;
     bool presetRender = false;
     bool dry = false;
     bool wet = false;
@@ -39,6 +41,8 @@ struct Options
     std::filesystem::path presetPath = "presets/factory";
     std::filesystem::path fixturePath = "fixtures/midi/overlap-pluck.mid";
     std::string notes = "C1,C3,C5,C7";
+    std::vector<std::uint32_t> randomizeSeeds { 1u, 42u, 12345u, 67890u };
+    std::string argumentError;
 };
 
 struct RenderEvent
@@ -53,6 +57,85 @@ struct SuiteItem
     std::filesystem::path reportPath;
     bool passed = false;
 };
+
+bool parseSeedList(const std::string& seedList,
+                   std::vector<std::uint32_t>& seeds,
+                   std::string& error)
+{
+    std::vector<std::uint32_t> parsedSeeds;
+    auto start = std::size_t { 0 };
+
+    if (seedList.empty())
+    {
+        error = "--seeds requires at least one unsigned 32-bit integer";
+        return false;
+    }
+
+    if (seedList.back() == ',')
+    {
+        error = "--seeds contains an empty seed";
+        return false;
+    }
+
+    while (start < seedList.size())
+    {
+        const auto comma = seedList.find(',', start);
+        auto token = seedList.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
+
+        auto first = std::size_t { 0 };
+        while (first < token.size() && std::isspace(static_cast<unsigned char>(token[first])) != 0)
+            ++first;
+
+        auto last = token.size();
+        while (last > first && std::isspace(static_cast<unsigned char>(token[last - 1])) != 0)
+            --last;
+
+        token = token.substr(first, last - first);
+
+        if (token.empty())
+        {
+            error = "--seeds contains an empty seed";
+            return false;
+        }
+
+        try
+        {
+            auto consumed = std::size_t { 0 };
+            const auto value = std::stoull(token, &consumed, 10);
+            if (consumed != token.size())
+            {
+                error = "invalid --seeds token: " + token;
+                return false;
+            }
+
+            if (value > std::numeric_limits<std::uint32_t>::max())
+            {
+                error = "out-of-range --seeds token: " + token;
+                return false;
+            }
+
+            parsedSeeds.push_back(static_cast<std::uint32_t>(value));
+        }
+        catch (const std::exception&)
+        {
+            error = "invalid --seeds token: " + token;
+            return false;
+        }
+
+        if (comma == std::string::npos)
+            break;
+        start = comma + 1;
+    }
+
+    if (parsedSeeds.empty())
+    {
+        error = "--seeds requires at least one unsigned 32-bit integer";
+        return false;
+    }
+
+    seeds = std::move(parsedSeeds);
+    return true;
+}
 
 Options parseOptions(int argc, char* argv[])
 {
@@ -96,6 +179,23 @@ Options parseOptions(int argc, char* argv[])
         {
             options.modulationTest = true;
             options.output = "build/reports/modulation.json";
+        }
+        else if (arg == "--randomize-test")
+        {
+            options.randomizeTest = true;
+            options.output = "build/reports/randomize.json";
+        }
+        else if (arg == "--seeds")
+        {
+            if (i + 1 >= argc)
+            {
+                options.argumentError = "--seeds requires a comma-separated value";
+                continue;
+            }
+
+            auto error = std::string {};
+            if (!parseSeedList(argv[++i], options.randomizeSeeds, error) && options.argumentError.empty())
+                options.argumentError = error;
         }
         else if (arg == "--suite" && i + 1 < argc)
         {
@@ -144,6 +244,7 @@ Options parseOptions(int argc, char* argv[])
             std::cout << "  SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output <path>\n";
             std::cout << "  SylenthAIRender --filter-test --output <path>\n";
             std::cout << "  SylenthAIRender --modulation-test --fixture <path> --output <path>\n";
+            std::cout << "  SylenthAIRender --randomize-test --seeds 1,42,12345 --fixture <path> --output <path>\n";
             std::cout << "  SylenthAIRender --suite core --output-dir <dir>\n";
             std::cout << "  SylenthAIRender --suite patch-recreation --output-dir <dir>\n";
             std::cout << "  SylenthAIRender --preset <json> --fixture <path> --dry --output <wav> --report <json>\n";
@@ -175,6 +276,36 @@ const char* boolString(bool value) noexcept
 std::string genericString(const std::filesystem::path& path)
 {
     return path.generic_string();
+}
+
+std::string jsonString(const std::string& value)
+{
+    std::string escaped;
+    escaped.reserve(value.size() + 2);
+    escaped.push_back('"');
+
+    for (const auto c : value)
+    {
+        switch (c)
+        {
+            case '\\': escaped += "\\\\"; break;
+            case '"': escaped += "\\\""; break;
+            case '\b': escaped += "\\b"; break;
+            case '\f': escaped += "\\f"; break;
+            case '\n': escaped += "\\n"; break;
+            case '\r': escaped += "\\r"; break;
+            case '\t': escaped += "\\t"; break;
+            default: escaped.push_back(c); break;
+        }
+    }
+
+    escaped.push_back('"');
+    return escaped;
+}
+
+std::string jsonString(const std::filesystem::path& path)
+{
+    return jsonString(genericString(path));
 }
 
 void writeSmokeReport(const std::filesystem::path& path, const synth::RenderStats& stats)
@@ -998,6 +1129,81 @@ void applyPresetValue(synth::SynthParameters& parameters, const std::string& id,
     }
 }
 
+class RenderParameterOwner final : public juce::AudioProcessor
+{
+public:
+    RenderParameterOwner()
+        : parameters(*this, nullptr, "SYLENTH_AI_STATE", synth::createParameterLayout())
+    {
+    }
+
+    void prepareToPlay(double, int) override {}
+    void releaseResources() override {}
+    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override {}
+    bool isBusesLayoutSupported(const BusesLayout&) const override { return true; }
+    juce::AudioProcessorEditor* createEditor() override { return nullptr; }
+    bool hasEditor() const override { return false; }
+    const juce::String getName() const override { return "RenderParameterOwner"; }
+    bool acceptsMidi() const override { return true; }
+    bool producesMidi() const override { return false; }
+    double getTailLengthSeconds() const override { return 0.0; }
+    int getNumPrograms() override { return 1; }
+    int getCurrentProgram() override { return 0; }
+    void setCurrentProgram(int) override {}
+    const juce::String getProgramName(int) override { return "Init"; }
+    void changeProgramName(int, const juce::String&) override {}
+    void getStateInformation(juce::MemoryBlock&) override {}
+    void setStateInformation(const void*, int) override {}
+
+    juce::AudioProcessorValueTreeState parameters;
+};
+
+bool applyPreparedStateParameters(const juce::ValueTree& state,
+                                  synth::SynthParameters& parameters,
+                                  std::string& error)
+{
+    if (!state.isValid())
+    {
+        error = "prepared parameter state is invalid";
+        return false;
+    }
+
+    for (const auto& child : state)
+    {
+        if (!child.hasType("PARAM"))
+            continue;
+
+        const auto id = child.getProperty("id").toString().toStdString();
+        if (id.empty())
+        {
+            error = "prepared parameter state contains an empty parameter id";
+            return false;
+        }
+
+        applyPresetValue(parameters, id, child.getProperty("value"));
+    }
+
+    return true;
+}
+
+bool prepareRandomizedParameters(std::uint32_t seed,
+                                 synth::SynthParameters& parameters,
+                                 std::string& displayName,
+                                 std::string& error)
+{
+    RenderParameterOwner owner;
+    const auto result = synth::prepareRandomizedPresetState(owner.parameters, seed);
+    if (!result.loaded)
+    {
+        error = result.message.empty() ? "randomized preset preparation failed" : result.message;
+        return false;
+    }
+
+    parameters = {};
+    displayName = result.displayName;
+    return applyPreparedStateParameters(result.state, parameters, error);
+}
+
 bool loadPresetParameters(const std::filesystem::path& path, synth::SynthParameters& parameters, std::string& error)
 {
     if (!std::filesystem::is_regular_file(path))
@@ -1644,6 +1850,7 @@ enum class PresetRenderVariant
 
 enum class RenderFxMode
 {
+    AsPrepared,
     Dry,
     Wet
 };
@@ -1664,6 +1871,7 @@ const char* toString(RenderFxMode mode) noexcept
 {
     switch (mode)
     {
+        case RenderFxMode::AsPrepared: return "as_prepared";
         case RenderFxMode::Dry: return "dry";
         case RenderFxMode::Wet: return "wet";
     }
@@ -1719,16 +1927,12 @@ struct AudioDiff
 AudioDiff compareAudio(const PresetRenderResult& a, const PresetRenderResult& b);
 void evaluateWetDifference(PresetRenderResult& wet, const PresetRenderResult& dry);
 
-PresetRenderResult renderPresetAudio(const std::filesystem::path& presetPath,
-                                     const std::filesystem::path& fixturePath,
-                                     PresetRenderVariant variant,
-                                     RenderFxMode fxMode = RenderFxMode::Dry)
+PresetRenderResult renderParameterAudio(synth::SynthParameters parameters,
+                                        const std::filesystem::path& fixturePath,
+                                        PresetRenderVariant variant,
+                                        RenderFxMode fxMode = RenderFxMode::Dry)
 {
     PresetRenderResult result;
-    synth::SynthParameters parameters;
-    if (!loadPresetParameters(presetPath, parameters, result.error))
-        return result;
-
     if (variant == PresetRenderVariant::MonoLfo)
     {
         parameters.lfo.mono = true;
@@ -1741,10 +1945,17 @@ PresetRenderResult renderPresetAudio(const std::filesystem::path& presetPath,
     }
 
     parameters.quality.activeMode = parameters.quality.offlineMode;
-    if (fxMode == RenderFxMode::Dry)
-        parameters.fx.enabled = false;
-    else
-        parameters.fx.enabled = true;
+    switch (fxMode)
+    {
+        case RenderFxMode::AsPrepared:
+            break;
+        case RenderFxMode::Dry:
+            parameters.fx.enabled = false;
+            break;
+        case RenderFxMode::Wet:
+            parameters.fx.enabled = true;
+            break;
+    }
 
     result.qualityMode = parameters.quality.activeMode;
     result.tempoBpm = parameters.tempoBpm;
@@ -1834,6 +2045,19 @@ PresetRenderResult renderPresetAudio(const std::filesystem::path& presetPath,
     return result;
 }
 
+PresetRenderResult renderPresetAudio(const std::filesystem::path& presetPath,
+                                     const std::filesystem::path& fixturePath,
+                                     PresetRenderVariant variant,
+                                     RenderFxMode fxMode = RenderFxMode::Dry)
+{
+    PresetRenderResult result;
+    synth::SynthParameters parameters;
+    if (!loadPresetParameters(presetPath, parameters, result.error))
+        return result;
+
+    return renderParameterAudio(parameters, fixturePath, variant, fxMode);
+}
+
 void writePresetRenderReport(const std::filesystem::path& reportPath,
                              const PresetRenderResult& result,
                              const std::filesystem::path& presetPath,
@@ -1920,10 +2144,103 @@ void writeFailureReport(const std::filesystem::path& reportPath, const std::stri
     std::ofstream out(reportPath);
     out << "{\n";
     out << "  \"schema_version\": 1,\n";
-    out << "  \"suite\": \"" << suite << "\",\n";
-    out << "  \"error\": \"" << error << "\",\n";
+    out << "  \"suite\": " << jsonString(suite) << ",\n";
+    out << "  \"error\": " << jsonString(error) << ",\n";
     out << "  \"passed\": false\n";
     out << "}\n";
+}
+
+int writeRandomizeReport(const Options& options)
+{
+    std::vector<RenderEvent> events;
+    std::string error;
+    if (!loadMidiFixture(options.fixturePath, 48000, events, error))
+    {
+        writeFailureReport(options.output, "randomize-render", error);
+        return 1;
+    }
+
+    struct RandomizedCase
+    {
+        std::uint32_t seed = 0;
+        std::string displayName;
+        bool prepared = false;
+        bool rendered = false;
+        bool passed = false;
+        bool fxEnabled = false;
+        std::string error;
+        PresetRenderResult render;
+    };
+
+    std::vector<RandomizedCase> cases;
+    cases.reserve(options.randomizeSeeds.size());
+
+    for (const auto seed : options.randomizeSeeds)
+    {
+        RandomizedCase item;
+        item.seed = seed;
+
+        synth::SynthParameters parameters;
+        item.prepared = prepareRandomizedParameters(seed, parameters, item.displayName, item.error);
+        if (item.prepared)
+        {
+            item.fxEnabled = parameters.fx.enabled;
+            item.render = renderParameterAudio(parameters, options.fixturePath,
+                                               PresetRenderVariant::Default, RenderFxMode::AsPrepared);
+            item.rendered = item.render.ok;
+            if (!item.render.ok)
+                item.error = item.render.error;
+        }
+
+        item.passed = item.prepared
+            && item.rendered
+            && item.render.metrics.invalid == 0
+            && item.render.metrics.peak < 1.0f
+            && item.render.metrics.rms > 0.001
+            && item.render.metrics.nonzero > item.render.sampleRate / 8;
+        cases.push_back(std::move(item));
+    }
+
+    auto passedCount = 0;
+    for (const auto& item : cases)
+    {
+        if (item.passed)
+            ++passedCount;
+    }
+
+    ensureParentDirectory(options.output);
+    std::ofstream out(options.output);
+    out << "{\n";
+    out << "  \"schema_version\": 1,\n";
+    out << "  \"suite\": \"randomize-render\",\n";
+    out << "  \"fixture\": " << jsonString(options.fixturePath) << ",\n";
+    out << "  \"seed_count\": " << cases.size() << ",\n";
+    out << "  \"passed_count\": " << passedCount << ",\n";
+    out << "  \"failed_count\": " << (static_cast<int>(cases.size()) - passedCount) << ",\n";
+    out << "  \"cases\": [\n";
+    for (std::size_t i = 0; i < cases.size(); ++i)
+    {
+        const auto& item = cases[i];
+        out << "    {";
+        out << "\"seed\": " << item.seed << ", ";
+        out << "\"display_name\": " << jsonString(item.displayName) << ", ";
+        out << "\"prepared\": " << boolString(item.prepared) << ", ";
+        out << "\"rendered\": " << boolString(item.rendered) << ", ";
+        out << "\"fx_enabled\": " << boolString(item.fxEnabled) << ", ";
+        out << "\"peak\": " << item.render.metrics.peak << ", ";
+        out << "\"rms\": " << item.render.metrics.rms << ", ";
+        out << "\"nonzero_samples\": " << item.render.metrics.nonzero << ", ";
+        out << "\"invalid_samples\": " << item.render.metrics.invalid << ", ";
+        out << "\"error\": " << jsonString(item.error) << ", ";
+        out << "\"passed\": " << boolString(item.passed);
+        out << "}";
+        out << (i + 1 == cases.size() ? "\n" : ",\n");
+    }
+    out << "  ],\n";
+    out << "  \"passed\": " << boolString(passedCount == static_cast<int>(cases.size())) << "\n";
+    out << "}\n";
+
+    return passedCount == static_cast<int>(cases.size()) ? 0 : 1;
 }
 
 AudioDiff compareAudio(const PresetRenderResult& a, const PresetRenderResult& b)
@@ -2169,6 +2486,12 @@ int writeCoreSuite(const Options& options)
         auto modulationOptions = options;
         modulationOptions.output = outputDir / "modulation.json";
         addItem("modulation", modulationOptions.output, writeModulationReport(modulationOptions));
+    }
+
+    {
+        auto randomizeOptions = options;
+        randomizeOptions.output = outputDir / "randomize.json";
+        addItem("randomize-render", randomizeOptions.output, writeRandomizeReport(randomizeOptions));
     }
 
     {
@@ -2455,6 +2778,14 @@ int main(int argc, char* argv[])
 {
     const auto options = parseOptions(argc, argv);
 
+    if (!options.argumentError.empty())
+    {
+        std::cerr << options.argumentError << "\n";
+        if (options.randomizeTest)
+            writeFailureReport(options.output, "randomize-render", options.argumentError);
+        return 2;
+    }
+
     if (!options.suite.empty())
     {
         if (options.suite == "core")
@@ -2513,6 +2844,13 @@ int main(int argc, char* argv[])
     {
         const auto exitCode = writeModulationReport(options);
         std::cout << "Modulation validation " << (exitCode == 0 ? "passed." : "failed.") << "\n";
+        return exitCode;
+    }
+
+    if (options.randomizeTest)
+    {
+        const auto exitCode = writeRandomizeReport(options);
+        std::cout << "Randomize render validation " << (exitCode == 0 ? "passed." : "failed.") << "\n";
         return exitCode;
     }
 

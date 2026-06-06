@@ -2750,35 +2750,13 @@ void SynthAudioProcessorEditor::updateDiagnostics()
                              + "   " + snapshot.architecture,
                              juce::dontSendNotification);
 
-    voicesValue.setText(juce::String(snapshot.activeVoices), juce::dontSendNotification);
+    voicesValue.setText(juce::String(snapshot.activeVoices) + "/" + juce::String(snapshot.patchCost.maxActiveVoices),
+                        juce::dontSendNotification);
 
-    // Patch-load estimate derived from the live rendering path (UI-thread only).
-    auto raw = [this](const char* id, float fallback) {
-        const auto* parameter = audioProcessor.getValueTreeState().getRawParameterValue(id);
-        return parameter != nullptr ? parameter->load() : fallback;
-    };
-    const auto polyphony = raw("voice.polyphony", 8.0f);
-    const auto unison = raw("voice.unison_count", 1.0f);
-    const auto stack = raw("osc.stack_count", 1.0f);
-    const auto filterOn = raw("filter.enabled", 1.0f) >= 0.5f;
-    const auto oversample = synth::oversamplingFactor(static_cast<int>(std::round(raw("filter.oversampling", 1.0f))));
-    const auto fxOn = raw("fx.enabled", 0.0f) >= 0.5f;
-    const auto fxModules = (raw("fx.saturation_enabled", 1.0f) >= 0.5f ? 1 : 0)
-                         + (raw("fx.phaser_enabled", 0.0f) >= 0.5f ? 1 : 0)
-                         + (raw("fx.delay_enabled", 1.0f) >= 0.5f ? 1 : 0)
-                         + (raw("fx.reverb_enabled", 1.0f) >= 0.5f ? 1 : 0)
-                         + (raw("fx.chorus_enabled", 0.0f) >= 0.5f ? 1 : 0)
-                         + (raw("fx.eq_enabled", 0.0f) >= 0.5f ? 1 : 0)
-                         + (raw("fx.compressor_enabled", 0.0f) >= 0.5f ? 1 : 0);
-
-    const auto oscVoices = polyphony * unison * stack;
-    const auto filterMultiplier = filterOn ? (0.5f + 0.5f * static_cast<float>(oversample)) : 1.0f;
-    const auto fxMultiplier = fxOn ? (1.0f + 0.06f * static_cast<float>(fxModules)) : 1.0f;
-    const auto units = oscVoices * filterMultiplier * fxMultiplier;
-    const auto percent = static_cast<int>(std::round(units / 240.0f * 100.0f));
-
+    const auto percent = snapshot.patchCost.loadPercent;
     costValue.setText(percent <= 100 ? juce::String(percent) + "%" : ">100%", juce::dontSendNotification);
-    costValue.setColour(juce::Label::textColourId, percent > 90 ? warn : (percent > 60 ? staged : text));
+    costValue.setColour(juce::Label::textColourId, snapshot.patchCost.high ? warn
+                                            : (snapshot.patchCost.elevated ? staged : text));
 
     const auto clip = snapshot.peak >= 0.98f || snapshot.invalidSamples > lastInvalidSamples;
     lastInvalidSamples = snapshot.invalidSamples;
