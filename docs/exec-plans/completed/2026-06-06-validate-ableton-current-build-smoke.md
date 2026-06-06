@@ -4,7 +4,7 @@ status: completed
 created_at: 2026-06-06
 completed_at: 2026-06-06
 summary: Revalidate the current renamed sylenth-ai Release build, install AU/VST3 bundles, prove AU validation, and prove Ableton VST3 scan/load/play with the renamed bundle.
-post_build_recap: Fresh Release build, CTest, core suite, bundle checks, local install, uninstall dry-run, and AU validation passed. Ableton Live 11 rescanned the renamed VST3, created ParkerX sylenth-ai v0.1.0, opened the editor, and played an existing MIDI clip with active voices and meters. Full AU/VST3 automation, controller proof, state restore, bounce, sample-rate, and buffer-size validation remain open.
+post_build_recap: Fresh Release build, CTest, core suite, bundle checks, local install, uninstall dry-run, and AU validation passed. Ableton Live 11 rescanned the renamed VST3, created ParkerX sylenth-ai v0.1.0, opened the editor, and played an existing MIDI clip with active voices and meters. At this slice's completion, full AU/VST3 automation, controller proof, state restore, bounce, sample-rate, and buffer-size validation remained open; state restore was later covered by `2026-06-06-validate-ableton-state-restore-smoke.md`.
 read_when:
   - Reviewing Ableton smoke proof after the sylenth-ai rename.
   - Continuing full Phase 1 host validation.
@@ -24,7 +24,7 @@ This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
 The repo needed current host evidence for the renamed AU/VST3 build, not stale proof from the pre-rename `Synth` bundle. This slice proves that the current Release build still packages, installs, validates as AU, scans as VST3 in Ableton, instantiates under the `sylenth-ai` name, opens the editor, and plays MIDI.
 
-It intentionally does not claim the full Phase 1 Ableton matrix. Automation, learned CC mapping, save/reopen state restore, bounce, sample-rate, buffer-size, and panic/all-notes-off checks remain in the host-validation backlog.
+It intentionally does not claim the full Phase 1 Ableton matrix. At this slice's completion, automation, learned CC mapping, save/reopen state restore, bounce, sample-rate, buffer-size, and panic/all-notes-off checks remained in the host-validation backlog. The follow-on restore slice later resolved current-build AU creation and AU/VST3 save/reopen restore.
 
 ## Progress
 
@@ -49,7 +49,7 @@ The Release configure used a fresh `build-release-phase1-ableton` directory. The
 ## Decision Log
 
 Decision: Treat this as a bounded current-build smoke pass, not full Phase 1 host validation.
-Rationale: VST3 scan/create/play was proven against the renamed current build, while current-build AU instantiation, automation, controller proof, state restore, bounce, sample-rate, buffer-size, and panic behavior still need separate host checks.
+Rationale: VST3 scan/create/play was proven against the renamed current build, while current-build AU instantiation, automation, controller proof, state restore, bounce, sample-rate, buffer-size, and panic behavior still needed separate host checks at this point. Current-build AU instantiation and AU/VST3 state restore were later covered by `2026-06-06-validate-ableton-state-restore-smoke.md`.
 Date: 2026-06-06.
 
 Decision: Use Ableton's normal rescan path before considering cache resets.
@@ -58,7 +58,7 @@ Date: 2026-06-06.
 
 ## Outcomes & Retrospective
 
-Completed as a current-build smoke pass. Host packaging and basic Ableton VST3 scan/load/play behavior are healthy after the rename. The remaining risk is the broader host behavior matrix: current-build AU instantiation, automation gestures, MIDI controller mapping, state restore, offline bounce, sample-rate/buffer-size changes, and panic/transport behavior.
+Completed as a current-build smoke pass. Host packaging and basic Ableton VST3 scan/load/play behavior are healthy after the rename. The broader host behavior matrix still needed current-build AU instantiation, automation gestures, MIDI controller mapping, state restore, offline bounce, sample-rate/buffer-size changes, and panic/transport behavior at this point. A later restore slice resolved current-build AU instantiation and AU/VST3 state restore.
 
 ## Context and Orientation
 
@@ -77,7 +77,7 @@ Read first:
 - Ableton VST3 rescan, create, editor-open, and playback proof.
 - Documentation of remaining host-validation gaps.
 
-### Out Of Scope
+### Out Of Scope For This Slice
 
 - Distribution signing or notarization.
 - Clean-machine installer validation.
@@ -146,13 +146,13 @@ Manual Ableton evidence was captured under `build/reports/ableton/`.
 
 ### Follow-Up Host Matrix
 
-- Current-build AU instantiation in Ableton after the rename rescan.
+- Resolved by `2026-06-06-validate-ableton-state-restore-smoke.md`: current-build AU instantiation and AU/VST3 save/reopen restore.
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.
-- Current-build save/reopen/state restore.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
 - Transport stop/all-notes-off/panic proof.
+- UI open/close while transport is running.
 
 ## Idempotence and Recovery
 

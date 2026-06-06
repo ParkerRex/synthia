@@ -73,6 +73,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed Phase 1 modulation route model and destination catalog over the existing TransMod engine, with adversarial fixes and validation.
 - [x] 2026-06-06 EDT: Executed Phase 1 MIDI controller workflow with a global user CC map, realtime-safe learn capture, message-thread APVTS application, compact Sound-tab panel, and validation.
 - [x] 2026-06-06 EDT: Executed current-build Ableton smoke proof after the rename: Release build, CTest, core suite, bundle checks, install/uninstall dry-run, AU validation, VST3 rescan/create, editor open, and MIDI playback passed.
+- [x] 2026-06-06 EDT: Executed current-build Ableton state restore smoke: AU create/restore, VST3 create/restore, and VST3 post-restore playback with active meters passed.
 - [ ] Hand off UI information architecture and visual polish plans to Claude Code after state contracts are ready.
 - [ ] Complete the remaining Phase 1 Ableton validation matrix against the Sylenth-level build.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
@@ -104,6 +105,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-06-build-modulation-route-model.md`
 - `docs/exec-plans/completed/2026-06-06-build-midi-controller-workflow.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-current-build-smoke.md`
+- `docs/exec-plans/completed/2026-06-06-validate-ableton-state-restore-smoke.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
@@ -113,7 +115,7 @@ Product-order next Codex slice: complete the remaining Phase 1 Ableton host matr
 
 Preset browser, arp/step/chord, FX rack, modulation inspection, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; drag/drop modulation writing, per-route bypass/remove, per-control MIDI context menus, and richer browser metadata editing remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play: automation, learned CC mapping, state save/reopen, bounce, sample-rate and buffer-size changes, transport stop/all-notes-off, panic, and UI open/close while playing.
+The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore: automation, learned CC mapping, bounce, sample-rate and buffer-size changes, transport stop/all-notes-off, panic, and UI open/close while playing.
 
 ## Risks and Watchpoints
 

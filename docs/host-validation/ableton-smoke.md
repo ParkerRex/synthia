@@ -47,7 +47,7 @@ Results:
 - Bundle check passed and verified `Contents/Resources/factory/init.json` and `pluck-core-01.json` in Standalone, AU, and VST3 bundles.
 - Installed AU and VST3 bundles under `~/Library/Audio/Plug-Ins`.
 - `auval -v aumu SyAI PkRx` passed against the installed AU with AU Validation Tool `1.10.0`.
-- No `vst3validator` or `pluginval` executable was available on this machine; VST3 scan/load/play, automation, state restore, and bounce still require the Ableton manual checklist below.
+- No `vst3validator` or `pluginval` executable was available on this machine. At the time of this 2026-06-05 command-only pass, VST3 scan/load/play, automation, state restore, and bounce still required the Ableton manual checklist below.
 
 ## Command Revalidation - 2026-06-06
 
@@ -100,15 +100,49 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 - `phase1-ableton-vst3-transport-running.png`
 - `phase1-ableton-vst3-transport-stopped.png`
 
-Remaining host-validation gaps:
+Remaining host-validation gaps after this VST3 smoke pass:
 
-- Current-build AU instantiation in Ableton after the rename rescan.
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.
-- Current-build save/reopen/state restore after creating the renamed VST3.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
 - Transport stop/all-notes-off/panic proof.
+- UI open/close while transport is running.
+
+## Ableton Current-Build Restore Smoke - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: `/Users/parkerrex/Desktop/testing-synth Project/testing-synth.als`
+- plugin formats tested in this pass: AU and VST3
+
+Results:
+
+- Ableton browser showed `Audio Units > ParkerX > sylenth-ai`; double-clicking the AU entry logged `Au: Going to create: sylenth-ai` at 02:29:54 and `Au: Created: sylenth-ai` at 02:29:56.
+- Saving, quitting Ableton, and reopening the test set logged `Audio Unit: Going to restore: sylenth-ai` and `Audio Unit: Restored: sylenth-ai` at 02:30:57.
+- A fresh VST3 instance was created after the AU restore pass. Ableton logged `Vst3: Going to create: sylenth-ai`, loaded ParkerX `sylenth-ai` v0.1.0, reported 2427 parameters, and logged `Vst3: Created: sylenth-ai` at 02:32:29.
+- Saving, quitting Ableton, and reopening the test set again logged `Vst3: Going to restore: sylenth-ai`, loaded ParkerX `sylenth-ai` v0.1.0, reported 2427 parameters, and logged `Vst3: Restored: sylenth-ai` at 02:33:18.
+- Post-restore transport playback from the clip start showed the Ableton transport running, the restored device present, active track meters, and 44100 Hz / 512-sample audio state.
+
+Evidence screenshots are local build artifacts under `build/reports/ableton/`:
+
+- `host-matrix-au-created.png`
+- `host-matrix-reopen-restore.png`
+- `host-matrix-vst3-track2-created.png`
+- `host-matrix-reopen-vst3-restore.png`
+- `host-matrix-post-restore-playback-from-start.png`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- Learned CC mapping proof in Ableton.
+- Offline bounce comparison.
+- Sample-rate and buffer-size changes.
+- Transport stop/all-notes-off/panic proof.
+- UI open/close while transport is running.
 
 ## Historical Ableton Setup - 2026-06-05
 
