@@ -64,6 +64,11 @@ std::vector<std::string> sourceChoices()
     };
 }
 
+bool isArpOrChordParameter(const ParameterSpec& spec) noexcept
+{
+    return spec.id.rfind("arp.", 0) == 0 || spec.id.rfind("chord.", 0) == 0;
+}
+
 std::vector<ParameterSpec> buildSpecs()
 {
     std::vector<ParameterSpec> specs = {
@@ -252,6 +257,12 @@ std::vector<ParameterSpec> buildSpecs()
                                    "chord_voice", "normalized", 0.0f, 1.0f, 1.0f, 0.0001f));
     }
 
+    for (auto& spec : specs)
+    {
+        if (isArpOrChordParameter(spec))
+            spec.auVersionHint = 2;
+    }
+
     const auto sources = sourceChoices();
     for (int slot = 1; slot <= 8; ++slot)
     {
@@ -323,6 +334,9 @@ std::vector<std::string> validateParameterSpecs()
             if (spec.defaultChoice < 0 || spec.defaultChoice >= static_cast<int>(spec.choices.size()))
                 errors.push_back("choice default out of range: " + spec.id);
         }
+
+        if (spec.auVersionHint < 1)
+            errors.push_back("invalid AU version hint: " + spec.id);
     }
 
     return errors;
@@ -334,7 +348,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
 
     for (const auto& spec : getParameterSpecs())
     {
-        const juce::ParameterID parameterId { juce::String(spec.id), 1 };
+        const juce::ParameterID parameterId { juce::String(spec.id), spec.auVersionHint };
         const juce::String name { spec.name };
 
         if (spec.kind == ParameterKind::Float)

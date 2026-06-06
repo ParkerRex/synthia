@@ -29,6 +29,7 @@ struct ParameterSpec
     bool automatable = true;
     bool presetSerialized = true;
     float smoothMs = 0.0f;
+    int auVersionHint = 1;
     std::vector<std::string> choices;
     int defaultChoice = 0;
 };
@@ -41,4 +42,3 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
 const char* toString(ParameterKind kind) noexcept;
 } // namespace synth
-

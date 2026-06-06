@@ -38,6 +38,11 @@
     }
   ],
   "metadata": {
-    "clean_room": true
+    "program": "sylenth_lab_rebuild",
+    "browser": {
+      "bank": "Fixtures",
+      "category": "Modulation",
+      "source": "user"
+    }
   }
 }

@@ -45,9 +45,52 @@ Current validation command:
 - `macros`: list of macro objects.
 - `metadata`: optional object.
 
-User preset writes currently include `metadata.program = "sylenth_lab_rebuild"`.
+User preset writes include `metadata.program = "sylenth_lab_rebuild"` and browser metadata under `metadata.browser`.
 
 Phase 2 and Phase 3 may extend `metadata` with generation provenance, prompt text, seed, model/version identifiers, reference-analysis summaries, and reversible edit history. Those fields must not be required for normal audio rendering.
+
+## Browser Metadata
+
+Preset browser metadata is UI/library state, not realtime audio state. It does not create APVTS parameters and must not be read by the audio thread.
+
+The current browser-facing scan summary exposes:
+
+- `source`: `factory`, `user`, or `legacy_user`.
+- `bank`: display bank name, for example `Factory` or `User`.
+- `category`: browser category, for example `Init`, `Plucks`, or `User`.
+- `tags`: top-level tag strings from the preset JSON.
+- `favorite_key`: stable local key in the form `<source>:<preset_id>`.
+- `favorite`: local favorite state resolved from the sidecar favorites file.
+
+Preset JSON may provide browser metadata as:
+
+```json
+"metadata": {
+  "program": "sylenth_lab_rebuild",
+  "browser": {
+    "bank": "Factory",
+    "category": "Plucks",
+    "source": "factory"
+  }
+}
+```
+
+If `metadata.browser` is absent, scan summaries fall back to source-derived bank/category defaults so older valid presets remain visible.
+
+Favorites are stored outside preset JSON in:
+
+- `~/Music/ParkerX/sylenth-ai/PresetFavorites.json`
+
+The sidecar shape is:
+
+```json
+{
+  "schema_version": 1,
+  "favorite_keys": ["factory:pluck-core-01"]
+}
+```
+
+Keeping favorites in a sidecar lets factory presets remain read-only and lets future browser UI toggle favorites without mutating sound patches.
 
 ## Parameter Values
 

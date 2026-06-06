@@ -4,7 +4,7 @@
   "id": "pluck-core-01",
   "display_name": "Pluck Core 01",
   "author": "Factory",
-  "description": "Clean-room pluck-core starting point using oscillator stack, nonlinear filter, direct modulation, ramp, and TransMod motion.",
+  "description": "Pluck-core starting point using oscillator stack, nonlinear filter, direct modulation, ramp, and TransMod motion.",
   "tags": ["pluck", "analog", "poly", "wide"],
   "parameters": {
     "voice.mode": "Poly",
@@ -140,7 +140,12 @@
     }
   ],
   "metadata": {
-    "clean_room": true,
-    "implementation_note": "Values are original and exercise implemented dry-core modulation routes."
+    "program": "sylenth_lab_rebuild",
+    "browser": {
+      "bank": "Factory",
+      "category": "Plucks",
+      "source": "factory"
+    },
+    "implementation_note": "Values are lab-authored and exercise implemented dry-core modulation routes."
   }
 }

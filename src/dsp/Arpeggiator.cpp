@@ -20,17 +20,6 @@ float rateDivisionBeats(ArpRateDivision division) noexcept
 
     return 0.25f;
 }
-
-bool hasHeldNotes(const std::array<bool, 128>& heldNotes) noexcept
-{
-    for (const auto held : heldNotes)
-    {
-        if (held)
-            return true;
-    }
-
-    return false;
-}
 } // namespace
 
 void Arpeggiator::reset() noexcept
@@ -39,6 +28,7 @@ void Arpeggiator::reset() noexcept
     heldVelocities.fill(0.0f);
     heldOrder.fill(0);
     noteOrderCounter = 0;
+    heldNoteCount = 0;
     activeOutputNote = -1;
     samplesUntilStep = 0;
     samplesUntilGateOff = 0;
@@ -52,8 +42,10 @@ void Arpeggiator::noteOn(int midiNote, float velocity) noexcept
     if (midiNote < 0 || midiNote >= static_cast<int>(heldNotes.size()))
         return;
 
-    const auto wasEmpty = !hasHeldNotes(heldNotes);
+    const auto wasEmpty = heldNoteCount == 0;
     const auto noteIndex = static_cast<std::size_t>(midiNote);
+    if (!heldNotes[noteIndex])
+        ++heldNoteCount;
     heldNotes[noteIndex] = true;
     heldVelocities[noteIndex] = std::clamp(velocity, 0.0f, 1.0f);
     heldOrder[noteIndex] = ++noteOrderCounter;
@@ -74,11 +66,15 @@ void Arpeggiator::noteOff(int midiNote, bool holdEnabled) noexcept
         return;
 
     const auto noteIndex = static_cast<std::size_t>(midiNote);
+    if (!heldNotes[noteIndex])
+        return;
+
     heldNotes[noteIndex] = false;
     heldVelocities[noteIndex] = 0.0f;
     heldOrder[noteIndex] = 0;
+    heldNoteCount = std::max(0, heldNoteCount - 1);
 
-    if (!hasHeldNotes(heldNotes))
+    if (heldNoteCount == 0)
         restartRequested = false;
 }
 
@@ -86,9 +82,7 @@ ArpGeneratedEvent Arpeggiator::processSample(const SynthParameters& parameters, 
 {
     ArpGeneratedEvent event;
 
-    std::array<Candidate, maxCandidates> candidates {};
-    const auto candidateCount = collectCandidates(parameters, candidates);
-    if (candidateCount <= 0)
+    if (heldNoteCount <= 0)
     {
         if (activeOutputNote >= 0)
         {
@@ -106,6 +100,24 @@ ArpGeneratedEvent Arpeggiator::processSample(const SynthParameters& parameters, 
 
     if (restartRequested || samplesUntilStep <= 0)
     {
+        std::array<Candidate, maxCandidates> candidates {};
+        const auto candidateCount = collectCandidates(parameters, candidates);
+        if (candidateCount <= 0)
+        {
+            if (activeOutputNote >= 0)
+            {
+                event.noteOff = true;
+                event.noteOffNumber = activeOutputNote;
+            }
+
+            activeOutputNote = -1;
+            samplesUntilStep = 0;
+            samplesUntilGateOff = 0;
+            sequenceStep = 0;
+            currentStepTied = false;
+            return event;
+        }
+
         const auto stepCount = std::clamp(parameters.arp.stepCount, 1, arpStepCount);
         const auto stepIndex = sequenceStep % stepCount;
         const auto& step = parameters.arp.steps[static_cast<std::size_t>(stepIndex)];

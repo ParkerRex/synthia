@@ -296,6 +296,110 @@ std::string propertyString(const juce::DynamicObject& object, const char* proper
     return value.isString() ? value.toString().toStdString() : std::string {};
 }
 
+std::vector<std::string> propertyStringArray(const juce::DynamicObject& object, const char* propertyName)
+{
+    std::vector<std::string> values;
+    const auto value = object.getProperty(juce::Identifier(propertyName));
+    if (!value.isArray())
+        return values;
+
+    const auto* array = value.getArray();
+    if (array == nullptr)
+        return values;
+
+    for (const auto& item : *array)
+    {
+        if (item.isString())
+            values.push_back(item.toString().toStdString());
+    }
+
+    std::sort(values.begin(), values.end());
+    values.erase(std::unique(values.begin(), values.end()), values.end());
+    return values;
+}
+
+std::string defaultBankForSource(PresetSource source)
+{
+    if (source == PresetSource::Factory)
+        return "Factory";
+    if (source == PresetSource::LegacyUser)
+        return "Legacy User";
+    return "User";
+}
+
+std::string defaultCategoryForSource(PresetSource source, const std::vector<std::string>& tags)
+{
+    if (!tags.empty())
+        return tags.front();
+
+    if (source == PresetSource::Factory)
+        return "Factory";
+    if (source == PresetSource::LegacyUser)
+        return "Legacy";
+    return "User";
+}
+
+std::string browserMetadataString(const juce::DynamicObject& object, const char* propertyName)
+{
+    const auto metadata = object.getProperty(juce::Identifier("metadata"));
+    if (!metadata.isObject())
+        return {};
+
+    const auto* metadataObject = metadata.getDynamicObject();
+    if (metadataObject == nullptr)
+        return {};
+
+    const auto browser = metadataObject->getProperty(juce::Identifier("browser"));
+    if (browser.isObject())
+    {
+        if (const auto* browserObject = browser.getDynamicObject())
+        {
+            const auto value = browserObject->getProperty(juce::Identifier(propertyName));
+            if (value.isString())
+                return value.toString().toStdString();
+        }
+    }
+
+    const auto fallback = metadataObject->getProperty(juce::Identifier(propertyName));
+    return fallback.isString() ? fallback.toString().toStdString() : std::string {};
+}
+
+std::string lowercase(std::string value)
+{
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char character) {
+        return static_cast<char>(std::tolower(character));
+    });
+    return value;
+}
+
+bool textContains(const std::string& value, const std::string& query)
+{
+    return lowercase(value).find(query) != std::string::npos;
+}
+
+bool tagMatches(const std::vector<std::string>& presetTags, const std::string& filterTag)
+{
+    const auto normalizedFilter = lowercase(filterTag);
+    return std::any_of(presetTags.begin(), presetTags.end(), [&normalizedFilter](const auto& tag) {
+        return lowercase(tag) == normalizedFilter;
+    });
+}
+
+bool containsFavoriteKey(const std::vector<std::string>& favoriteKeys, const std::string& key)
+{
+    return std::find(favoriteKeys.begin(), favoriteKeys.end(), key) != favoriteKeys.end();
+}
+
+std::vector<std::string> normalizedFavoriteKeys(std::vector<std::string> favoriteKeys)
+{
+    favoriteKeys.erase(std::remove_if(favoriteKeys.begin(), favoriteKeys.end(), [](const auto& key) {
+        return key.empty();
+    }), favoriteKeys.end());
+    std::sort(favoriteKeys.begin(), favoriteKeys.end());
+    favoriteKeys.erase(std::unique(favoriteKeys.begin(), favoriteKeys.end()), favoriteKeys.end());
+    return favoriteKeys;
+}
+
 juce::var currentParameterObject(const juce::AudioProcessorValueTreeState& parameters)
 {
     auto object = std::make_unique<juce::DynamicObject>();
@@ -413,7 +517,41 @@ juce::var currentMacroArray(const juce::AudioProcessorValueTreeState& parameters
 }
 } // namespace
 
+std::string presetSourceId(PresetSource source)
+{
+    if (source == PresetSource::Factory)
+        return "factory";
+    if (source == PresetSource::LegacyUser)
+        return "legacy_user";
+    return "user";
+}
+
+std::string presetSourceLabel(PresetSource source)
+{
+    if (source == PresetSource::Factory)
+        return "Factory";
+    if (source == PresetSource::LegacyUser)
+        return "Legacy User";
+    return "User";
+}
+
+std::string presetFavoriteKey(PresetSource source, const std::string& presetId, const std::filesystem::path& path)
+{
+    auto keyId = presetId;
+    if (keyId.empty())
+        keyId = presetIdFromDisplayName(path.stem().string());
+
+    return presetSourceId(source) + ":" + keyId;
+}
+
 std::vector<PresetSummary> scanPresetDirectory(const std::filesystem::path& directory, bool factory)
+{
+    return scanPresetDirectory(directory, factory ? PresetSource::Factory : PresetSource::User, {});
+}
+
+std::vector<PresetSummary> scanPresetDirectory(const std::filesystem::path& directory,
+                                               PresetSource source,
+                                               const std::vector<std::string>& favoriteKeys)
 {
     std::vector<PresetSummary> presets;
     std::error_code error;
@@ -455,17 +593,119 @@ std::vector<PresetSummary> scanPresetDirectory(const std::filesystem::path& dire
         summary.displayName = propertyString(*object, "display_name");
         summary.author = propertyString(*object, "author");
         summary.description = propertyString(*object, "description");
-        summary.factory = factory;
+        summary.tags = propertyStringArray(*object, "tags");
+        summary.bank = browserMetadataString(*object, "bank");
+        if (summary.bank.empty())
+            summary.bank = defaultBankForSource(source);
+        summary.category = browserMetadataString(*object, "category");
+        if (summary.category.empty())
+            summary.category = defaultCategoryForSource(source, summary.tags);
+        summary.source = source;
+        summary.factory = source == PresetSource::Factory;
+        summary.favoriteKey = presetFavoriteKey(source, summary.id, summary.path);
+        summary.favorite = containsFavoriteKey(favoriteKeys, summary.favoriteKey);
         presets.push_back(summary);
     }
 
     std::sort(presets.begin(), presets.end(), [](const auto& a, const auto& b) {
-        if (a.factory != b.factory)
-            return a.factory && !b.factory;
+        if (a.source != b.source)
+            return static_cast<int>(a.source) < static_cast<int>(b.source);
+        if (a.bank != b.bank)
+            return a.bank < b.bank;
+        if (a.category != b.category)
+            return a.category < b.category;
         return a.displayName < b.displayName;
     });
 
     return presets;
+}
+
+std::vector<PresetSummary> filterPresetSummaries(const std::vector<PresetSummary>& presets,
+                                                 const PresetBrowserFilter& filter)
+{
+    auto query = lowercase(filter.searchText);
+    std::vector<PresetSummary> filtered;
+
+    for (const auto& preset : presets)
+    {
+        if (preset.source == PresetSource::Factory && !filter.includeFactory)
+            continue;
+        if (preset.source == PresetSource::User && !filter.includeUser)
+            continue;
+        if (preset.source == PresetSource::LegacyUser && !filter.includeLegacyUser)
+            continue;
+        if (filter.favoritesOnly && !preset.favorite)
+            continue;
+        if (!filter.bank.empty() && preset.bank != filter.bank)
+            continue;
+        if (!filter.category.empty() && preset.category != filter.category)
+            continue;
+
+        auto allTagsMatch = true;
+        for (const auto& tag : filter.tags)
+        {
+            if (!tagMatches(preset.tags, tag))
+            {
+                allTagsMatch = false;
+                break;
+            }
+        }
+        if (!allTagsMatch)
+            continue;
+
+        if (!query.empty())
+        {
+            auto matchesSearch = textContains(preset.id, query)
+                || textContains(preset.displayName, query)
+                || textContains(preset.author, query)
+                || textContains(preset.description, query)
+                || textContains(preset.bank, query)
+                || textContains(preset.category, query);
+
+            if (!matchesSearch)
+            {
+                matchesSearch = std::any_of(preset.tags.begin(), preset.tags.end(), [&query](const auto& tag) {
+                    return textContains(tag, query);
+                });
+            }
+
+            if (!matchesSearch)
+                continue;
+        }
+
+        filtered.push_back(preset);
+    }
+
+    return filtered;
+}
+
+PresetBrowserCatalog buildPresetBrowserCatalog(const std::vector<PresetSummary>& presets)
+{
+    PresetBrowserCatalog catalog;
+    catalog.presets = presets;
+
+    auto appendUnique = [](std::vector<std::string>& values, const std::string& value) {
+        if (!value.empty())
+            values.push_back(value);
+    };
+
+    for (const auto& preset : presets)
+    {
+        appendUnique(catalog.banks, preset.bank);
+        appendUnique(catalog.categories, preset.category);
+        for (const auto& tag : preset.tags)
+            appendUnique(catalog.tags, tag);
+    }
+
+    auto normalize = [](std::vector<std::string>& values) {
+        std::sort(values.begin(), values.end());
+        values.erase(std::unique(values.begin(), values.end()), values.end());
+    };
+
+    normalize(catalog.banks);
+    normalize(catalog.categories);
+    normalize(catalog.tags);
+    return catalog;
 }
 
 std::filesystem::path factoryPresetDirectory()
@@ -487,6 +727,11 @@ std::filesystem::path legacyUserPresetDirectory()
 {
     const auto music = juce::File::getSpecialLocation(juce::File::userMusicDirectory);
     return std::filesystem::path { music.getFullPathName().toStdString() } / "ParkerX" / "Synth" / "Presets";
+}
+
+std::filesystem::path defaultPresetFavoritesFile()
+{
+    return defaultUserPresetDirectory().parent_path() / "PresetFavorites.json";
 }
 
 std::string presetIdFromDisplayName(const std::string& displayName)
@@ -511,6 +756,81 @@ std::string presetIdFromDisplayName(const std::string& displayName)
     }
 
     return id.empty() ? "user-preset" : id;
+}
+
+std::vector<std::string> readFavoritePresetKeys(const std::filesystem::path& path)
+{
+    const auto file = juce::File(juce::String(path.string()));
+    if (!file.existsAsFile())
+        return {};
+
+    const auto parsed = juce::JSON::parse(file);
+    if (!parsed.isObject())
+        return {};
+
+    const auto* object = parsed.getDynamicObject();
+    if (object == nullptr)
+        return {};
+
+    auto keys = std::vector<std::string> {};
+    const auto favorites = object->getProperty(juce::Identifier("favorite_keys"));
+    if (!favorites.isArray())
+        return keys;
+
+    if (const auto* array = favorites.getArray())
+    {
+        for (const auto& key : *array)
+        {
+            if (key.isString())
+                keys.push_back(key.toString().toStdString());
+        }
+    }
+
+    return normalizedFavoriteKeys(keys);
+}
+
+bool writeFavoritePresetKeys(const std::filesystem::path& path,
+                             const std::vector<std::string>& favoriteKeys,
+                             std::string& error)
+{
+    std::error_code createError;
+    if (!path.parent_path().empty())
+        std::filesystem::create_directories(path.parent_path(), createError);
+    if (createError)
+    {
+        error = "could not create favorites directory: " + createError.message();
+        return false;
+    }
+
+    auto root = std::make_unique<juce::DynamicObject>();
+    root->setProperty("schema_version", 1);
+
+    auto keyArray = juce::Array<juce::var> {};
+    for (const auto& key : normalizedFavoriteKeys(favoriteKeys))
+        keyArray.add(juce::var(juce::String(key)));
+    root->setProperty("favorite_keys", keyArray);
+
+    const auto file = juce::File(juce::String(path.string()));
+    if (!file.replaceWithText(juce::JSON::toString(juce::var(root.release()), true), false, false, "\n"))
+    {
+        error = "could not write favorites file: " + path.string();
+        return false;
+    }
+
+    return true;
+}
+
+bool setPresetFavorite(const std::filesystem::path& path,
+                       const std::string& favoriteKey,
+                       bool favorite,
+                       std::string& error)
+{
+    auto keys = readFavoritePresetKeys(path);
+    keys.erase(std::remove(keys.begin(), keys.end(), favoriteKey), keys.end());
+    if (favorite && !favoriteKey.empty())
+        keys.push_back(favoriteKey);
+
+    return writeFavoritePresetKeys(path, keys, error);
 }
 
 PresetLoadResult preparePresetState(juce::AudioProcessorValueTreeState& parameters,
@@ -619,6 +939,11 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
 
     auto metadata = std::make_unique<juce::DynamicObject>();
     metadata->setProperty("program", "sylenth_lab_rebuild");
+    auto browser = std::make_unique<juce::DynamicObject>();
+    browser->setProperty("bank", "User");
+    browser->setProperty("category", "User");
+    browser->setProperty("source", "user");
+    metadata->setProperty("browser", juce::var(browser.release()));
     root->setProperty("metadata", juce::var(metadata.release()));
 
     const auto file = juce::File(juce::String(destination.string()));

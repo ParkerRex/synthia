@@ -1112,7 +1112,10 @@ void SynthAudioProcessorEditor::refreshPresetMenu()
     for (int i = 0; i < static_cast<int>(presetItems.size()); ++i)
     {
         const auto& item = presetItems[static_cast<std::size_t>(i)];
-        presetCombo.addItem((item.factory ? "Factory: " : "User: ") + item.displayName, i + 1);
+        auto label = item.sourceLabel + " / " + item.bank + " / " + item.category + ": " + item.displayName;
+        if (item.favorite)
+            label = "* " + label;
+        presetCombo.addItem(label, i + 1);
     }
 
     if (presetItems.empty())

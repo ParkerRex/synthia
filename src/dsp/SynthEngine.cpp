@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace synth
 {
@@ -10,6 +11,26 @@ namespace
 float finiteOr(float value, float fallback) noexcept
 {
     return std::isfinite(value) ? value : fallback;
+}
+
+bool directChordConfigChanged(const ChordParameters& before, const ChordParameters& after) noexcept
+{
+    if (before.enabled != after.enabled || before.voiceCount != after.voiceCount)
+        return true;
+
+    for (std::size_t index = 0; index < before.voices.size(); ++index)
+    {
+        const auto& beforeVoice = before.voices[index];
+        const auto& afterVoice = after.voices[index];
+        if (beforeVoice.enabled != afterVoice.enabled
+            || beforeVoice.pitchSemitones != afterVoice.pitchSemitones
+            || std::abs(beforeVoice.velocity - afterVoice.velocity) > 0.000001f)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 } // namespace
 
@@ -27,12 +48,22 @@ void SynthEngine::reset() noexcept
     performance = {};
     parameters.performance = performance;
     arpeggiator.reset();
+    resetInputNoteTracking();
+    resetDirectChordTracking();
     voices.panic();
     fx.reset();
 }
 
 void SynthEngine::noteOn(int midiNote, float velocity) noexcept
 {
+    if (midiNote < 0 || midiNote >= static_cast<int>(inputHeldNotes.size()))
+        return;
+
+    const auto noteIndex = static_cast<std::size_t>(midiNote);
+    inputHeldNotes[noteIndex] = true;
+    inputHeldVelocities[noteIndex] = std::clamp(velocity, 0.0f, 1.0f);
+    inputHeldOrder[noteIndex] = ++inputOrderCounter;
+
     if (parameters.arp.enabled)
     {
         arpeggiator.noteOn(midiNote, velocity);
@@ -44,6 +75,14 @@ void SynthEngine::noteOn(int midiNote, float velocity) noexcept
 
 void SynthEngine::noteOff(int midiNote) noexcept
 {
+    if (midiNote < 0 || midiNote >= static_cast<int>(inputHeldNotes.size()))
+        return;
+
+    const auto noteIndex = static_cast<std::size_t>(midiNote);
+    inputHeldNotes[noteIndex] = false;
+    inputHeldVelocities[noteIndex] = 0.0f;
+    inputHeldOrder[noteIndex] = 0;
+
     if (parameters.arp.enabled)
     {
         arpeggiator.noteOff(midiNote, parameters.arp.hold);
@@ -79,12 +118,16 @@ void SynthEngine::setAftertouch(float normalized) noexcept
 void SynthEngine::allNotesOff() noexcept
 {
     arpeggiator.reset();
+    resetInputNoteTracking();
+    resetDirectChordTracking();
     voices.allNotesOff();
 }
 
 void SynthEngine::panic() noexcept
 {
     arpeggiator.reset();
+    resetInputNoteTracking();
+    resetDirectChordTracking();
     voices.panic();
     fx.reset();
 }
@@ -93,6 +136,8 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
 {
     const SynthParameters defaults;
     const auto arpWasEnabled = parameters.arp.enabled;
+    const auto arpHoldWasEnabled = parameters.arp.hold;
+    const auto priorChord = parameters.chord;
     parameters = newParameters;
     parameters.performance = performance;
     parameters.voiceMode = static_cast<VoiceMode>(std::clamp(static_cast<int>(parameters.voiceMode), 0, 3));
@@ -229,10 +274,28 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
     parameters.quality.activeMode = static_cast<QualityMode>(std::clamp(static_cast<int>(parameters.quality.activeMode), 0, 2));
     parameters.tempoBpm = std::clamp(finiteOr(parameters.tempoBpm, defaults.tempoBpm), 20.0f, 300.0f);
 
+    const auto chordConfigChanged = directChordConfigChanged(priorChord, parameters.chord);
     if (arpWasEnabled != parameters.arp.enabled)
     {
         arpeggiator.reset();
+        resetDirectChordTracking();
         voices.allNotesOff();
+        if (parameters.arp.enabled)
+            rebuildArpeggiatorFromInputNotes();
+        else
+            triggerDirectNotesFromInputNotes();
+    }
+    else if (!parameters.arp.enabled && chordConfigChanged)
+    {
+        resetDirectChordTracking();
+        voices.allNotesOff();
+        triggerDirectNotesFromInputNotes();
+    }
+    else if (parameters.arp.enabled && arpHoldWasEnabled && !parameters.arp.hold)
+    {
+        arpeggiator.reset();
+        voices.allNotesOff();
+        rebuildArpeggiatorFromInputNotes();
     }
 }
 
@@ -282,52 +345,47 @@ RenderStats SynthEngine::process(float* left, float* right, int numSamples) noex
 
 void SynthEngine::triggerDirectNoteOn(int midiNote, float velocity) noexcept
 {
+    if (midiNote < 0 || midiNote >= static_cast<int>(directChordInputs.size()))
+        return;
+
+    releaseTrackedDirectChordInput(midiNote);
+
     if (!parameters.chord.enabled)
     {
         voices.noteOn(midiNote, velocity, parameters);
         return;
     }
 
-    const auto voiceLimit = std::clamp(parameters.chord.voiceCount, 1, chordVoiceCount);
-    auto triggered = false;
-    for (int voiceIndex = 0; voiceIndex < voiceLimit; ++voiceIndex)
+    std::array<DirectChordOutputNote, chordVoiceCount> outputNotes {};
+    const auto noteCount = buildDirectChordOutputNotes(midiNote, velocity, outputNotes);
+    if (noteCount <= 0)
+        return;
+
+    auto& inputState = directChordInputs[static_cast<std::size_t>(midiNote)];
+    inputState.active = true;
+    inputState.noteCount = noteCount;
+
+    for (int noteIndex = 0; noteIndex < noteCount; ++noteIndex)
     {
-        const auto& chordVoice = parameters.chord.voices[static_cast<std::size_t>(voiceIndex)];
-        if (!chordVoice.enabled)
-            continue;
+        const auto& outputNote = outputNotes[static_cast<std::size_t>(noteIndex)];
+        inputState.outputNotes[static_cast<std::size_t>(noteIndex)] = outputNote.note;
 
-        voices.noteOn(std::clamp(midiNote + chordVoice.pitchSemitones, 0, 127),
-                      std::clamp(velocity * chordVoice.velocity, 0.0f, 1.0f),
-                      parameters);
-        triggered = true;
+        auto& refCount = directChordOutputRefCounts[static_cast<std::size_t>(outputNote.note)];
+        if (refCount <= 0 || !hasActiveVoiceForNote(outputNote.note))
+            voices.noteOn(outputNote.note, outputNote.velocity, parameters);
+        ++refCount;
     }
-
-    if (!triggered)
-        voices.noteOn(midiNote, velocity, parameters);
 }
 
 void SynthEngine::triggerDirectNoteOff(int midiNote) noexcept
 {
-    if (!parameters.chord.enabled)
-    {
-        voices.noteOff(midiNote, parameters);
+    if (midiNote < 0 || midiNote >= static_cast<int>(directChordInputs.size()))
         return;
-    }
 
-    const auto voiceLimit = std::clamp(parameters.chord.voiceCount, 1, chordVoiceCount);
-    auto released = false;
-    for (int voiceIndex = 0; voiceIndex < voiceLimit; ++voiceIndex)
-    {
-        const auto& chordVoice = parameters.chord.voices[static_cast<std::size_t>(voiceIndex)];
-        if (!chordVoice.enabled)
-            continue;
+    if (releaseTrackedDirectChordInput(midiNote))
+        return;
 
-        voices.noteOff(std::clamp(midiNote + chordVoice.pitchSemitones, 0, 127), parameters);
-        released = true;
-    }
-
-    if (!released)
-        voices.noteOff(midiNote, parameters);
+    voices.noteOff(midiNote, parameters);
 }
 
 void SynthEngine::processArpEvent(const ArpGeneratedEvent& event) noexcept
@@ -337,5 +395,149 @@ void SynthEngine::processArpEvent(const ArpGeneratedEvent& event) noexcept
 
     if (event.noteOn)
         voices.noteOn(event.noteOnNumber, event.velocity, parameters);
+}
+
+int SynthEngine::buildDirectChordOutputNotes(
+    int midiNote,
+    float velocity,
+    std::array<DirectChordOutputNote, chordVoiceCount>& outputNotes) const noexcept
+{
+    auto noteCount = 0;
+    auto enabledVoiceCount = 0;
+    const auto voiceLimit = std::clamp(parameters.chord.voiceCount, 1, chordVoiceCount);
+    const auto inputVelocity = std::clamp(velocity, 0.0f, 1.0f);
+
+    auto appendOutputNote = [&outputNotes, &noteCount](int note, float outputVelocity) noexcept {
+        if (outputVelocity <= 0.0f)
+            return;
+
+        for (int index = 0; index < noteCount; ++index)
+        {
+            auto& existing = outputNotes[static_cast<std::size_t>(index)];
+            if (existing.note == note)
+            {
+                existing.velocity = std::max(existing.velocity, outputVelocity);
+                return;
+            }
+        }
+
+        if (noteCount >= chordVoiceCount)
+            return;
+
+        auto& outputNote = outputNotes[static_cast<std::size_t>(noteCount++)];
+        outputNote.note = note;
+        outputNote.velocity = outputVelocity;
+    };
+
+    for (int voiceIndex = 0; voiceIndex < voiceLimit; ++voiceIndex)
+    {
+        const auto& chordVoice = parameters.chord.voices[static_cast<std::size_t>(voiceIndex)];
+        if (!chordVoice.enabled)
+            continue;
+
+        ++enabledVoiceCount;
+        appendOutputNote(std::clamp(midiNote + chordVoice.pitchSemitones, 0, 127),
+                         std::clamp(inputVelocity * chordVoice.velocity, 0.0f, 1.0f));
+    }
+
+    if (enabledVoiceCount == 0)
+        appendOutputNote(midiNote, inputVelocity);
+
+    return noteCount;
+}
+
+bool SynthEngine::releaseTrackedDirectChordInput(int midiNote) noexcept
+{
+    if (midiNote < 0 || midiNote >= static_cast<int>(directChordInputs.size()))
+        return false;
+
+    auto& inputState = directChordInputs[static_cast<std::size_t>(midiNote)];
+    if (!inputState.active)
+        return false;
+
+    for (int noteIndex = 0; noteIndex < inputState.noteCount; ++noteIndex)
+    {
+        const auto outputNote = inputState.outputNotes[static_cast<std::size_t>(noteIndex)];
+        if (outputNote < 0 || outputNote >= static_cast<int>(directChordOutputRefCounts.size()))
+            continue;
+
+        auto& refCount = directChordOutputRefCounts[static_cast<std::size_t>(outputNote)];
+        if (refCount <= 0)
+            continue;
+
+        --refCount;
+        if (refCount == 0)
+            voices.noteOff(outputNote, parameters);
+    }
+
+    inputState = {};
+    return true;
+}
+
+bool SynthEngine::hasActiveVoiceForNote(int midiNote) const noexcept
+{
+    for (int voiceIndex = 0; voiceIndex < 32; ++voiceIndex)
+    {
+        const auto* voice = voices.getVoice(voiceIndex);
+        if (voice != nullptr && voice->isActive() && voice->getMidiNote() == midiNote)
+            return true;
+    }
+
+    return false;
+}
+
+void SynthEngine::resetDirectChordTracking() noexcept
+{
+    for (auto& inputState : directChordInputs)
+        inputState = {};
+    directChordOutputRefCounts.fill(0);
+}
+
+void SynthEngine::resetInputNoteTracking() noexcept
+{
+    inputHeldNotes.fill(false);
+    inputHeldVelocities.fill(0.0f);
+    inputHeldOrder.fill(0);
+    inputOrderCounter = 0;
+}
+
+void SynthEngine::rebuildArpeggiatorFromInputNotes() noexcept
+{
+    std::array<bool, 128> restoredNotes {};
+
+    for (int restoredCount = 0; restoredCount < static_cast<int>(inputHeldNotes.size()); ++restoredCount)
+    {
+        auto nextNote = -1;
+        auto nextOrder = std::numeric_limits<std::uint64_t>::max();
+        for (int note = 0; note < static_cast<int>(inputHeldNotes.size()); ++note)
+        {
+            const auto noteIndex = static_cast<std::size_t>(note);
+            if (!inputHeldNotes[noteIndex] || restoredNotes[noteIndex] || inputHeldOrder[noteIndex] == 0)
+                continue;
+
+            if (inputHeldOrder[noteIndex] < nextOrder)
+            {
+                nextOrder = inputHeldOrder[noteIndex];
+                nextNote = note;
+            }
+        }
+
+        if (nextNote < 0)
+            return;
+
+        const auto noteIndex = static_cast<std::size_t>(nextNote);
+        restoredNotes[noteIndex] = true;
+        arpeggiator.noteOn(nextNote, inputHeldVelocities[noteIndex]);
+    }
+}
+
+void SynthEngine::triggerDirectNotesFromInputNotes() noexcept
+{
+    for (int note = 0; note < static_cast<int>(inputHeldNotes.size()); ++note)
+    {
+        const auto noteIndex = static_cast<std::size_t>(note);
+        if (inputHeldNotes[noteIndex])
+            triggerDirectNoteOn(note, inputHeldVelocities[noteIndex]);
+    }
 }
 } // namespace synth

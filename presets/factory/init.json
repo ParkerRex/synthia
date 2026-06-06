@@ -4,7 +4,7 @@
   "id": "init",
   "display_name": "Init",
   "author": "Factory",
-  "description": "Clean-room initialization preset with default parameter values.",
+  "description": "Initialization preset with default parameter values.",
   "tags": ["init"],
   "parameters": {
     "voice.mode": "Poly",
@@ -18,6 +18,11 @@
   "mod_slots": [],
   "macros": [],
   "metadata": {
-    "clean_room": true
+    "program": "sylenth_lab_rebuild",
+    "browser": {
+      "bank": "Factory",
+      "category": "Init",
+      "source": "factory"
+    }
   }
 }

@@ -573,6 +573,7 @@ juce::AudioProcessorEditor* SynthAudioProcessor::createEditor()
 std::vector<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetList() const
 {
     std::vector<PresetListItem> items;
+    const auto favoriteKeys = synth::readFavoritePresetKeys(synth::defaultPresetFavoritesFile());
 
     auto append = [&items](const std::vector<synth::PresetSummary>& presets) {
         for (const auto& preset : presets)
@@ -580,15 +581,22 @@ std::vector<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetL
             PresetListItem item;
             item.displayName = preset.displayName.empty() ? juce::String(preset.path.stem().string())
                                                           : juce::String(preset.displayName);
+            item.bank = juce::String(preset.bank);
+            item.category = juce::String(preset.category);
+            item.sourceLabel = juce::String(synth::presetSourceLabel(preset.source));
+            item.favoriteKey = juce::String(preset.favoriteKey);
             item.file = juce::File(juce::String(preset.path.string()));
+            for (const auto& tag : preset.tags)
+                item.tags.add(juce::String(tag));
             item.factory = preset.factory;
+            item.favorite = preset.favorite;
             items.push_back(item);
         }
     };
 
-    append(synth::scanPresetDirectory(synth::factoryPresetDirectory(), true));
-    append(synth::scanPresetDirectory(synth::defaultUserPresetDirectory(), false));
-    append(synth::scanPresetDirectory(synth::legacyUserPresetDirectory(), false));
+    append(synth::scanPresetDirectory(synth::factoryPresetDirectory(), synth::PresetSource::Factory, favoriteKeys));
+    append(synth::scanPresetDirectory(synth::defaultUserPresetDirectory(), synth::PresetSource::User, favoriteKeys));
+    append(synth::scanPresetDirectory(synth::legacyUserPresetDirectory(), synth::PresetSource::LegacyUser, favoriteKeys));
     return items;
 }
 

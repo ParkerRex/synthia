@@ -4,6 +4,7 @@
 #include "../../src/dsp/SynthEngine.h"
 #include "../../src/dsp/fx/FxChain.h"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -411,6 +412,14 @@ float firstHeldVelocity(const synth::SynthEngine& engine)
     return snapshots.empty() ? 0.0f : snapshots.front().velocity;
 }
 
+bool hasHeldNote(const synth::SynthEngine& engine, int midiNote)
+{
+    const auto snapshots = heldSnapshots(engine);
+    return std::any_of(snapshots.begin(), snapshots.end(), [midiNote](const auto& snapshot) {
+        return snapshot.midiNote == midiNote;
+    });
+}
+
 void processSamples(synth::SynthEngine& engine, int sampleCount)
 {
     float left = 0.0f;
@@ -447,6 +456,65 @@ bool testDirectChordExpansion()
     }
 
     if (!hasRoot || !hasThird || !hasFifth)
+        return false;
+
+    engine.noteOff(60);
+    processSamples(engine, 2);
+    return heldSnapshots(engine).empty();
+}
+
+bool testDirectChordOverlapKeepsSharedOutputHeld()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = false;
+    parameters.ampEnv.releaseMs = 1.0f;
+    parameters.chord.enabled = true;
+    parameters.chord.voiceCount = 2;
+    parameters.chord.voices[0] = { true, 0, 1.0f };
+    parameters.chord.voices[1] = { true, 4, 1.0f };
+
+    synth::SynthEngine engine;
+    engine.prepare(1000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.8f);
+    engine.noteOn(64, 0.7f);
+    processSamples(engine, 1);
+
+    if (!hasHeldNote(engine, 60) || !hasHeldNote(engine, 64) || !hasHeldNote(engine, 68))
+        return false;
+
+    engine.noteOff(60);
+    processSamples(engine, 2);
+    if (hasHeldNote(engine, 60) || !hasHeldNote(engine, 64) || !hasHeldNote(engine, 68))
+        return false;
+
+    engine.noteOff(64);
+    processSamples(engine, 2);
+    return heldSnapshots(engine).empty();
+}
+
+bool testDirectChordParameterChangeReleasesOriginalOutputs()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = false;
+    parameters.ampEnv.releaseMs = 1.0f;
+    parameters.chord.enabled = true;
+    parameters.chord.voiceCount = 2;
+    parameters.chord.voices[0] = { true, 0, 1.0f };
+    parameters.chord.voices[1] = { true, 7, 1.0f };
+
+    synth::SynthEngine engine;
+    engine.prepare(1000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.8f);
+    processSamples(engine, 1);
+    if (!hasHeldNote(engine, 60) || !hasHeldNote(engine, 67))
+        return false;
+
+    parameters.chord.enabled = false;
+    engine.setParameters(parameters);
+    processSamples(engine, 2);
+    if (!hasHeldNote(engine, 60) || hasHeldNote(engine, 67))
         return false;
 
     engine.noteOff(60);
@@ -567,6 +635,105 @@ bool testArpTieHoldAndPanic()
     engine.panic();
     processSamples(engine, 1);
     return activeSnapshotCount(engine) == 0;
+}
+
+bool testArpEnableDisableWhileNotesHeld()
+{
+    {
+        synth::SynthParameters parameters;
+        parameters.filter.enabled = false;
+        parameters.ampEnv.attackMs = 0.0f;
+        parameters.ampEnv.releaseMs = 1.0f;
+        parameters.arp.rate = synth::ArpRateDivision::Sixteenth;
+        parameters.arp.gate = 1.0f;
+        parameters.arp.stepCount = 1;
+        parameters.tempoBpm = 120.0f;
+
+        synth::SynthEngine engine;
+        engine.prepare(1000.0, 1);
+        engine.setParameters(parameters);
+        engine.noteOn(60, 0.8f);
+        processSamples(engine, 1);
+        if (!hasHeldNote(engine, 60))
+            return false;
+
+        parameters.arp.enabled = true;
+        engine.setParameters(parameters);
+        processSamples(engine, 1);
+        if (!hasHeldNote(engine, 60))
+            return false;
+
+        engine.noteOff(60);
+        processSamples(engine, 2);
+        if (!heldSnapshots(engine).empty())
+            return false;
+    }
+
+    {
+        synth::SynthParameters parameters;
+        parameters.filter.enabled = false;
+        parameters.ampEnv.attackMs = 0.0f;
+        parameters.ampEnv.releaseMs = 1.0f;
+        parameters.arp.enabled = true;
+        parameters.arp.rate = synth::ArpRateDivision::Sixteenth;
+        parameters.arp.gate = 1.0f;
+        parameters.arp.stepCount = 1;
+        parameters.tempoBpm = 120.0f;
+
+        synth::SynthEngine engine;
+        engine.prepare(1000.0, 1);
+        engine.setParameters(parameters);
+        engine.noteOn(60, 0.8f);
+        processSamples(engine, 1);
+        if (!hasHeldNote(engine, 60))
+            return false;
+
+        parameters.arp.enabled = false;
+        engine.setParameters(parameters);
+        processSamples(engine, 1);
+        if (!hasHeldNote(engine, 60))
+            return false;
+
+        engine.noteOff(60);
+        processSamples(engine, 2);
+        if (!heldSnapshots(engine).empty())
+            return false;
+    }
+
+    return true;
+}
+
+bool testArpHoldDisableClearsReleasedInputNotes()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = false;
+    parameters.ampEnv.attackMs = 0.0f;
+    parameters.ampEnv.releaseMs = 1.0f;
+    parameters.arp.enabled = true;
+    parameters.arp.mode = synth::ArpMode::AsPlayed;
+    parameters.arp.rate = synth::ArpRateDivision::Sixteenth;
+    parameters.arp.gate = 1.0f;
+    parameters.arp.hold = true;
+    parameters.arp.stepCount = 1;
+    parameters.tempoBpm = 120.0f;
+
+    synth::SynthEngine engine;
+    engine.prepare(1000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.8f);
+    processSamples(engine, 1);
+    if (!hasHeldNote(engine, 60))
+        return false;
+
+    engine.noteOff(60);
+    processSamples(engine, 2);
+    if (!hasHeldNote(engine, 60))
+        return false;
+
+    parameters.arp.hold = false;
+    engine.setParameters(parameters);
+    processSamples(engine, 2);
+    return heldSnapshots(engine).empty();
 }
 
 bool testRampGlideAndVelocityGlide()
@@ -1343,6 +1510,18 @@ int main()
         return 1;
     }
 
+    if (!testDirectChordOverlapKeepsSharedOutputHeld())
+    {
+        std::cerr << "Direct chord overlap release test failed.\n";
+        return 1;
+    }
+
+    if (!testDirectChordParameterChangeReleasesOriginalOutputs())
+    {
+        std::cerr << "Direct chord parameter-change release test failed.\n";
+        return 1;
+    }
+
     if (!testArpUpModeTimingAndGate())
     {
         std::cerr << "Arp up-mode timing/gate test failed.\n";
@@ -1358,6 +1537,18 @@ int main()
     if (!testArpTieHoldAndPanic())
     {
         std::cerr << "Arp tie/hold/panic test failed.\n";
+        return 1;
+    }
+
+    if (!testArpEnableDisableWhileNotesHeld())
+    {
+        std::cerr << "Arp enable/disable held-note test failed.\n";
+        return 1;
+    }
+
+    if (!testArpHoldDisableClearsReleasedInputNotes())
+    {
+        std::cerr << "Arp hold-disable release test failed.\n";
         return 1;
     }
 

@@ -5,6 +5,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <set>
@@ -106,6 +107,11 @@ bool setPhysicalParameter(juce::AudioProcessorValueTreeState& parameters, const 
 
     parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
     return true;
+}
+
+bool containsString(const std::vector<std::string>& values, const std::string& expected)
+{
+    return std::find(values.begin(), values.end(), expected) != values.end();
 }
 
 void removeParameterChildrenStartingWith(juce::ValueTree& state, const char* prefix)
@@ -315,7 +321,124 @@ bool checkPresetManagerLoadAndSave()
         tempFile.deleteFile();
         return false;
     }
+
+    const auto savedMetadata = savedObject != nullptr
+        ? savedObject->getProperty(juce::Identifier("metadata"))
+        : juce::var();
+    const auto* savedMetadataObject = savedMetadata.getDynamicObject();
+    const auto savedBrowserMetadata = savedMetadataObject != nullptr
+        ? savedMetadataObject->getProperty(juce::Identifier("browser"))
+        : juce::var();
+    const auto* savedBrowserObject = savedBrowserMetadata.getDynamicObject();
+    if (savedBrowserObject == nullptr
+        || savedBrowserObject->getProperty(juce::Identifier("bank")).toString() != "User"
+        || savedBrowserObject->getProperty(juce::Identifier("category")).toString() != "User"
+        || savedBrowserObject->getProperty(juce::Identifier("source")).toString() != "user")
+    {
+        std::cerr << "Saved preset omitted browser metadata.\n";
+        tempFile.deleteFile();
+        return false;
+    }
     tempFile.deleteFile();
+
+    const auto factoryPresets = synth::scanPresetDirectory("presets/factory", synth::PresetSource::Factory, {});
+    const auto pluckPreset = std::find_if(factoryPresets.begin(), factoryPresets.end(), [](const auto& preset) {
+        return preset.id == "pluck-core-01";
+    });
+    if (pluckPreset == factoryPresets.end()
+        || pluckPreset->bank != "Factory"
+        || pluckPreset->category != "Plucks"
+        || !containsString(pluckPreset->tags, "pluck")
+        || pluckPreset->favorite
+        || pluckPreset->favoriteKey != "factory:pluck-core-01")
+    {
+        std::cerr << "Factory preset browser metadata scan failed.\n";
+        return false;
+    }
+
+    const auto browserDirectory = juce::File::getSpecialLocation(juce::File::tempDirectory)
+        .getChildFile("sylenth-ai-preset-browser-contract");
+    browserDirectory.deleteRecursively();
+    if (!browserDirectory.createDirectory())
+    {
+        std::cerr << "Could not create preset browser test directory.\n";
+        return false;
+    }
+
+    const auto browserPresetFile = browserDirectory.getChildFile("browser-favorite-test.json");
+    if (!synth::writeCurrentPreset(processor.parameters, browserPresetFile.getFullPathName().toStdString(),
+                                   "Browser Favorite Test", error))
+    {
+        std::cerr << error << "\n";
+        browserDirectory.deleteRecursively();
+        return false;
+    }
+
+    const auto favoriteKey = synth::presetFavoriteKey(synth::PresetSource::User,
+                                                      "browser-favorite-test",
+                                                      browserPresetFile.getFullPathName().toStdString());
+    const auto favoritesFile = browserDirectory.getChildFile("PresetFavorites.json");
+    if (!synth::setPresetFavorite(favoritesFile.getFullPathName().toStdString(), favoriteKey, true, error))
+    {
+        std::cerr << error << "\n";
+        browserDirectory.deleteRecursively();
+        return false;
+    }
+
+    const auto favoriteKeys = synth::readFavoritePresetKeys(favoritesFile.getFullPathName().toStdString());
+    const auto browserPresets = synth::scanPresetDirectory(browserDirectory.getFullPathName().toStdString(),
+                                                           synth::PresetSource::User,
+                                                           favoriteKeys);
+    if (browserPresets.size() != 1
+        || !browserPresets.front().favorite
+        || browserPresets.front().bank != "User"
+        || browserPresets.front().category != "User"
+        || !containsString(browserPresets.front().tags, "user"))
+    {
+        std::cerr << "Preset browser scan did not apply sidecar favorite metadata.\n";
+        browserDirectory.deleteRecursively();
+        return false;
+    }
+
+    synth::PresetBrowserFilter filter;
+    filter.searchText = "favorite";
+    filter.category = "User";
+    filter.tags = { "user" };
+    filter.favoritesOnly = true;
+    const auto filteredFavorites = synth::filterPresetSummaries(browserPresets, filter);
+    if (filteredFavorites.size() != 1 || filteredFavorites.front().id != "browser-favorite-test")
+    {
+        std::cerr << "Preset browser filter failed to match favorite user preset.\n";
+        browserDirectory.deleteRecursively();
+        return false;
+    }
+
+    filter.includeUser = false;
+    if (!synth::filterPresetSummaries(browserPresets, filter).empty())
+    {
+        std::cerr << "Preset browser source filter did not exclude user preset.\n";
+        browserDirectory.deleteRecursively();
+        return false;
+    }
+
+    const auto catalog = synth::buildPresetBrowserCatalog(browserPresets);
+    if (!containsString(catalog.banks, "User")
+        || !containsString(catalog.categories, "User")
+        || !containsString(catalog.tags, "user"))
+    {
+        std::cerr << "Preset browser catalog facets missing expected values.\n";
+        browserDirectory.deleteRecursively();
+        return false;
+    }
+
+    if (!synth::setPresetFavorite(favoritesFile.getFullPathName().toStdString(), favoriteKey, false, error)
+        || !synth::readFavoritePresetKeys(favoritesFile.getFullPathName().toStdString()).empty())
+    {
+        std::cerr << "Preset favorite sidecar remove failed.\n";
+        browserDirectory.deleteRecursively();
+        return false;
+    }
+    browserDirectory.deleteRecursively();
 
     const auto extensionlessFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
         .getChildFile("sylenth-ai-preset-manager-extension-test");
@@ -413,9 +536,13 @@ int main()
         || std::abs(arpStepPitch->minimum + 24.0f) > 0.0001f
         || std::abs(arpStepPitch->maximum - 24.0f) > 0.0001f
         || std::abs(chordVoiceCount->defaultValue - 1.0f) > 0.0001f
-        || std::abs(chordVoiceOneEnabled->defaultValue - 1.0f) > 0.0001f)
+        || std::abs(chordVoiceOneEnabled->defaultValue - 1.0f) > 0.0001f
+        || arpEnabled->auVersionHint < 2
+        || arpStepPitch->auVersionHint < 2
+        || chordVoiceCount->auVersionHint < 2
+        || chordVoiceOneEnabled->auVersionHint < 2)
     {
-        std::cerr << "Layer/oscillator registry defaults or ranges mismatch.\n";
+        std::cerr << "Layer/oscillator/arp/chord registry defaults, ranges, or AU version hints mismatch.\n";
         return 1;
     }
 

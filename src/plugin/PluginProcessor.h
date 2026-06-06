@@ -45,8 +45,14 @@ public:
     struct PresetListItem
     {
         juce::String displayName;
+        juce::String bank;
+        juce::String category;
+        juce::String sourceLabel;
+        juce::String favoriteKey;
         juce::File file;
+        juce::StringArray tags;
         bool factory = false;
+        bool favorite = false;
     };
 
     struct DiagnosticsSnapshot

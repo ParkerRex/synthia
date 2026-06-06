@@ -52,6 +52,7 @@ private:
     std::array<float, 128> heldVelocities {};
     std::array<std::uint64_t, 128> heldOrder {};
     std::uint64_t noteOrderCounter = 0;
+    int heldNoteCount = 0;
     int activeOutputNote = -1;
     int samplesUntilStep = 0;
     int samplesUntilGateOff = 0;

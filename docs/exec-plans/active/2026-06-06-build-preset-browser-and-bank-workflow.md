@@ -2,9 +2,9 @@
 title: Build Preset Browser And Bank Workflow
 status: active
 created_at: 2026-06-06
-completed_at: null
+completed_at: 2026-06-06
 summary: Add the Phase 1 preset browser, bank/category metadata, favorites, search/filter state, and validation hooks needed before deeper Claude Code preset UI polish.
-post_build_recap: null
+post_build_recap: Added browser-facing preset summaries with source, bank, category, tags, favorite keys, sidecar favorite state, search/filter helpers, and catalog facets; saved user presets now write metadata.browser; factory presets now declare browser metadata; validation covers saved metadata, factory scans, sidecar favorite add/remove, filters, and facets.
 read_when:
   - Implementing or reviewing preset browser, bank, category, favorite, author, tag, search, or preset metadata behavior.
   - Preparing preset browser UI polish for Claude Code.
@@ -27,17 +27,27 @@ Phase 1 needs a real preset workflow before the UI can be polished. The current 
 ## Progress
 
 - [x] 2026-06-06 EDT: Created this Program-linked ExecPlan after closing the arp/step/chord workflow.
-- [ ] Inventory current `PresetManager`, preset JSON, editor combo, and validation behavior.
-- [ ] Add bank/category/favorite/search metadata state without breaking existing factory presets.
-- [ ] Update preset scan summaries and browser-facing models.
-- [ ] Add validation coverage for metadata, legacy defaults, and saved user presets.
-- [ ] Update docs and Claude Code preset-browser handoff gates.
+- [x] Inventory current `PresetManager`, preset JSON, editor combo, and validation behavior.
+- [x] Add bank/category/favorite/search metadata state without breaking existing factory presets.
+- [x] Update preset scan summaries and browser-facing models.
+- [x] Add validation coverage for metadata, legacy defaults, and saved user presets.
+- [x] Update docs and Claude Code preset-browser handoff gates.
 
 ## Decision Log
 
 Decision: Keep browser metadata separate from realtime audio state.
 Rationale: Bank/category/search/favorite behavior must not touch the audio thread and must remain useful for factory, user, and future AI-generated presets.
 Date: 2026-06-06.
+
+Decision: Store favorites in a local sidecar file instead of preset JSON.
+Rationale: Factory presets are read-only and favorite state is user-library preference state, not sound-design state.
+Date: 2026-06-06.
+
+## Outcomes & Retrospective
+
+Completed. `PresetManager` now exposes structured browser summaries and pure catalog/filter helpers. Preset scans distinguish `Factory`, `User`, and `Legacy User`, read optional `metadata.browser.bank/category/source`, preserve older preset visibility with source-derived fallbacks, and mark favorites from `~/Music/ParkerX/sylenth-ai/PresetFavorites.json`. Saved user presets write `metadata.browser` with `User` bank/category/source. The editor's existing combo now displays source/bank/category/favorite hints; the visual browser drawer remains a Claude Code handoff item.
+
+Factory preset metadata was updated to remove legacy source-policy fields and declare browser metadata. `PresetValidator` now validates optional `metadata.browser` types and source values.
 
 ## Context and Orientation
 

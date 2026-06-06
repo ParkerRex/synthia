@@ -12,7 +12,7 @@ read_when:
 program_id: sylenth-lab-rebuild
 planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
 handoff_target: Claude Code
-handoff_status: blocked_until_feature_models_exist
+handoff_status: partial_ready_for_preset_and_arp
 ---
 
 # Handoff Modulation Preset Arp UI Polish
@@ -29,7 +29,7 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 
 - [x] 2026-06-05 EDT: Created this UI handoff ExecPlan.
 - [ ] Confirm modulation route model exists before modulation UI handoff.
-- [ ] Confirm preset browser model exists before browser UI handoff.
+- [x] 2026-06-06 EDT: Confirmed preset browser/source/bank/category/tag/favorite/search model exists before browser UI handoff.
 - [x] 2026-06-06 EDT: Confirmed arp/step/chord engine and APVTS model exists before arp UI handoff.
 - [ ] Confirm FX rack model exists before FX UI handoff.
 - [ ] Hand off completed dependency slice to Claude Code.
@@ -51,10 +51,10 @@ Pending implementation and handoff review.
 
 ## Context and Orientation
 
-Do not hand this to Claude Code until the relevant dependency exists:
+Do not hand a surface to Claude Code until the relevant dependency exists:
 
 - Modulation polish requires a route model and destination catalog.
-- Preset browser polish requires browser/search/favorite/metadata state.
+- Preset browser polish can now bind to `PresetSummary`, `PresetBrowserFilter`, `PresetBrowserCatalog`, source/bank/category/tag fields, and sidecar favorite keys.
 - Arp UI polish can now bind to `arp.*`, `arp.step.N.*`, `chord.*`, and `chord.voice.N.*`; final step-grid polish still needs Claude Code implementation.
 - FX rack polish requires expanded FX module state and tail/cost diagnostics.
 

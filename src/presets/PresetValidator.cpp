@@ -64,6 +64,18 @@ bool isDepthInRange(const std::string& targetId, const std::string& depthDomain,
     return false;
 }
 
+bool isAllowedBrowserSource(const juce::var& source)
+{
+    if (!source.isString())
+        return false;
+
+    const auto value = source.toString();
+    return value == "factory"
+        || value == "user"
+        || value == "legacy_user"
+        || value == "ai_generated";
+}
+
 void validateParameterValue(PresetValidationResult& result, const ParameterSpec& spec, const juce::var& value)
 {
     if (spec.kind == ParameterKind::Float)
@@ -95,6 +107,82 @@ void validateParameterValue(PresetValidationResult& result, const ParameterSpec&
         if (std::find(spec.choices.begin(), spec.choices.end(), selected) == spec.choices.end())
             result.errors.push_back(spec.id + " has unknown choice '" + selected + "'");
     }
+}
+
+void validateTags(PresetValidationResult& result, const juce::var& tags)
+{
+    if (!tags.isArray())
+    {
+        result.errors.push_back("tags must be an array");
+        return;
+    }
+
+    const auto* tagArray = tags.getArray();
+    if (tagArray == nullptr)
+        return;
+
+    for (const auto& tag : *tagArray)
+    {
+        if (!tag.isString())
+            result.errors.push_back("tags entries must be strings");
+    }
+}
+
+void validateBrowserMetadata(PresetValidationResult& result, const juce::DynamicObject& metadata)
+{
+    const auto browser = metadata.getProperty(juce::Identifier("browser"));
+    if (browser.isVoid())
+        return;
+
+    if (!browser.isObject())
+    {
+        result.errors.push_back("metadata.browser must be an object");
+        return;
+    }
+
+    const auto* browserObject = browser.getDynamicObject();
+    if (browserObject == nullptr)
+    {
+        result.errors.push_back("metadata.browser object unavailable");
+        return;
+    }
+
+    const auto bank = browserObject->getProperty(juce::Identifier("bank"));
+    if (!bank.isVoid() && !bank.isString())
+        result.errors.push_back("metadata.browser.bank must be a string");
+
+    const auto category = browserObject->getProperty(juce::Identifier("category"));
+    if (!category.isVoid() && !category.isString())
+        result.errors.push_back("metadata.browser.category must be a string");
+
+    const auto source = browserObject->getProperty(juce::Identifier("source"));
+    if (!source.isVoid() && !isAllowedBrowserSource(source))
+        result.errors.push_back("metadata.browser.source must be factory, user, legacy_user, or ai_generated");
+}
+
+void validateMetadata(PresetValidationResult& result, const juce::var& metadata)
+{
+    if (metadata.isVoid())
+        return;
+
+    if (!metadata.isObject())
+    {
+        result.errors.push_back("metadata must be an object");
+        return;
+    }
+
+    const auto* metadataObject = metadata.getDynamicObject();
+    if (metadataObject == nullptr)
+    {
+        result.errors.push_back("metadata object unavailable");
+        return;
+    }
+
+    const auto program = metadataObject->getProperty(juce::Identifier("program"));
+    if (!program.isVoid() && !program.isString())
+        result.errors.push_back("metadata.program must be a string");
+
+    validateBrowserMetadata(result, *metadataObject);
 }
 
 void validateModSlots(PresetValidationResult& result, const juce::var& modSlots)
@@ -233,8 +321,8 @@ PresetValidationResult validatePresetFile(const std::filesystem::path& path)
             result.errors.push_back("schema_version must be an integer >= 1");
     }
 
-    if (hasProperty(*object, "tags") && !getProperty(*object, "tags").isArray())
-        result.errors.push_back("tags must be an array");
+    if (hasProperty(*object, "tags"))
+        validateTags(result, getProperty(*object, "tags"));
 
     if (hasProperty(*object, "mod_slots") && !getProperty(*object, "mod_slots").isArray())
         result.errors.push_back("mod_slots must be an array");
@@ -268,6 +356,9 @@ PresetValidationResult validatePresetFile(const std::filesystem::path& path)
             }
         }
     }
+
+    if (hasProperty(*object, "metadata"))
+        validateMetadata(result, getProperty(*object, "metadata"));
 
     return result;
 }
