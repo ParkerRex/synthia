@@ -9,13 +9,14 @@ Active child plans:
 
 Active Claude handoff slice: `2026-06-06-handoff-sylenth-visual-information-architecture.md`.
 
-UI handoff rule: the modern shell handoff is completed, and the roadmap truth audit says A/B layer plus four-slot rendering is real enough for a broad visual information architecture pass. Preset browser, arp/step/chord, FX rack, modulation inspection, and single-slot modulation route writing have model-backed surfaces and screenshot evidence. Per-route bypass/remove and expanded modulation destinations still need later schema work.
+UI handoff rule: the modern shell handoff is completed, and the roadmap truth audit says A/B layer plus four-slot rendering is real enough for a broad visual information architecture pass. Preset browser, arp/step/chord, FX rack, patch cost, modulation inspection, and single-slot modulation route writing have model-backed surfaces and screenshot evidence. Per-route bypass/remove and expanded modulation destinations still need later schema work.
 
 Product-order Codex slice: complete the remaining Ableton Phase 1 host matrix against AU/VST3 with automation record/playback, AU controller mapping/value application, Ableton-side preset recreation, modulation exercise, bounce-versus-realtime comparison, buffer/sample-rate, and all-notes-off/panic proof.
 
 Completed child plans:
 
 - `../completed/2026-06-06-build-modulation-write-adapter-and-route-schema.md`
+- `../completed/2026-06-06-build-patch-cost-and-voice-math-model.md`
 - `../completed/2026-06-06-build-sylenth-patch-recreation-suite.md`
 - `../completed/2026-06-05-build-sylenth-layer-oscillator-backbone.md`
 - `../completed/2026-06-05-build-sylenth-layer-b-and-four-osc-rendering.md`

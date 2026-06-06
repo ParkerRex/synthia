@@ -885,6 +885,7 @@ SynthAudioProcessor::DiagnosticsSnapshot SynthAudioProcessor::getDiagnosticsSnap
     snapshot.midiEvents = diagnosticMidiEvents.load(std::memory_order_relaxed);
     snapshot.invalidSamples = diagnosticInvalidSamples.load(std::memory_order_relaxed);
     snapshot.peak = diagnosticPeak.load(std::memory_order_relaxed);
+    snapshot.patchCost = synth::estimatePatchCost(readParameters(128.0f, false));
     snapshot.architecture = binaryArchitecture();
     const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
     snapshot.currentPreset = currentPresetName;

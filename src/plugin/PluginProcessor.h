@@ -67,6 +67,7 @@ public:
         int midiEvents = 0;
         int invalidSamples = 0;
         float peak = 0.0f;
+        synth::PatchCostEstimate patchCost;
         juce::String architecture;
         juce::String currentPreset;
         juce::String lastPresetStatus;
