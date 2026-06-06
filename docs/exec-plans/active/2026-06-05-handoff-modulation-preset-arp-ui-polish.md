@@ -3,7 +3,7 @@ title: Handoff Modulation Preset Arp UI Polish
 status: active
 created_at: 2026-06-05
 completed_at: null
-summary: Claude Code handoff plan for modulation visuals, preset browser, arp/step UI, and FX rack polish after feature models exist.
+summary: Claude Code handoff plan for deeper modulation visuals, preset browser, arp/step UI, and FX rack polish now that model-backed first surfaces exist.
 post_build_recap: null
 read_when:
   - Preparing modulation, preset browser, arpeggiator, or FX rack UI work for Claude Code.
@@ -12,7 +12,7 @@ read_when:
 program_id: sylenth-lab-rebuild
 planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
 handoff_target: Claude Code
-handoff_status: model_ready_for_preset_arp_fx_and_modulation_inspection
+handoff_status: model_backed_surfaces_live_deeper_polish_open
 ---
 
 # Handoff Modulation Preset Arp UI Polish
@@ -115,7 +115,9 @@ Current code references:
 - `src/plugin/PluginEditor.*`
 - `src/plugin/ParameterRegistry.*`
 - `src/presets/PresetManager.*`
-- future route, browser, arp, and FX model files.
+- `src/modulation/ModulationRouteModel.*`
+- `src/dsp/Arpeggiator.*`
+- `src/dsp/fx/FxChain.*`
 
 ### In Scope
 
@@ -209,7 +211,7 @@ Expected handoff deliverables:
 
 ## Interfaces and Dependencies
 
-Depends on future Phase 1 feature-model ExecPlans:
+Depends on completed Phase 1 feature-model ExecPlans:
 
 - modulation route model
 - preset browser and bank workflow

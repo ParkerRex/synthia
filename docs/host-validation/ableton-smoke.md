@@ -4,6 +4,25 @@ Use this file when validating sylenth-ai on a Mac with Ableton installed. Commit
 
 Local install, uninstall, ad-hoc signing, AU validation, and Ableton rescan troubleshooting are documented in `docs/host-validation/local-install-troubleshooting.md`.
 
+## Current Status Summary - 2026-06-06
+
+Completed current-build proof:
+
+- Release build, CTest, core suite, bundle checks, local install, and `auval -v aumu SyAI PkRx`.
+- AU and VST3 scan/create/play plus AU and VST3 host state restore.
+- VST3 transport run/stop, VST3 offline bounce artifact creation, and AU transport run/stop.
+- AU and VST3 hosted editor open/close/reopen while transport runs.
+- VST3 global MIDI Learn capture/persistence, continuous mapped value application, stepped mapped value application, and Forget.
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- AU learned CC mapping and value-application proof in Ableton.
+- Current preset recreation and modulation exercise.
+- Offline bounce versus realtime comparison.
+- Sample-rate and buffer-size changes.
+- All-notes-off and panic proof.
+
 ## Environment
 
 - date: 2026-06-05 EDT

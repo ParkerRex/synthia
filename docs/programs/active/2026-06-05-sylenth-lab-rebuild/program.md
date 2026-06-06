@@ -52,7 +52,7 @@ Project truth surfaces:
 
 ## Current State
 
-The repo already has a buildable JUCE/CMake AU, VST3, and standalone instrument with a single-core subtractive pluck engine, APVTS parameter registry, preset validation, factory/user preset load-save-duplicate workflow, a scrollable editor, TransMod-style modulation, onboard FX, core render validation, and early Ableton smoke evidence.
+The repo already has a buildable JUCE/CMake AU, VST3, and standalone instrument with a Layer A/B-capable subtractive engine, A1/A2/B1/B2 oscillator-slot rendering, layer enable/mute/solo/level/pan state, APVTS parameter registry, preset validation, factory/user/legacy preset browser workflow, a scrollable tabbed editor, TransMod-style modulation route inspection, global MIDI Learn, onboard fixed-order FX, core render validation, and current Ableton smoke evidence.
 
 Commit `075150d` created the current Sylenth lab roadmap, imported `Sylenth1Manual.pdf`, `Serum_Manual.pdf`, and the 25-image Sylenth screenshot corpus, and replaced the stale legacy doc references.
 
@@ -83,7 +83,8 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed VST3 learned-CC capture/persistence proof: routed a temporary CoreMIDI source into Ableton, armed MIDI Learn for `filter.resonance`, captured CC71, persisted the expected controller-map sidecar, and kept AU/controller value-application plus automation replay open.
 - [x] 2026-06-06 EDT: Executed VST3 continuous controller value-application proof: seeded the persisted CC71 map, routed a temporary CoreMIDI value source into Ableton, and captured hosted Resonance moving `0.00 -> 1.00 -> 0.00`.
 - [x] 2026-06-06 EDT: Executed VST3 controller Forget/stepped proof: seeded CC73 to `filter.mode`, captured Filter Mode moving `L4 -> Notch4 -> L2`, clicked hosted Forget, verified an empty sidecar, and confirmed later CC73 high no longer changed Filter Mode.
-- [ ] Hand off UI information architecture and visual polish plans to Claude Code after state contracts are ready.
+- [x] Model-ready UI handoff and first local polish passes exist for preset browser, arp/step/chord, FX rack, and read-only modulation inspection.
+- [ ] Complete or explicitly close deeper UI visual/control polish follow-ups.
 - [ ] Complete the remaining Phase 1 Ableton validation matrix against the Sylenth-level build.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
 - [ ] Execute Phase 3 conversational VST and reference-sound workflows.
@@ -131,9 +132,9 @@ Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
 Product-order next Codex slice: complete the remaining Phase 1 Ableton host matrix against the current AU/VST3 build.
 
-Preset browser, arp/step/chord, FX rack, modulation inspection, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; drag/drop modulation writing, per-route bypass/remove, per-control MIDI context menus, and richer browser metadata editing remain later slices.
+Preset browser, arp/step/chord, FX rack, modulation inspection, layer/slot rendering, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; drag/drop modulation writing, per-route bypass/remove, per-control MIDI context menus, richer browser metadata editing, and per-layer filter/envelope/master parity remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore, VST3 transport run/stop, VST3 offline bounce artifact creation, AU transport run/stop, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 learned-CC capture/persistence proof, VST3 continuous controller value-application proof, and VST3 controller Forget/stepped proof: automation, AU learned CC mapping/value application, preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic.
+The remaining non-UI product proof is Ableton AU/VST3 automation record/playback, AU learned CC mapping/value application, current preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, and panic. Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, and VST3 controller Learn/value/Forget/stepped proof are already recorded.
 
 ## Risks and Watchpoints
 
