@@ -51,6 +51,11 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [x] 2026-06-06 EDT: Implemented a compact APVTS-safe preset browser drawer in `PluginEditor.*` with search, source filters, favorites-only, category filtering, row load, and sidecar favorite toggles over `getPresetList()`.
 - [x] 2026-06-06 EDT: Captured native standalone Sound page screenshot evidence at `build/reports/ui/preset-browser-drawer-ui-sound.png` and compact evidence at `build/reports/ui/preset-browser-drawer-ui-compact.png`.
 - [x] 2026-06-06 EDT: Ran an adversarial read-only pass; fixed favorite-cell double-click loading and added active-preset row selection/highlighting before commit.
+- [x] 2026-06-06 EDT: Polished the four model-ready surfaces in `PluginEditor.*` (no new model/DSP): FX-rack and TransMod panels now render a per-module power dot plus dimmed header/badge driven by the existing `*_enabled` atomics; arp/chord top controls disambiguated to `Chord Enabled` / `Chord Voice Count` vs the arp `Enabled`; preset-browser favorite cell uses a filled/hollow star affordance; modulation overview shows an active-route count in its header.
+- [x] 2026-06-06 EDT: Kept realtime boundaries intact — panel enable state is a UI-thread atomic read, repainted only on change for the *visible* page via the existing 15 Hz timer (no per-frame churn, hidden tabs stay idle, Sound page render path unchanged).
+- [x] 2026-06-06 EDT: Validated the polish slice: `git diff --check` clean, Debug build clean (no warnings), CTest 5/5, `SylenthAIRender --suite core` wrote 11 reports.
+- [x] 2026-06-06 EDT: Captured native standalone screenshot evidence at `build/reports/ui/polish-sound-page.png` (preset stars), `build/reports/ui/polish-fx-rack.png` (FX power dimming), `build/reports/ui/polish-modulation-page.png` (TransMod dimming + overview count), and `build/reports/ui/polish-arp-chord.png` (disambiguated arp/chord labels).
+- [x] 2026-06-06 EDT: Ran an adversarial read-only pass on the polish diff; corrected a misleading chord-prefix comment and confirmed the enable-atomic pointer outlives every panel (APVTS owned by the processor, panels destroyed with the editor first).
 
 ## Surprises & Discoveries
 
@@ -58,6 +63,7 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - A second tighter screenshot-referenced Claude handoff still spent the run reading and reasoning without patching. For UI polish, use Claude as a fast bounded reviewer/polisher, but keep a local implementation path ready when the patch does not appear quickly.
 - A third narrow modulation-inspection Claude handoff with explicit two-file scope still stopped before patching. The practical loop is now: give Claude strict UI polish prompts, watch streaming output, terminate analysis-only runs quickly, and preserve local implementation as the shipping path.
 - A fourth narrow preset-browser drawer Claude handoff also stopped before patching. Continue treating Claude as bounded assistance for UI polish, not a blocking owner for slices that Codex can implement locally.
+- A fifth pass (this one) executed the model-ready UI polish end-to-end: it stayed inside `PluginEditor.*`, built, tested, and captured standalone screenshots. Screenshot automation worked via `osascript` accessibility clicks on the named tab/Load buttons plus a tiny compiled-Swift `CGEvent` scroll helper; the JUCE `Viewport` exposes no `AXScrollArea`, and scroll-wheel events posted over a rotary land on the knob (nudging its value), so deep-page scrolling must target a non-control gutter and the preset should be reloaded afterward to discard any nudges.
 - Native standalone screenshot automation confirmed the app opens after the editor patch. A taller window captured the new sequencer row itself, while PageDown and direct Accessibility scroll-bar automation did not move the JUCE viewport far enough to inspect the bottom lanes.
 
 ## Decision Log
@@ -70,7 +76,16 @@ Date: 2026-06-05.
 
 Partial arp/step/chord implementation passed build, CTest, adversarial review, and native standalone visual launch/row evidence. FX rack state is now model-backed and has a first local visual polish pass with ordered module badges. Modulation inspection polish now has a route model over the current TransMod state and a read-only overview panel that exposes source counts and active routes without inventing write behavior. Preset browser polish now has a first drawer surface for search/filter/load/favorite workflows over the real scanned preset list.
 
-The next Claude Code pass can target deeper preset browser, arp/step/chord, and FX rack visual polish only. Modulation drag/drop, matrix editing, per-route bypass/remove, and route halos still need explicit write adapters or schema support before they become UI scope.
+A subsequent local polish pass tightened all four model-ready surfaces without touching DSP, schema, or the realtime boundary: FX-rack and TransMod module headers now carry a power dot and dim when their `*_enabled` parameter is off (so a glance reads which modules/slots are live), the arp/chord top row no longer shows two ambiguous `Enabled` toggles, the preset favorite cell reads as a star, and the modulation overview surfaces an active-route count. The dimming is a UI-thread atomic read repainted only on change for the visible page, so it adds no audio-thread work and no per-frame churn.
+
+Residual gaps after this pass:
+
+- Each FX/TransMod header reflects only its own enable; a global `fx.enabled` bypass does not yet dim the individual module tiles (master tile dims on its own toggle).
+- The modulation-overview active-route count and source highlighting only populate once a preset/route actually drives `getModulationRouteView()`; the Init patch has zero routes, so the screenshot shows the empty path.
+- The ARP/STEP/CHORD panel is still the last Sound-page row and needs scrolling at the default window height; bottom-lane vertical density is unchanged.
+- Modulation drag/drop, matrix editing, per-route bypass/remove, and route halos still need explicit write adapters or schema support before they become UI scope.
+
+The next Claude Code pass can target deeper preset browser, arp/step/chord, and FX rack visual polish only.
 
 ## Context and Orientation
 
