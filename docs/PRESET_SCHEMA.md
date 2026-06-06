@@ -16,6 +16,11 @@ Current factory presets:
 
 - `presets/factory/init.json`
 - `presets/factory/pluck-core-01.json`
+- `presets/factory/supersaw-stack-01.json`
+- `presets/factory/bass-wub-01.json`
+- `presets/factory/pad-wide-01.json`
+- `presets/factory/arp-motion-01.json`
+- `presets/factory/fx-space-01.json`
 
 Current user preset location:
 
@@ -29,6 +34,12 @@ Current validation command:
 
 ```bash
 ./build/SylenthAIRender --validate-presets presets/factory --output build/reports/presets.json
+```
+
+Current patch recreation command:
+
+```bash
+./build/SylenthAIRender --suite patch-recreation --output-dir build/reports/patch-recreation
 ```
 
 ## Required Top-Level Fields
@@ -142,6 +153,8 @@ The parameter registry owns conversion between physical values and host-normaliz
 
 When a preset is loaded through the plugin editor, the processor resets APVTS parameters to registry defaults before applying preset overrides. This prevents values from a previous preset from leaking into presets that intentionally omit optional fields.
 
+Init, Reset, and Randomize commands are control-path state operations, not additional preset JSON fields. Init prepares registry-default APVTS state named `Init`. Reset reloads the current preset path when one exists and falls back to Init for transient states. Randomize prepares bounded, seed-repeatable APVTS state and names it `Randomized <seed>`. A randomized patch can be saved through the normal preset writer after the user accepts it; the seed is not serialized unless a future Phase 2 provenance field explicitly adds it under `metadata`.
+
 Current FX and quality fields are ordinary serialized parameters. `fx.enabled` is the global FX bypass. The fixed rack uses `fx.saturation_enabled`, `fx.distortion_mode`, `fx.phaser_*`, `fx.chorus_*`, `fx.eq_*`, `fx.delay_*`, `fx.reverb_*`, and `fx.compressor_*` fields. Delay sync is stored as an enum string such as `1/8`; distortion mode is stored as `Soft`, `Clip`, or `Fold`. Realtime and offline quality are stored as `quality.realtime_mode` and `quality.offline_mode`.
 
 ## Arp, Step, and Chord State
@@ -251,6 +264,7 @@ Rules:
 - `scaler` may be `None`.
 - Unknown destinations should be preserved during migration when possible.
 - Runtime UI/model reads use `ModulationRouteModel` to derive route rows from the flat TransMod parameters. The legacy normalized `transmod.N.depth` field remains a cutoff-depth contributor and is surfaced as a contributing route parameter when present.
+- Runtime UI/model writes use `ModulationRouteModel` write requests that compile source, scaler, destination, and depth intent back into the existing flat `transmod.N.*` parameters. The current write adapter replaces a slot with one destination route and emits clear-slot edits for removal; per-route bypass/remove state and expanded destinations remain future schema work.
 
 ## Macro Shape
 
@@ -289,4 +303,4 @@ Shipped factory presets must avoid unlicensed third-party marks.
 
 Internal research names may exist in `metadata` during development, but release builds should omit or sanitize them.
 
-The current factory preset display names are `Init` and `Pluck Core 01`.
+The current factory preset display names are `Init`, `Pluck Core 01`, `Supersaw Stack 01`, `Bass Wub 01`, `Pad Wide 01`, `Arp Motion 01`, and `FX Space 01`.

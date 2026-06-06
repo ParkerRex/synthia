@@ -90,6 +90,28 @@ struct ModulationRouteView
     std::vector<ModulationRouteSummary> activeRoutes;
 };
 
+struct ModulationRouteParameterEdit
+{
+    std::string parameterId;
+    float value = 0.0f;
+};
+
+struct ModulationRouteWriteRequest
+{
+    int slotNumber = 0;
+    std::string sourceId;
+    std::string scalerId = "none";
+    std::string destinationId;
+    float depth = 0.0f;
+};
+
+struct ModulationRouteWriteResult
+{
+    bool ok = false;
+    std::string message;
+    std::vector<ModulationRouteParameterEdit> edits;
+};
+
 const std::vector<ModulationSourceInfo>& modulationSourceCatalog();
 const std::vector<ModulationDestinationInfo>& modulationDestinationCatalog();
 
@@ -100,4 +122,6 @@ const ModulationDestinationInfo* findModulationDestinationInfo(const std::string
 
 std::string transModDepthParameterId(int slotNumber, const ModulationDestinationInfo& destination);
 ModulationRouteView buildModulationRouteView(const TransModParameters& transMod);
+ModulationRouteWriteResult buildModulationRouteWrite(const ModulationRouteWriteRequest& request);
+ModulationRouteWriteResult buildModulationSlotClear(int slotNumber);
 } // namespace synth

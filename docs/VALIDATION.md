@@ -23,9 +23,11 @@ ctest --test-dir build --output-on-failure
 ./build/SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
 ./build/SylenthAIRender --filter-test --output build/reports/filter.json
 ./build/SylenthAIRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
+./build/SylenthAIRender --randomize-test --seeds 1,42,12345,67890 --fixture fixtures/midi/overlap-pluck.mid --output build/reports/randomize.json
 ./build/SylenthAIRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
 ./build/SylenthAIRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --wet --output build/renders/pluck-core-01-wet.wav --report build/reports/pluck-core-01-wet.json
 ./build/SylenthAIRender --suite core --output-dir build/reports/core
+./build/SylenthAIRender --suite patch-recreation --output-dir build/reports/patch-recreation
 ```
 
 The current smoke render is intentionally note-less and proves initialization, finite output, report writing, and command shape.
@@ -37,9 +39,10 @@ The current contract validation proves:
 - APVTS state round-trip,
 - old host-state default merge for new layer, oscillator-slot, arp, step, and chord fields,
 - layer and oscillator-slot defaults, arp/chord defaults, legacy preset defaulting, saved preset serialization, inactive-slot no-op behavior, audible A2/B1/B2 rendering, and layer mute/solo behavior,
-- two factory preset JSON files,
+- seven factory preset JSON files, including six curated Phase 1 patch-recreation cases,
 - no unknown preset parameter IDs,
 - TransMod slot objects use valid slot IDs, source/scaler choices, depth domains, and destination IDs.
+- Init, Reset, and seedable Randomize commands prepare ordinary APVTS state without mutating live state before replacement.
 - MIDI controller-map normalization rejects invalid assignments, resolves CC/parameter conflicts deterministically, and round-trips through the global user sidecar JSON shape.
 
 The current voice-core validation proves:
@@ -69,8 +72,12 @@ The current DSP validation proves:
 - preset browser metadata validation, saved user preset browser metadata, factory/user/legacy source summaries, sidecar favorite add/remove behavior, search/category/tag/favorite filtering, and browser catalog facets are covered by `SylenthAIContractTest`.
 - MIDI controller-map persistence is covered by `SylenthAIContractTest`; remaining host proof must show learned CCs updating APVTS parameters in AU and VST3.
 - FX bypass stays null-equivalent to dry rendering when globally bypassed, disabled expanded-rack modules are dry-equivalent, phaser/EQ/compressor/distortion-mode processing is finite and measurably audible when enabled, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active time-based FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
-- `SylenthAIRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
+- `SylenthAIRender --randomize-test` prepares seedable bounded randomized APVTS state through `PresetManager`, renders each seed through the standalone engine as prepared, rejects malformed seed lists, and checks finite non-silent non-clipping output.
+- `SylenthAIRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, randomize render, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
+- `SylenthAIRender --suite patch-recreation` renders `Pluck Core 01`, `Supersaw Stack 01`, `Bass Wub 01`, `Pad Wide 01`, `Arp Motion 01`, and `FX Space 01` against the overlap-pluck fixture, writes WAV/report artifacts for each, and checks finite non-clipping output plus meaningful wet-versus-dry FX differences. The arp/chord patch also asserts that `SynthRender` applies preset-loaded `arp.*` and `chord.*` state.
 - `SylenthAIRenderCoreSuite` runs the core suite under CTest.
+- `SylenthAIRandomizeRenderTest` runs the randomized preset render proof under CTest.
+- `SylenthAIPatchRecreationSuite` runs the patch-recreation suite under CTest.
 
 Preset render validation is expected to fail if the preset file is missing, the preset JSON is invalid, the MIDI fixture is missing, the fixture is not a valid MIDI file, or the fixture has no note events.
 
@@ -113,10 +120,18 @@ Current standalone core-suite artifacts:
 - `summary.json`: aggregate pass/fail for all core reports.
 - `pluck-core-01-dry.json`: dry factory pluck metrics plus WAV artifact path.
 - `pluck-core-01-wet.json`: wet factory pluck metrics plus WAV artifact path, FX mode, delay division, tempo-synced delay samples, tail length, post-event render length, active quality mode, and wet-versus-dry difference metrics.
+- `randomize.json`: seed list, per-seed prepared/rendered status, prepared FX-enabled state, peak, RMS, nonzero sample count, invalid sample count, and pass/fail for bounded randomized state render proof.
 - `lfo-ablation.json`: compares per-voice LFO and mono LFO renders using note-local LFO spread and audio difference.
 - `determinism.json`: renders the dry pluck twice and compares `max_abs_diff`, `rms_diff`, and `peak_delta` against fixed tolerances.
 - `artifacts/*.wav`: retained dry/per-voice/mono render WAVs.
 - `failures/*.wav`: written only when deterministic repeat comparison fails.
+
+Current patch-recreation-suite artifacts:
+
+- `summary.json`: aggregate pass/fail for the curated Phase 1 patch set.
+- `<preset-id>-wet.json`: per-preset render metrics, FX mode, quality mode, note-local LFO spread where applicable, and wet-versus-dry difference metrics.
+- `summary.json` patch rows include `arp_chord_state_passed`; this must be `true` for `Arp Motion 01`.
+- `artifacts/<preset-id>-wet.wav`: retained render WAVs for listening and regression inspection.
 
 ### Host Integration
 

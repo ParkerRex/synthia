@@ -40,7 +40,7 @@ Build a modern original UI shell that reaches Sylenth-level speed and density wi
 - Render-boundary honesty was resolved in the UI itself rather than with tutorial text: the core `osc.*` panel carries a `LIVE` badge, every `layer.N.osc.M.*` slot panel carries a `STATE` badge, Layer A reads `LIVE - core path`, and Layer B reads `STAGED - not yet rendered`. The header engine tag reads `CORE OSC ENGINE`. Editing staged slot/Layer-B state still serializes (useful for preparing presets) but the UI never implies it is audible.
 - `juce::SliderParameterAttachment` overwrites `Slider::textFromValueFunction` in its constructor, so the formatter must be assigned after the attachment is created or value readouts fall back to raw parameter text.
 - `juce::String(value, 0)` (zero decimal places) renders sub-unity magnitudes in scientific notation. Symmetric-range parameters whose normalized default round-trips to a tiny denormal (e.g. `osc.fine_cents`, `osc.pitch_semitones`) exposed this as `-2.2e-05`. Fixed by rounding integer-display units (`cents`, `degrees`, `percent`) with `roundToInt` and snapping sub-interval magnitudes (<1e-3) to a true zero for display only.
-- Patch cost / "load est." is a UI-thread-derived estimate from the live rendering path (`voice.polyphony` x `voice.unison_count` x `osc.stack_count`, scaled by filter oversampling and enabled FX modules), not a measured CPU figure. The header voice count is the real diagnostic; the slot-derived `layerOscillatorVoiceCost` is intentionally not surfaced as a live number because those slots are staged.
+- Superseded by the 2026-06-06 patch-cost model slice: patch cost / "load est." is now a model-backed processor diagnostic derived from active/max voices, rendered oscillator-slot voices, filter oversampling, and enabled FX modules. It is still not a measured CPU figure.
 - The default window (1320x940) shows the entire `Sound` surface without scrolling; below that the page content scrolls inside a viewport while the header/layer bar/tabs/footer stay fixed. No horizontal scroll and no clipped labels at the 1080x760 minimum.
 
 ## Decision Log
@@ -59,7 +59,7 @@ Phase 1 modern shell implemented and verified. Scope held to `src/plugin/PluginE
 
 Delivered:
 
-- Header: preset prev/next, load, save-as, duplicate, editable name; output peak meter with clip latch; live active-voice count; derived patch-load estimate; panic; and an always-visible SR/block/peak/MIDI/invalid/architecture diagnostics footer.
+- Header: preset prev/next, load, save-as, duplicate, editable name; output peak meter with clip latch; live active/max voice count; model-backed patch-load estimate; panic; and an always-visible SR/block/peak/MIDI/invalid/architecture diagnostics footer.
 - Persistent Layer A/B selector bound to `layer.N.enabled/level_db/pan/solo/mute`, with the `LIVE`/`STAGED` render-boundary pill.
 - `Sound` tab: oscillator slots A1/A2 (or B1/B2 by selection, bound to `layer.N.osc.M.*`, badged `STATE`), the live core `osc.*` oscillator (badged `LIVE`), filter, amp/mod envelopes, LFO, ramp, voice, amp/stereo, and macros — all visible without scrolling at the default size.
 - `Modulation` tab: destination-grouped direct routes (Osc Pitch / Pulse Width / Filter Cutoff) plus the eight TransMod slots.

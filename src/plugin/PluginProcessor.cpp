@@ -724,6 +724,48 @@ bool SynthAudioProcessor::savePresetFile(const juce::File& file,
     return false;
 }
 
+bool SynthAudioProcessor::initializeCurrentPreset(juce::String& message)
+{
+    const auto result = synth::prepareInitPresetState(parameters);
+    if (!result.loaded)
+    {
+        message = juce::String(result.message);
+        setPresetMetadata(getCurrentPresetName(), message, getCurrentPresetFilePath());
+        return false;
+    }
+
+    return applyPreparedPresetState(result.state, juce::String(result.message), "Init", "", message);
+}
+
+bool SynthAudioProcessor::resetCurrentPreset(juce::String& message)
+{
+    const auto presetPath = getCurrentPresetFilePath();
+    if (presetPath.isEmpty())
+        return initializeCurrentPreset(message);
+
+    return loadPresetFile(juce::File(presetPath), message);
+}
+
+bool SynthAudioProcessor::randomizeCurrentPreset(juce::String& message)
+{
+    const auto seed = static_cast<std::uint32_t>(juce::Random::getSystemRandom().nextInt64());
+    return randomizeCurrentPresetWithSeed(seed, message);
+}
+
+bool SynthAudioProcessor::randomizeCurrentPresetWithSeed(std::uint32_t seed, juce::String& message)
+{
+    const auto result = synth::prepareRandomizedPresetState(parameters, seed);
+    if (!result.loaded)
+    {
+        message = juce::String(result.message);
+        setPresetMetadata(getCurrentPresetName(), message, getCurrentPresetFilePath());
+        return false;
+    }
+
+    return applyPreparedPresetState(result.state, juce::String(result.message),
+                                   juce::String(result.displayName), "", message);
+}
+
 juce::String SynthAudioProcessor::getCurrentPresetName() const
 {
     const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
@@ -739,6 +781,39 @@ juce::String SynthAudioProcessor::getCurrentPresetFilePath() const
 synth::ModulationRouteView SynthAudioProcessor::getModulationRouteView() const
 {
     return synth::buildModulationRouteView(readParameters(128.0f, false).transMod);
+}
+
+bool SynthAudioProcessor::writeModulationRoute(const synth::ModulationRouteWriteRequest& request,
+                                               juce::String& message)
+{
+    const auto write = synth::buildModulationRouteWrite(request);
+    if (!write.ok)
+    {
+        message = juce::String(write.message);
+        return false;
+    }
+
+    if (!applyModulationRouteParameterEdits(write.edits, message))
+        return false;
+
+    message = "Assigned modulation route in slot " + juce::String(request.slotNumber);
+    return true;
+}
+
+bool SynthAudioProcessor::clearModulationSlot(int slotNumber, juce::String& message)
+{
+    const auto write = synth::buildModulationSlotClear(slotNumber);
+    if (!write.ok)
+    {
+        message = juce::String(write.message);
+        return false;
+    }
+
+    if (!applyModulationRouteParameterEdits(write.edits, message))
+        return false;
+
+    message = "Cleared modulation slot " + juce::String(slotNumber);
+    return true;
 }
 
 std::vector<synth::MidiControllerAssignment> SynthAudioProcessor::getMidiControllerAssignments() const
@@ -852,6 +927,7 @@ SynthAudioProcessor::DiagnosticsSnapshot SynthAudioProcessor::getDiagnosticsSnap
     snapshot.midiEvents = diagnosticMidiEvents.load(std::memory_order_relaxed);
     snapshot.invalidSamples = diagnosticInvalidSamples.load(std::memory_order_relaxed);
     snapshot.peak = diagnosticPeak.load(std::memory_order_relaxed);
+    snapshot.patchCost = synth::estimatePatchCost(readParameters(128.0f, false));
     snapshot.architecture = binaryArchitecture();
     const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
     snapshot.currentPreset = currentPresetName;
@@ -965,6 +1041,82 @@ bool SynthAudioProcessor::assignMidiControllerInternal(int controllerNumber,
     publishMidiControllerAssignments();
     message = "Mapped CC" + juce::String(controllerNumber) + " to " + trimmedParameterId;
     setMidiControllerStatus(message);
+    return true;
+}
+
+bool SynthAudioProcessor::applyModulationRouteParameterEdits(
+    const std::vector<synth::ModulationRouteParameterEdit>& edits,
+    juce::String& message)
+{
+    struct ParameterTarget
+    {
+        juce::RangedAudioParameter* parameter = nullptr;
+        float normalizedValue = 0.0f;
+    };
+
+    std::vector<ParameterTarget> targets;
+    targets.reserve(edits.size());
+
+    for (const auto& edit : edits)
+    {
+        const auto* spec = synth::findParameterSpec(edit.parameterId);
+        if (spec == nullptr)
+        {
+            message = "Unknown modulation parameter: " + juce::String(edit.parameterId);
+            return false;
+        }
+
+        auto* parameter = parameters.getParameter(juce::String(edit.parameterId));
+        if (parameter == nullptr)
+        {
+            message = "Missing modulation parameter: " + juce::String(edit.parameterId);
+            return false;
+        }
+
+        if (!std::isfinite(edit.value))
+        {
+            message = "Invalid modulation parameter value: " + juce::String(edit.parameterId);
+            return false;
+        }
+
+        const auto physicalValue = synth::clampPhysicalParameterValue(*spec, edit.value);
+        targets.push_back({ parameter, parameter->convertTo0to1(physicalValue) });
+    }
+
+    {
+        ScopedParameterStateUpdate update(parameterStateSequence);
+        for (auto& target : targets)
+        {
+            target.parameter->beginChangeGesture();
+            target.parameter->setValueNotifyingHost(juce::jlimit(0.0f, 1.0f, target.normalizedValue));
+            target.parameter->endChangeGesture();
+        }
+    }
+
+    return true;
+}
+
+bool SynthAudioProcessor::applyPreparedPresetState(juce::ValueTree state,
+                                                   const juce::String& status,
+                                                   const juce::String& presetName,
+                                                   const juce::String& presetFilePath,
+                                                   juce::String& message)
+{
+    if (!state.isValid())
+    {
+        message = "Preset command failed: invalid state";
+        setPresetMetadata(getCurrentPresetName(), message, getCurrentPresetFilePath());
+        return false;
+    }
+
+    {
+        ScopedParameterStateUpdate update(parameterStateSequence);
+        parameters.replaceState(state);
+    }
+
+    message = status;
+    setPresetMetadata(presetName, message, presetFilePath);
+    panicRequested.store(true, std::memory_order_release);
     return true;
 }
 
