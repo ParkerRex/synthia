@@ -34,3 +34,4 @@
 - `2026-06-06-validate-ableton-vst3-controller-value-proof.md`
 - `2026-06-06-validate-ableton-vst3-controller-forget-stepped-proof.md`
 - `2026-06-06-validate-ableton-au-controller-value-proof.md`
+- `2026-06-06-validate-ableton-au-controller-learn-proof.md`
