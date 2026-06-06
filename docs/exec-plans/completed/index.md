@@ -20,6 +20,7 @@
 - `2026-06-06-build-modulation-route-model.md`
 - `2026-06-06-build-midi-controller-workflow.md`
 - `2026-06-06-build-patch-cost-and-voice-math-model.md`
+- `2026-06-06-build-preset-command-model.md`
 - `2026-06-06-validate-ableton-current-build-smoke.md`
 - `2026-06-06-validate-ableton-state-restore-smoke.md`
 - `2026-06-06-validate-ableton-transport-device-smoke.md`

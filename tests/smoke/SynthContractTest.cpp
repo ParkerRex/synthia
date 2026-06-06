@@ -111,6 +111,18 @@ bool setPhysicalParameter(juce::AudioProcessorValueTreeState& parameters, const 
     return true;
 }
 
+float stateParameterValue(const juce::ValueTree& state, const char* id, float fallback = -9999.0f)
+{
+    const auto parameterId = juce::String(id);
+    for (const auto& child : state)
+    {
+        if (child.hasType("PARAM") && child.getProperty("id").toString() == parameterId)
+            return static_cast<float>(static_cast<double>(child.getProperty("value", fallback)));
+    }
+
+    return fallback;
+}
+
 bool containsString(const std::vector<std::string>& values, const std::string& expected)
 {
     return std::find(values.begin(), values.end(), expected) != values.end();
@@ -892,6 +904,95 @@ bool checkPresetManagerLoadAndSave()
 
     return true;
 }
+
+bool checkPresetCommandStatePreparation()
+{
+    StateRoundTripProcessor processor;
+    if (!setPhysicalParameter(processor.parameters, "filter.cutoff_semitones", 42.0f)
+        || !setPhysicalParameter(processor.parameters, "osc.stack_count", 5.0f)
+        || !setPhysicalParameter(processor.parameters, "fx.enabled", 1.0f))
+    {
+        return false;
+    }
+
+    const auto init = synth::prepareInitPresetState(processor.parameters);
+    if (!init.loaded
+        || !init.state.isValid()
+        || init.displayName != "Init"
+        || init.state.getProperty("current_preset").toString() != "Init"
+        || std::abs(stateParameterValue(init.state, "filter.cutoff_semitones") - 96.0f) > 0.001f
+        || std::abs(stateParameterValue(init.state, "osc.stack_count") - 1.0f) > 0.001f
+        || std::abs(stateParameterValue(init.state, "fx.enabled")) > 0.001f)
+    {
+        std::cerr << "Init preset command did not prepare default state.\n";
+        return false;
+    }
+
+    if (!parameterValueMatches(processor.parameters, "filter.cutoff_semitones", 42.0f)
+        || !parameterValueMatches(processor.parameters, "osc.stack_count", 5.0f))
+    {
+        std::cerr << "Init preset preparation mutated live parameters before replaceState.\n";
+        return false;
+    }
+
+    const auto randomA = synth::prepareRandomizedPresetState(processor.parameters, 12345u);
+    const auto randomB = synth::prepareRandomizedPresetState(processor.parameters, 12345u);
+    const auto randomC = synth::prepareRandomizedPresetState(processor.parameters, 67890u);
+    if (!randomA.loaded
+        || !randomB.loaded
+        || !randomC.loaded
+        || randomA.displayName != "Randomized 12345"
+        || randomA.state.getProperty("current_preset").toString() != "Randomized 12345")
+    {
+        std::cerr << "Randomize preset command did not prepare named state.\n";
+        return false;
+    }
+
+    const auto stackA = stateParameterValue(randomA.state, "osc.stack_count");
+    const auto stackB = stateParameterValue(randomB.state, "osc.stack_count");
+    const auto stackC = stateParameterValue(randomC.state, "osc.stack_count");
+    const auto cutoffA = stateParameterValue(randomA.state, "filter.cutoff_semitones");
+    const auto cutoffB = stateParameterValue(randomB.state, "filter.cutoff_semitones");
+    const auto cutoffC = stateParameterValue(randomC.state, "filter.cutoff_semitones");
+    if (std::abs(stackA - stackB) > 0.001f
+        || std::abs(cutoffA - cutoffB) > 0.001f
+        || (std::abs(stackA - stackC) <= 0.001f && std::abs(cutoffA - cutoffC) <= 0.001f)
+        || stackA < 1.0f
+        || stackA > 5.0f
+        || cutoffA < 42.0f
+        || cutoffA > 122.0f
+        || stateParameterValue(randomA.state, "layer.1.enabled") < 0.5f
+        || stateParameterValue(randomA.state, "layer.1.osc.1.enabled") < 0.5f
+        || stateParameterValue(randomA.state, "layer.1.osc.1.level") < 0.99f)
+    {
+        std::cerr << "Randomize preset command is not deterministic or within safe bounds.\n";
+        return false;
+    }
+
+    if (!parameterValueMatches(processor.parameters, "filter.cutoff_semitones", 42.0f)
+        || !parameterValueMatches(processor.parameters, "osc.stack_count", 5.0f))
+    {
+        std::cerr << "Randomize preset preparation mutated live parameters before replaceState.\n";
+        return false;
+    }
+
+    processor.parameters.replaceState(randomA.state);
+    if (!parameterValueMatches(processor.parameters, "osc.stack_count", stackA)
+        || !parameterValueMatches(processor.parameters, "filter.cutoff_semitones", cutoffA, 0.01f)
+        || !parameterValueMatches(processor.parameters, "layer.1.osc.1.level", 1.0f))
+    {
+        const auto* stackValue = processor.parameters.getRawParameterValue("osc.stack_count");
+        const auto* cutoffValue = processor.parameters.getRawParameterValue("filter.cutoff_semitones");
+        const auto* levelValue = processor.parameters.getRawParameterValue("layer.1.osc.1.level");
+        std::cerr << "Prepared random preset state did not apply to APVTS parameters: "
+                  << "stack expected " << stackA << " got " << (stackValue != nullptr ? stackValue->load() : -1.0f)
+                  << ", cutoff expected " << cutoffA << " got " << (cutoffValue != nullptr ? cutoffValue->load() : -1.0f)
+                  << ", A1 level got " << (levelValue != nullptr ? levelValue->load() : -1.0f) << ".\n";
+        return false;
+    }
+
+    return true;
+}
 } // namespace
 
 int main()
@@ -1019,6 +1120,9 @@ int main()
         return 1;
 
     if (!checkPresetManagerLoadAndSave())
+        return 1;
+
+    if (!checkPresetCommandStatePreparation())
         return 1;
 
     const auto presetResults = synth::validatePresetDirectory("presets/factory");

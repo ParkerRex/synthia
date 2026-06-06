@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -85,6 +86,9 @@ bool setPresetFavorite(const std::filesystem::path& path,
 
 PresetLoadResult preparePresetState(juce::AudioProcessorValueTreeState& parameters,
                                     const std::filesystem::path& path);
+PresetLoadResult prepareInitPresetState(juce::AudioProcessorValueTreeState& parameters);
+PresetLoadResult prepareRandomizedPresetState(juce::AudioProcessorValueTreeState& parameters,
+                                              std::uint32_t seed);
 
 juce::ValueTree mergeParameterStateWithDefaults(juce::AudioProcessorValueTreeState& parameters,
                                                 const juce::ValueTree& overrideState);
