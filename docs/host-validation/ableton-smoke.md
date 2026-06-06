@@ -172,11 +172,11 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 - `host-editor-open-attempt.png`
 - `host-editor-open-attempt-2.png`
 
-Remaining host-validation gaps:
+Host-validation gaps after this slice:
 
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.
-- AU transport stop proof.
+- AU transport run/stop proof was later covered by `Ableton Current-Build AU Transport Smoke - 2026-06-06`.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -216,12 +216,50 @@ Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.
-- AU transport stop proof.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
 - Hosted UI open/close while transport is running.
+
+## Ableton Current-Build AU Transport Smoke - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: `/Users/parkerrex/Desktop/testing-synth Project/testing-synth.als`
+- plugin format tested in this pass: AU
+- Ableton audio state visible during playback: 44100 Hz, 512-sample block
+
+Results:
+
+- Ableton browser path `Audio Units > ParkerX > sylenth-ai` exposed the current AU entry. Moving selection to the AU child and pressing Return created the AU.
+- Ableton logged `Au: Going to create: sylenth-ai` at `2026-06-06T03:34:09.979570` and `Au: Created: sylenth-ai` at `2026-06-06T03:34:10.005956`.
+- AU creation opened a `sylenth-ai/1-sylenth-ai` editor window owned by Live. A process check during playback showed Ableton Live and no standalone `sylenth-ai` process.
+- Transport start ran the MIDI clip with the AU editor showing active voices, moving peak level, MIDI count, 44100 Hz sample rate, 512-sample block size, and active Live meters.
+- Transport stop halted playback with voices returning to `0`, peak returning to `-inf`, and no visible host crash.
+- Live also logged `Vst3: couldn't get controller state of sylenth-ai: not implemented` at `2026-06-06T03:34:10.014440`. Keep that VST3 controller-state warning on the host-state watchlist; it did not block this AU transport smoke.
+- This proves current-build AU create/play/stop behavior with a hosted editor window visible. It does not prove automation, learned CC mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport is running.
+
+Evidence screenshots are local build artifacts under `build/reports/ableton/`:
+
+- `au-transport-audio-units-open.png`
+- `au-transport-parkerx-expanded-3.png`
+- `au-transport-au-return-load-attempt.png`
+- `au-transport-running-with-editor.png`
+- `au-transport-stopped-with-editor.png`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- Learned CC mapping proof in Ableton.
+- Current preset recreation and modulation exercise.
+- Offline bounce versus realtime comparison.
+- Sample-rate and buffer-size changes.
+- All-notes-off/panic proof.
+- Explicit hosted UI close/reopen while transport is running.
 
 ## Historical Ableton Setup - 2026-06-05
 

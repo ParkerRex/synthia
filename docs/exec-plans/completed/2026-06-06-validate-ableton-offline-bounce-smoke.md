@@ -52,7 +52,7 @@ Date: 2026-06-06.
 
 ## Outcomes & Retrospective
 
-Completed. Ableton exported the restored current VST3 set through the offline render path. The WAV metrics prove non-silent, non-clipping stereo output at 44.1 kHz. The remaining host matrix is narrower but still needs realtime comparison, automation, learned CC mapping, AU transport stop, preset recreation/modulation exercise, sample-rate/buffer-size changes, all-notes-off, panic, and hosted UI open/close while playing.
+Completed. Ableton exported the restored current VST3 set through the offline render path. The WAV metrics prove non-silent, non-clipping stereo output at 44.1 kHz. The remaining host matrix is narrower but still needs realtime comparison, automation, learned CC mapping, preset recreation/modulation exercise, sample-rate/buffer-size changes, all-notes-off, panic, and hosted UI open/close while playing. AU transport run/stop proof was later covered by `2026-06-06-validate-ableton-au-transport-smoke.md`.
 
 ## Context and Orientation
 
@@ -162,7 +162,6 @@ Acceptance required:
 
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.
-- AU transport stop proof.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.

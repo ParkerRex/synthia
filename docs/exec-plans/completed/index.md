@@ -23,3 +23,4 @@
 - `2026-06-06-validate-ableton-state-restore-smoke.md`
 - `2026-06-06-validate-ableton-transport-device-smoke.md`
 - `2026-06-06-validate-ableton-offline-bounce-smoke.md`
+- `2026-06-06-validate-ableton-au-transport-smoke.md`
