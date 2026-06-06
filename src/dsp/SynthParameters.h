@@ -432,6 +432,24 @@ struct SynthParameters
     float tempoBpm = 128.0f;
 };
 
+struct PatchCostEstimate
+{
+    int noteLimit = 0;
+    int unisonVoices = 0;
+    int maxActiveVoices = 0;
+    int oscillatorSlotVoices = 0;
+    int voiceUnits = 0;
+    int filterOversampling = 1;
+    int activeFxModules = 0;
+    float filterMultiplier = 1.0f;
+    float fxMultiplier = 1.0f;
+    float totalUnits = 0.0f;
+    int loadPercent = 0;
+    bool elevated = false;
+    bool high = false;
+    bool overBudget = false;
+};
+
 inline float clampUnit(float value) noexcept
 {
     return std::clamp(value, 0.0f, 1.0f);
@@ -447,9 +465,21 @@ inline float midiNoteToHz(float midiNote) noexcept
     return 440.0f * std::pow(2.0f, (midiNote - 69.0f) / 12.0f);
 }
 
+inline bool isLegacyCompatibilityOscillatorSlot(int layerIndex, int oscillatorIndex) noexcept
+{
+    return layerIndex == 0 && oscillatorIndex == 0;
+}
+
+inline int oscillatorSlotVoiceCost(const LayerOscillatorParameters& oscillator, int renderedVoiceCount) noexcept
+{
+    return oscillator.enabled && oscillator.voices > 0 && oscillator.level > 0.0f
+        ? std::clamp(renderedVoiceCount, 0, 8)
+        : 0;
+}
+
 inline int oscillatorSlotVoiceCost(const LayerOscillatorParameters& oscillator) noexcept
 {
-    return oscillator.enabled ? std::clamp(oscillator.voices, 0, 8) : 0;
+    return oscillatorSlotVoiceCost(oscillator, oscillator.voices);
 }
 
 inline int layerVoiceCost(const LayerParameters& layer) noexcept
@@ -464,6 +494,28 @@ inline int layerVoiceCost(const LayerParameters& layer) noexcept
     return voices;
 }
 
+inline int layerVoiceCost(const SynthParameters& parameters, int layerIndex) noexcept
+{
+    if (layerIndex < 0 || layerIndex >= layerCount)
+        return 0;
+
+    const auto& layer = parameters.layers[static_cast<std::size_t>(layerIndex)];
+    if (!layer.enabled || layer.mute)
+        return 0;
+
+    auto voices = 0;
+    for (int oscillatorIndex = 0; oscillatorIndex < oscillatorSlotsPerLayer; ++oscillatorIndex)
+    {
+        const auto& oscillator = layer.oscillators[static_cast<std::size_t>(oscillatorIndex)];
+        const auto renderedVoices = isLegacyCompatibilityOscillatorSlot(layerIndex, oscillatorIndex)
+            ? parameters.osc.stackCount
+            : oscillator.voices;
+        voices += oscillatorSlotVoiceCost(oscillator, renderedVoices);
+    }
+
+    return voices;
+}
+
 inline int layerOscillatorVoiceCost(const SynthParameters& parameters) noexcept
 {
     auto hasSolo = false;
@@ -471,10 +523,11 @@ inline int layerOscillatorVoiceCost(const SynthParameters& parameters) noexcept
         hasSolo = hasSolo || (layer.enabled && layer.solo);
 
     auto voices = 0;
-    for (const auto& layer : parameters.layers)
+    for (int layerIndex = 0; layerIndex < layerCount; ++layerIndex)
     {
+        const auto& layer = parameters.layers[static_cast<std::size_t>(layerIndex)];
         if (!hasSolo || layer.solo)
-            voices += layerVoiceCost(layer);
+            voices += layerVoiceCost(parameters, layerIndex);
     }
 
     return voices;
@@ -494,5 +547,61 @@ inline int oversamplingFactor(int choice) noexcept
         case 3: return 8;
         default: return 1;
     }
+}
+
+inline int patchCostNoteLimit(const SynthParameters& parameters) noexcept
+{
+    if (parameters.voiceMode == VoiceMode::Poly)
+        return std::clamp(parameters.polyphony, 1, 32);
+
+    return 1;
+}
+
+inline int patchCostUnisonVoices(const SynthParameters& parameters) noexcept
+{
+    if (parameters.voiceMode == VoiceMode::Mono || parameters.voiceMode == VoiceMode::MonoLegato)
+        return 1;
+
+    return std::clamp(parameters.unisonCount, 1, 8);
+}
+
+inline int patchCostActiveFxModules(const FxParameters& fx) noexcept
+{
+    if (!fx.enabled)
+        return 0;
+
+    return (fx.saturationEnabled ? 1 : 0)
+         + (fx.phaserEnabled ? 1 : 0)
+         + (fx.chorusEnabled ? 1 : 0)
+         + (fx.delayEnabled ? 1 : 0)
+         + (fx.reverbEnabled ? 1 : 0)
+         + (fx.eqEnabled ? 1 : 0)
+         + (fx.compressorEnabled ? 1 : 0);
+}
+
+inline PatchCostEstimate estimatePatchCost(const SynthParameters& parameters) noexcept
+{
+    PatchCostEstimate estimate;
+    estimate.noteLimit = patchCostNoteLimit(parameters);
+    estimate.unisonVoices = patchCostUnisonVoices(parameters);
+    estimate.maxActiveVoices = std::clamp(estimate.noteLimit * estimate.unisonVoices, 1, 32);
+    estimate.oscillatorSlotVoices = layerOscillatorVoiceCost(parameters);
+    estimate.voiceUnits = estimate.maxActiveVoices * estimate.oscillatorSlotVoices;
+    estimate.filterOversampling = parameters.filter.enabled ? oversamplingFactor(parameters.filter.oversampling) : 1;
+    estimate.activeFxModules = patchCostActiveFxModules(parameters.fx);
+    estimate.filterMultiplier = parameters.filter.enabled
+        ? 0.5f + 0.5f * static_cast<float>(estimate.filterOversampling)
+        : 1.0f;
+    estimate.fxMultiplier = parameters.fx.enabled
+        ? 1.0f + 0.06f * static_cast<float>(estimate.activeFxModules)
+        : 1.0f;
+    estimate.totalUnits = static_cast<float>(estimate.voiceUnits)
+        * estimate.filterMultiplier
+        * estimate.fxMultiplier;
+    estimate.loadPercent = std::max(0, static_cast<int>(std::round(estimate.totalUnits / 240.0f * 100.0f)));
+    estimate.elevated = estimate.loadPercent > 60;
+    estimate.high = estimate.loadPercent > 90;
+    estimate.overBudget = estimate.loadPercent > 100;
+    return estimate;
 }
 } // namespace synth

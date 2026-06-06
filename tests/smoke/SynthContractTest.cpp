@@ -111,6 +111,18 @@ bool setPhysicalParameter(juce::AudioProcessorValueTreeState& parameters, const 
     return true;
 }
 
+float stateParameterValue(const juce::ValueTree& state, const char* id, float fallback = -9999.0f)
+{
+    const auto parameterId = juce::String(id);
+    for (const auto& child : state)
+    {
+        if (child.hasType("PARAM") && child.getProperty("id").toString() == parameterId)
+            return static_cast<float>(static_cast<double>(child.getProperty("value", fallback)));
+    }
+
+    return fallback;
+}
+
 bool containsString(const std::vector<std::string>& values, const std::string& expected)
 {
     return std::find(values.begin(), values.end(), expected) != values.end();
@@ -426,9 +438,11 @@ bool checkLayerOscillatorVoiceCost()
 
     parameters.layers[0].oscillators[1].enabled = true;
     parameters.layers[0].oscillators[1].voices = 3;
+    parameters.layers[0].oscillators[1].level = 1.0f;
     parameters.layers[1].enabled = true;
     parameters.layers[1].oscillators[0].enabled = true;
     parameters.layers[1].oscillators[0].voices = 8;
+    parameters.layers[1].oscillators[0].level = 1.0f;
     if (synth::layerOscillatorVoiceCost(parameters) != 12)
     {
         std::cerr << "Layer voice cost did not include all active unsoloed slots.\n";
@@ -446,6 +460,107 @@ bool checkLayerOscillatorVoiceCost()
     if (synth::layerOscillatorVoiceCost(parameters) != 0)
     {
         std::cerr << "Muted solo layer should have zero voice cost.\n";
+        return false;
+    }
+
+    return true;
+}
+
+bool checkPatchCostEstimate()
+{
+    synth::SynthParameters parameters;
+    const auto init = synth::estimatePatchCost(parameters);
+    if (init.noteLimit != 8
+        || init.unisonVoices != 1
+        || init.maxActiveVoices != 8
+        || init.oscillatorSlotVoices != 1
+        || init.voiceUnits != 8
+        || init.filterOversampling != 2
+        || init.activeFxModules != 0
+        || std::abs(init.totalUnits - 12.0f) > 0.001f
+        || init.loadPercent != 5
+        || init.elevated
+        || init.high
+        || init.overBudget)
+    {
+        std::cerr << "Default patch cost estimate did not match init voice math.\n";
+        return false;
+    }
+
+    parameters.layers[0].oscillators[1].enabled = true;
+    parameters.layers[0].oscillators[1].voices = 3;
+    parameters.layers[0].oscillators[1].level = 0.0f;
+    if (synth::estimatePatchCost(parameters).oscillatorSlotVoices != 1)
+    {
+        std::cerr << "Patch cost should ignore zero-level oscillator slots.\n";
+        return false;
+    }
+
+    parameters.osc.stackCount = 5;
+    const auto stackedCore = synth::estimatePatchCost(parameters);
+    if (stackedCore.oscillatorSlotVoices != 5
+        || stackedCore.voiceUnits != 40
+        || stackedCore.loadPercent != 25)
+    {
+        std::cerr << "Patch cost should include live A1 core oscillator stack count.\n";
+        return false;
+    }
+
+    parameters.layers[0].oscillators[1].level = 1.0f;
+    parameters.layers[1].enabled = true;
+    parameters.layers[1].oscillators[0].enabled = true;
+    parameters.layers[1].oscillators[0].voices = 8;
+    parameters.layers[1].oscillators[0].level = 0.75f;
+    parameters.osc.stackCount = 1;
+    parameters.voiceMode = synth::VoiceMode::Poly;
+    parameters.polyphony = 32;
+    parameters.unisonCount = 8;
+    parameters.filter.oversampling = 3;
+    parameters.fx.enabled = true;
+    parameters.fx.phaserEnabled = true;
+    parameters.fx.chorusEnabled = true;
+    parameters.fx.eqEnabled = true;
+    parameters.fx.compressorEnabled = true;
+
+    const auto large = synth::estimatePatchCost(parameters);
+    if (large.noteLimit != 32
+        || large.unisonVoices != 8
+        || large.maxActiveVoices != 32
+        || large.oscillatorSlotVoices != 12
+        || large.voiceUnits != 384
+        || large.filterOversampling != 8
+        || large.activeFxModules != 7
+        || !large.elevated
+        || !large.high
+        || !large.overBudget
+        || large.loadPercent <= 100)
+    {
+        std::cerr << "High-cost patch estimate did not include voice, filter, and FX factors.\n";
+        return false;
+    }
+
+    parameters.voiceMode = synth::VoiceMode::MonoLegato;
+    parameters.unisonCount = 8;
+    const auto mono = synth::estimatePatchCost(parameters);
+    if (mono.noteLimit != 1 || mono.unisonVoices != 1 || mono.maxActiveVoices != 1)
+    {
+        std::cerr << "Mono patch cost should not multiply by polyphony or unison.\n";
+        return false;
+    }
+
+    parameters.voiceMode = synth::VoiceMode::Unison;
+    const auto unison = synth::estimatePatchCost(parameters);
+    if (unison.noteLimit != 1 || unison.unisonVoices != 8 || unison.maxActiveVoices != 8)
+    {
+        std::cerr << "Unison patch cost should use one note multiplied by unison voices.\n";
+        return false;
+    }
+
+    parameters.layers[0].solo = true;
+    parameters.layers[0].mute = true;
+    if (synth::estimatePatchCost(parameters).oscillatorSlotVoices != 0)
+    {
+        std::cerr << "Patch cost should follow solo/mute layer voice math.\n";
         return false;
     }
 
@@ -789,6 +904,95 @@ bool checkPresetManagerLoadAndSave()
 
     return true;
 }
+
+bool checkPresetCommandStatePreparation()
+{
+    StateRoundTripProcessor processor;
+    if (!setPhysicalParameter(processor.parameters, "filter.cutoff_semitones", 42.0f)
+        || !setPhysicalParameter(processor.parameters, "osc.stack_count", 5.0f)
+        || !setPhysicalParameter(processor.parameters, "fx.enabled", 1.0f))
+    {
+        return false;
+    }
+
+    const auto init = synth::prepareInitPresetState(processor.parameters);
+    if (!init.loaded
+        || !init.state.isValid()
+        || init.displayName != "Init"
+        || init.state.getProperty("current_preset").toString() != "Init"
+        || std::abs(stateParameterValue(init.state, "filter.cutoff_semitones") - 96.0f) > 0.001f
+        || std::abs(stateParameterValue(init.state, "osc.stack_count") - 1.0f) > 0.001f
+        || std::abs(stateParameterValue(init.state, "fx.enabled")) > 0.001f)
+    {
+        std::cerr << "Init preset command did not prepare default state.\n";
+        return false;
+    }
+
+    if (!parameterValueMatches(processor.parameters, "filter.cutoff_semitones", 42.0f)
+        || !parameterValueMatches(processor.parameters, "osc.stack_count", 5.0f))
+    {
+        std::cerr << "Init preset preparation mutated live parameters before replaceState.\n";
+        return false;
+    }
+
+    const auto randomA = synth::prepareRandomizedPresetState(processor.parameters, 12345u);
+    const auto randomB = synth::prepareRandomizedPresetState(processor.parameters, 12345u);
+    const auto randomC = synth::prepareRandomizedPresetState(processor.parameters, 67890u);
+    if (!randomA.loaded
+        || !randomB.loaded
+        || !randomC.loaded
+        || randomA.displayName != "Randomized 12345"
+        || randomA.state.getProperty("current_preset").toString() != "Randomized 12345")
+    {
+        std::cerr << "Randomize preset command did not prepare named state.\n";
+        return false;
+    }
+
+    const auto stackA = stateParameterValue(randomA.state, "osc.stack_count");
+    const auto stackB = stateParameterValue(randomB.state, "osc.stack_count");
+    const auto stackC = stateParameterValue(randomC.state, "osc.stack_count");
+    const auto cutoffA = stateParameterValue(randomA.state, "filter.cutoff_semitones");
+    const auto cutoffB = stateParameterValue(randomB.state, "filter.cutoff_semitones");
+    const auto cutoffC = stateParameterValue(randomC.state, "filter.cutoff_semitones");
+    if (std::abs(stackA - stackB) > 0.001f
+        || std::abs(cutoffA - cutoffB) > 0.001f
+        || (std::abs(stackA - stackC) <= 0.001f && std::abs(cutoffA - cutoffC) <= 0.001f)
+        || stackA < 1.0f
+        || stackA > 5.0f
+        || cutoffA < 42.0f
+        || cutoffA > 122.0f
+        || stateParameterValue(randomA.state, "layer.1.enabled") < 0.5f
+        || stateParameterValue(randomA.state, "layer.1.osc.1.enabled") < 0.5f
+        || stateParameterValue(randomA.state, "layer.1.osc.1.level") < 0.99f)
+    {
+        std::cerr << "Randomize preset command is not deterministic or within safe bounds.\n";
+        return false;
+    }
+
+    if (!parameterValueMatches(processor.parameters, "filter.cutoff_semitones", 42.0f)
+        || !parameterValueMatches(processor.parameters, "osc.stack_count", 5.0f))
+    {
+        std::cerr << "Randomize preset preparation mutated live parameters before replaceState.\n";
+        return false;
+    }
+
+    processor.parameters.replaceState(randomA.state);
+    if (!parameterValueMatches(processor.parameters, "osc.stack_count", stackA)
+        || !parameterValueMatches(processor.parameters, "filter.cutoff_semitones", cutoffA, 0.01f)
+        || !parameterValueMatches(processor.parameters, "layer.1.osc.1.level", 1.0f))
+    {
+        const auto* stackValue = processor.parameters.getRawParameterValue("osc.stack_count");
+        const auto* cutoffValue = processor.parameters.getRawParameterValue("filter.cutoff_semitones");
+        const auto* levelValue = processor.parameters.getRawParameterValue("layer.1.osc.1.level");
+        std::cerr << "Prepared random preset state did not apply to APVTS parameters: "
+                  << "stack expected " << stackA << " got " << (stackValue != nullptr ? stackValue->load() : -1.0f)
+                  << ", cutoff expected " << cutoffA << " got " << (cutoffValue != nullptr ? cutoffValue->load() : -1.0f)
+                  << ", A1 level got " << (levelValue != nullptr ? levelValue->load() : -1.0f) << ".\n";
+        return false;
+    }
+
+    return true;
+}
 } // namespace
 
 int main()
@@ -909,10 +1113,16 @@ int main()
     if (!checkLayerOscillatorVoiceCost())
         return 1;
 
+    if (!checkPatchCostEstimate())
+        return 1;
+
     if (!checkMidiControllerMap())
         return 1;
 
     if (!checkPresetManagerLoadAndSave())
+        return 1;
+
+    if (!checkPresetCommandStatePreparation())
         return 1;
 
     const auto presetResults = synth::validatePresetDirectory("presets/factory");

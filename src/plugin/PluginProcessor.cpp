@@ -724,6 +724,48 @@ bool SynthAudioProcessor::savePresetFile(const juce::File& file,
     return false;
 }
 
+bool SynthAudioProcessor::initializeCurrentPreset(juce::String& message)
+{
+    const auto result = synth::prepareInitPresetState(parameters);
+    if (!result.loaded)
+    {
+        message = juce::String(result.message);
+        setPresetMetadata(getCurrentPresetName(), message, getCurrentPresetFilePath());
+        return false;
+    }
+
+    return applyPreparedPresetState(result.state, juce::String(result.message), "Init", "", message);
+}
+
+bool SynthAudioProcessor::resetCurrentPreset(juce::String& message)
+{
+    const auto presetPath = getCurrentPresetFilePath();
+    if (presetPath.isEmpty())
+        return initializeCurrentPreset(message);
+
+    return loadPresetFile(juce::File(presetPath), message);
+}
+
+bool SynthAudioProcessor::randomizeCurrentPreset(juce::String& message)
+{
+    const auto seed = static_cast<std::uint32_t>(juce::Random::getSystemRandom().nextInt64());
+    return randomizeCurrentPresetWithSeed(seed, message);
+}
+
+bool SynthAudioProcessor::randomizeCurrentPresetWithSeed(std::uint32_t seed, juce::String& message)
+{
+    const auto result = synth::prepareRandomizedPresetState(parameters, seed);
+    if (!result.loaded)
+    {
+        message = juce::String(result.message);
+        setPresetMetadata(getCurrentPresetName(), message, getCurrentPresetFilePath());
+        return false;
+    }
+
+    return applyPreparedPresetState(result.state, juce::String(result.message),
+                                   juce::String(result.displayName), "", message);
+}
+
 juce::String SynthAudioProcessor::getCurrentPresetName() const
 {
     const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
@@ -885,6 +927,7 @@ SynthAudioProcessor::DiagnosticsSnapshot SynthAudioProcessor::getDiagnosticsSnap
     snapshot.midiEvents = diagnosticMidiEvents.load(std::memory_order_relaxed);
     snapshot.invalidSamples = diagnosticInvalidSamples.load(std::memory_order_relaxed);
     snapshot.peak = diagnosticPeak.load(std::memory_order_relaxed);
+    snapshot.patchCost = synth::estimatePatchCost(readParameters(128.0f, false));
     snapshot.architecture = binaryArchitecture();
     const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
     snapshot.currentPreset = currentPresetName;
@@ -1050,6 +1093,30 @@ bool SynthAudioProcessor::applyModulationRouteParameterEdits(
         }
     }
 
+    return true;
+}
+
+bool SynthAudioProcessor::applyPreparedPresetState(juce::ValueTree state,
+                                                   const juce::String& status,
+                                                   const juce::String& presetName,
+                                                   const juce::String& presetFilePath,
+                                                   juce::String& message)
+{
+    if (!state.isValid())
+    {
+        message = "Preset command failed: invalid state";
+        setPresetMetadata(getCurrentPresetName(), message, getCurrentPresetFilePath());
+        return false;
+    }
+
+    {
+        ScopedParameterStateUpdate update(parameterStateSequence);
+        parameters.replaceState(state);
+    }
+
+    message = status;
+    setPresetMetadata(presetName, message, presetFilePath);
+    panicRequested.store(true, std::memory_order_release);
     return true;
 }
 

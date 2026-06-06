@@ -67,6 +67,7 @@ public:
         int midiEvents = 0;
         int invalidSamples = 0;
         float peak = 0.0f;
+        synth::PatchCostEstimate patchCost;
         juce::String architecture;
         juce::String currentPreset;
         juce::String lastPresetStatus;
@@ -76,6 +77,10 @@ public:
     juce::File getUserPresetDirectory() const;
     bool loadPresetFile(const juce::File& file, juce::String& message);
     bool savePresetFile(const juce::File& file, const juce::String& displayName, juce::String& message);
+    bool initializeCurrentPreset(juce::String& message);
+    bool resetCurrentPreset(juce::String& message);
+    bool randomizeCurrentPreset(juce::String& message);
+    bool randomizeCurrentPresetWithSeed(std::uint32_t seed, juce::String& message);
     juce::String getCurrentPresetName() const;
     juce::String getCurrentPresetFilePath() const;
     synth::ModulationRouteView getModulationRouteView() const;
@@ -287,6 +292,11 @@ private:
                                       bool persist);
     bool applyModulationRouteParameterEdits(const std::vector<synth::ModulationRouteParameterEdit>& edits,
                                             juce::String& message);
+    bool applyPreparedPresetState(juce::ValueTree state,
+                                  const juce::String& status,
+                                  const juce::String& presetName,
+                                  const juce::String& presetFilePath,
+                                  juce::String& message);
     int parameterIndexForId(const juce::String& parameterId) const;
     void applyPendingMidiLearns();
     void applyPendingMappedControllers();

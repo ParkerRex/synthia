@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <random>
 #include <string_view>
 #include <system_error>
 
@@ -130,6 +131,139 @@ void resetStateToDefaults(juce::ValueTree& state)
         setParameterValue(state, spec, spec.kind == ParameterKind::Choice
             ? static_cast<float>(spec.defaultChoice)
             : spec.defaultValue);
+}
+
+bool setKnownParameterValue(juce::ValueTree& state, const char* id, float physicalValue)
+{
+    const auto* spec = findParameterSpec(id);
+    if (spec == nullptr)
+        return false;
+
+    setParameterValue(state, *spec, clampPhysicalParameterValue(*spec, physicalValue));
+    return true;
+}
+
+void stampPreparedState(juce::ValueTree& state, const std::string& displayName)
+{
+    state.setProperty("schema_version", 1, nullptr);
+    state.setProperty("plugin_version", SYLENTH_AI_PROJECT_VERSION, nullptr);
+    state.setProperty("current_preset", juce::String(displayName), nullptr);
+    state.setProperty("current_preset_path", "", nullptr);
+}
+
+float randomFloat(std::mt19937& rng, float minimum, float maximum)
+{
+    std::uniform_real_distribution<float> distribution(minimum, maximum);
+    return distribution(rng);
+}
+
+int randomInt(std::mt19937& rng, int minimum, int maximum)
+{
+    std::uniform_int_distribution<int> distribution(minimum, maximum);
+    return distribution(rng);
+}
+
+bool randomChance(std::mt19937& rng, float probability)
+{
+    return randomFloat(rng, 0.0f, 1.0f) < probability;
+}
+
+bool applyRandomizedPatchState(juce::ValueTree& state, std::uint32_t seed)
+{
+    std::mt19937 rng(seed);
+    auto ok = true;
+    auto set = [&state, &ok](const char* id, float value) {
+        ok = setKnownParameterValue(state, id, value) && ok;
+    };
+
+    set("voice.mode", static_cast<float>(randomInt(rng, 1, 3)));
+    set("voice.polyphony", static_cast<float>(randomInt(rng, 4, 16)));
+    set("voice.unison_count", static_cast<float>(randomInt(rng, 1, 6)));
+    set("voice.glide_ms", randomChance(rng, 0.35f) ? randomFloat(rng, 20.0f, 240.0f) : 0.0f);
+
+    set("layer.1.enabled", 1.0f);
+    set("layer.1.level_db", randomFloat(rng, -5.0f, 1.5f));
+    set("layer.1.pan", randomFloat(rng, -0.25f, 0.25f));
+    set("layer.1.osc.1.enabled", 1.0f);
+    set("layer.1.osc.1.voices", 1.0f);
+    set("layer.1.osc.1.level", 1.0f);
+    set("osc.stack_count", static_cast<float>(randomInt(rng, 1, 5)));
+    set("osc.stack_detune", randomFloat(rng, 0.0f, 0.62f));
+    set("osc.pitch_semitones", static_cast<float>(randomInt(rng, -12, 12)));
+    set("osc.fine_cents", randomFloat(rng, -15.0f, 15.0f));
+    set("osc.saw_level", randomFloat(rng, 0.45f, 1.0f));
+    set("osc.pulse_level", randomChance(rng, 0.65f) ? randomFloat(rng, 0.0f, 0.75f) : 0.0f);
+    set("osc.noise_level", randomChance(rng, 0.25f) ? randomFloat(rng, 0.0f, 0.18f) : 0.0f);
+    set("osc.sub_level", randomChance(rng, 0.45f) ? randomFloat(rng, 0.0f, 0.55f) : 0.0f);
+    set("osc.pulse_width", randomFloat(rng, 0.2f, 0.8f));
+
+    if (randomChance(rng, 0.45f))
+    {
+        set("layer.1.osc.2.enabled", 1.0f);
+        set("layer.1.osc.2.voices", static_cast<float>(randomInt(rng, 1, 4)));
+        set("layer.1.osc.2.waveform", static_cast<float>(randomInt(rng, 0, 3)));
+        set("layer.1.osc.2.octave", static_cast<float>(randomInt(rng, -1, 1)));
+        set("layer.1.osc.2.note", static_cast<float>(randomInt(rng, -7, 7)));
+        set("layer.1.osc.2.fine_cents", randomFloat(rng, -12.0f, 12.0f));
+        set("layer.1.osc.2.level", randomFloat(rng, 0.15f, 0.7f));
+        set("layer.1.osc.2.detune", randomFloat(rng, 0.0f, 0.45f));
+        set("layer.1.osc.2.stereo", randomFloat(rng, 0.0f, 0.6f));
+        set("layer.1.osc.2.pan", randomFloat(rng, -0.35f, 0.35f));
+    }
+
+    set("filter.enabled", 1.0f);
+    set("filter.mode", static_cast<float>(randomInt(rng, 0, 8)));
+    set("filter.cutoff_semitones", randomFloat(rng, 42.0f, 122.0f));
+    set("filter.resonance", randomFloat(rng, 0.02f, 0.68f));
+    set("filter.drive", randomFloat(rng, 0.0f, 0.55f));
+    set("filter.keytrack", randomFloat(rng, 0.2f, 0.8f));
+    set("filter.oversampling", static_cast<float>(randomInt(rng, 0, 2)));
+
+    set("amp_env.attack_ms", randomFloat(rng, 0.0f, 80.0f));
+    set("amp_env.decay_ms", randomFloat(rng, 90.0f, 1800.0f));
+    set("amp_env.sustain", randomFloat(rng, 0.15f, 0.95f));
+    set("amp_env.release_ms", randomFloat(rng, 45.0f, 2400.0f));
+    set("mod_env.attack_ms", randomFloat(rng, 0.0f, 180.0f));
+    set("mod_env.decay_ms", randomFloat(rng, 80.0f, 2200.0f));
+    set("mod_env.sustain", randomFloat(rng, 0.0f, 0.8f));
+    set("mod_env.release_ms", randomFloat(rng, 40.0f, 1800.0f));
+
+    set("lfo.shape", static_cast<float>(randomInt(rng, 0, 6)));
+    set("lfo.rate_mode", static_cast<float>(randomInt(rng, 0, 1)));
+    set("lfo.rate_hz", randomFloat(rng, 0.2f, 8.0f));
+    set("lfo.sync_division", static_cast<float>(randomInt(rng, 0, 4)));
+    set("lfo.phase_degrees", randomFloat(rng, 0.0f, 360.0f));
+    set("direct.filter_lfo_semitones", randomChance(rng, 0.5f) ? randomFloat(rng, -24.0f, 24.0f) : 0.0f);
+    set("direct.filter_mod_env_semitones", randomChance(rng, 0.5f) ? randomFloat(rng, -36.0f, 36.0f) : 0.0f);
+    set("direct.osc_lfo_semitones", randomChance(rng, 0.3f) ? randomFloat(rng, -12.0f, 12.0f) : 0.0f);
+
+    set("amp.drive", randomFloat(rng, 0.0f, 0.45f));
+    set("amp.level_db", randomFloat(rng, -15.0f, -4.0f));
+    set("amp.pan", randomFloat(rng, -0.2f, 0.2f));
+    set("amp.pan_spread", randomFloat(rng, 0.0f, 0.65f));
+    set("amp.unison_spread", randomFloat(rng, 0.0f, 0.8f));
+    set("amp.analog", randomFloat(rng, 0.0f, 0.5f));
+
+    set("macro.motion", randomFloat(rng, 0.2f, 0.8f));
+    set("macro.width", randomFloat(rng, 0.0f, 0.8f));
+    set("macro.drive", randomFloat(rng, 0.0f, 0.6f));
+    set("macro.space", randomFloat(rng, 0.0f, 0.75f));
+
+    const auto fxEnabled = randomChance(rng, 0.65f);
+    set("fx.enabled", fxEnabled ? 1.0f : 0.0f);
+    set("fx.saturation_enabled", fxEnabled && randomChance(rng, 0.6f) ? 1.0f : 0.0f);
+    set("fx.saturation_mix", fxEnabled ? randomFloat(rng, 0.0f, 0.35f) : 0.0f);
+    set("fx.saturation_drive", randomFloat(rng, 0.15f, 0.7f));
+    set("fx.delay_enabled", fxEnabled && randomChance(rng, 0.45f) ? 1.0f : 0.0f);
+    set("fx.delay_mix", fxEnabled ? randomFloat(rng, 0.0f, 0.28f) : 0.0f);
+    set("fx.delay_feedback", randomFloat(rng, 0.08f, 0.55f));
+    set("fx.reverb_enabled", fxEnabled && randomChance(rng, 0.45f) ? 1.0f : 0.0f);
+    set("fx.reverb_mix", fxEnabled ? randomFloat(rng, 0.0f, 0.32f) : 0.0f);
+    set("fx.reverb_decay", randomFloat(rng, 0.12f, 0.65f));
+    set("quality.realtime_mode", 1.0f);
+    set("quality.offline_mode", 2.0f);
+
+    return ok;
 }
 
 void applyPresetParameter(juce::ValueTree& state,
@@ -902,6 +1036,42 @@ PresetLoadResult preparePresetState(juce::AudioProcessorValueTreeState& paramete
     state.setProperty("schema_version", 1, nullptr);
     state.setProperty("plugin_version", SYLENTH_AI_PROJECT_VERSION, nullptr);
     state.setProperty("current_preset", juce::String(result.displayName), nullptr);
+    result.state = state;
+    return result;
+}
+
+PresetLoadResult prepareInitPresetState(juce::AudioProcessorValueTreeState& parameters)
+{
+    PresetLoadResult result;
+    auto state = parameters.copyState();
+    resetStateToDefaults(state);
+    stampPreparedState(state, "Init");
+
+    result.loaded = true;
+    result.message = "Initialized preset";
+    result.displayName = "Init";
+    result.state = state;
+    return result;
+}
+
+PresetLoadResult prepareRandomizedPresetState(juce::AudioProcessorValueTreeState& parameters,
+                                              std::uint32_t seed)
+{
+    PresetLoadResult result;
+    auto state = parameters.copyState();
+    resetStateToDefaults(state);
+    if (!applyRandomizedPatchState(state, seed))
+    {
+        result.message = "Randomize failed: preset parameter missing";
+        return result;
+    }
+
+    const auto displayName = "Randomized " + std::to_string(seed);
+    stampPreparedState(state, displayName);
+
+    result.loaded = true;
+    result.message = "Randomized preset: seed " + std::to_string(seed);
+    result.displayName = displayName;
     result.state = state;
     return result;
 }
