@@ -75,6 +75,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed current-build Ableton smoke proof after the rename: Release build, CTest, core suite, bundle checks, install/uninstall dry-run, AU validation, VST3 rescan/create, and MIDI playback passed.
 - [x] 2026-06-06 EDT: Executed current-build Ableton state restore smoke: AU create/restore, VST3 create/restore, and VST3 post-restore playback with active meters passed.
 - [x] 2026-06-06 EDT: Executed current-build Ableton transport/device smoke: corrected standalone-window evidence, proved VST3 transport run/stop with only Ableton running, and left hosted editor open/close unproven.
+- [x] 2026-06-06 EDT: Executed current-build Ableton offline bounce smoke: exported WAV/MP3 from the restored VST3 set, measured non-silent non-clipping WAV output, and left bounce-versus-realtime comparison open.
 - [ ] Hand off UI information architecture and visual polish plans to Claude Code after state contracts are ready.
 - [ ] Complete the remaining Phase 1 Ableton validation matrix against the Sylenth-level build.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
@@ -108,6 +109,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-current-build-smoke.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-state-restore-smoke.md`
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-transport-device-smoke.md`
+- `docs/exec-plans/completed/2026-06-06-validate-ableton-offline-bounce-smoke.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
@@ -117,7 +119,7 @@ Product-order next Codex slice: complete the remaining Phase 1 Ableton host matr
 
 Preset browser, arp/step/chord, FX rack, modulation inspection, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; drag/drop modulation writing, per-route bypass/remove, per-control MIDI context menus, and richer browser metadata editing remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore plus VST3 transport stop: automation, learned CC mapping, AU transport stop, preset recreation, modulation exercise, bounce, sample-rate and buffer-size changes, all-notes-off, panic, and hosted UI open/close while playing.
+The remaining non-UI product proof is Ableton AU/VST3 validation beyond scan/load/play/restore, VST3 transport stop, and VST3 offline bounce artifact creation: automation, learned CC mapping, AU transport stop, preset recreation, modulation exercise, bounce-versus-realtime comparison, sample-rate and buffer-size changes, all-notes-off, panic, and hosted UI open/close while playing.
 
 ## Risks and Watchpoints
 
@@ -137,7 +139,7 @@ Pending implementation.
 Program-level acceptance requires:
 
 - Phase 1 A/B layers, four oscillator slots, arp/step workflow, FX rack, preset browser, MIDI/controller workflow, UI shell, and modulation UX are implemented and validated.
-- AU and VST3 load in Ableton, automate, bounce, save/reopen, and restore state with the Phase 1 build.
+- AU and VST3 load in Ableton, automate, save/reopen, restore state, export offline bounce artifacts, and compare offline bounce against realtime render with the Phase 1 build.
 - Claude Code UI handoff plans are completed or explicitly closed with screenshots/manual QA notes.
 - Phase 2 AI generation can create finite, valid, editable preset/arp/modulation state.
 - Phase 3 conversational/reference workflows can produce reversible edits with clear reports.

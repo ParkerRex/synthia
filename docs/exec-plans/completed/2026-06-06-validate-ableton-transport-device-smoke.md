@@ -4,7 +4,7 @@ status: completed
 created_at: 2026-06-06
 completed_at: 2026-06-06
 summary: Prove current VST3 transport run/stop in Ableton with only Live running, and correct prior standalone-window evidence.
-post_build_recap: Ableton Live 11 restored the current sylenth-ai VST3, transport playback ran with active host meters, and transport stop halted playback without a visible host error. The separate standalone sylenth-ai process was closed before clean evidence capture. Hosted editor open/close remains unproven.
+post_build_recap: Ableton Live 11 restored the current sylenth-ai VST3, transport playback ran with active host meters, and transport stop halted playback without a visible host error. The separate standalone sylenth-ai process was closed before clean evidence capture. Hosted editor open/close remains unproven. Offline bounce artifact proof was later covered by `2026-06-06-validate-ableton-offline-bounce-smoke.md`.
 read_when:
   - Reviewing Ableton transport proof.
   - Checking whether hosted editor proof exists.
@@ -53,7 +53,7 @@ Date: 2026-06-06.
 
 ## Outcomes & Retrospective
 
-Completed. The current VST3 restored in Ableton, transport ran with active host meters, and transport stopped without a visible host error. The remaining host matrix is narrower but still important: automation, learned CC mapping, offline bounce, sample-rate/buffer-size changes, all-notes-off, panic, and hosted UI open/close while playing.
+Completed. The current VST3 restored in Ableton, transport ran with active host meters, and transport stopped without a visible host error. At this point, the remaining host matrix was narrower but still important: automation, learned CC mapping, offline bounce, sample-rate/buffer-size changes, all-notes-off, panic, and hosted UI open/close while playing. Offline bounce artifact proof was later covered by `2026-06-06-validate-ableton-offline-bounce-smoke.md`.
 
 ## Context and Orientation
 
@@ -138,7 +138,7 @@ Acceptance required:
 
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.
-- Offline bounce comparison.
+- Resolved by `2026-06-06-validate-ableton-offline-bounce-smoke.md`: offline bounce artifact creation. Still open: offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
 - Hosted UI open/close while transport is running.

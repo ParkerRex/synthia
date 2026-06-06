@@ -137,7 +137,7 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 - `host-matrix-reopen-vst3-restore.png`
 - `host-matrix-post-restore-playback-from-start.png`
 
-Remaining host-validation gaps:
+Remaining host-validation gaps after this restore smoke pass:
 
 - AU and VST3 automation record/playback.
 - Learned CC mapping proof in Ableton.
@@ -178,7 +178,47 @@ Remaining host-validation gaps:
 - Learned CC mapping proof in Ableton.
 - AU transport stop proof.
 - Current preset recreation and modulation exercise.
-- Offline bounce comparison.
+- Offline bounce versus realtime comparison.
+- Sample-rate and buffer-size changes.
+- All-notes-off/panic proof.
+- Hosted UI open/close while transport is running.
+
+## Ableton Current-Build Offline Bounce Smoke - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: `/Users/parkerrex/Desktop/testing-synth Project/testing-synth.als`
+- plugin format tested in this pass: VST3
+
+Results:
+
+- Export Audio/Video rendered the restored VST3 test set from the master output using Ableton's default export settings: WAV PCM enabled, MP3 enabled, 44100 Hz project/sample rate, 16-bit WAV.
+- Ableton wrote ignored local artifacts under `build/reports/ableton/bounce/`.
+- The WAV artifact is stereo 44.1 kHz 16-bit PCM, 60638 frames, 1.3750113378684807 seconds, peak `0.24182866908780176`, RMS `0.08581804864650411`, RMS dBFS `-21.32842729587825`, non-silent, and non-clipping.
+- This proves offline bounce artifact creation and finite/non-silent output. It does not compare offline bounce against a captured realtime render.
+
+Evidence artifacts are local build artifacts under `build/reports/ableton/bounce/`:
+
+- `sylenth-ai-ableton-bounce-2026-06-06.wav`
+- `sylenth-ai-ableton-bounce-2026-06-06.mp3`
+- `sylenth-ai-ableton-bounce-2026-06-06.metrics.json`
+
+Export-setting screenshots are local build artifacts under `build/reports/ableton/`:
+
+- `export-dialog-open.png`
+- `export-save-dialog.png`
+- `export-bounce-after-save.png`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- Learned CC mapping proof in Ableton.
+- AU transport stop proof.
+- Current preset recreation and modulation exercise.
+- Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
 - All-notes-off/panic proof.
 - Hosted UI open/close while transport is running.

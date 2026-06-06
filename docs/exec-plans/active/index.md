@@ -10,7 +10,7 @@ Active Claude handoff slice: `2026-06-05-handoff-modulation-preset-arp-ui-polish
 
 UI handoff rule: the modern shell handoff is completed. Preset browser, arp/step/chord, FX rack, and modulation inspection polish are model-ready. Drag/drop modulation writing still needs a later write-adapter/schema slice.
 
-Product-order Codex slice after the current Ableton transport/device PR: complete the remaining Ableton Phase 1 host matrix against AU/VST3 with automation, controller mapping, AU transport stop, preset recreation, modulation exercise, bounce, buffer/sample-rate, all-notes-off/panic, and hosted UI open/close proof.
+Product-order Codex slice after the current Ableton offline-bounce PR: complete the remaining Ableton Phase 1 host matrix against AU/VST3 with automation, controller mapping, AU transport stop, preset recreation, modulation exercise, bounce-versus-realtime comparison, buffer/sample-rate, all-notes-off/panic, and hosted UI open/close proof.
 
 Completed child plans:
 
@@ -26,6 +26,7 @@ Completed child plans:
 - `../completed/2026-06-06-validate-ableton-current-build-smoke.md`
 - `../completed/2026-06-06-validate-ableton-state-restore-smoke.md`
 - `../completed/2026-06-06-validate-ableton-transport-device-smoke.md`
+- `../completed/2026-06-06-validate-ableton-offline-bounce-smoke.md`
 
 Superseded historical plans retained for context:
 
