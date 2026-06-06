@@ -440,11 +440,18 @@ public:
           const std::vector<std::string>& ids,
           juce::String badgeText,
           juce::Colour badgeFill,
-          const juce::String& stripPrefix)
+          const juce::String& stripPrefix,
+          const juce::String& enabledParamId = {})
         : title(std::move(panelTitle)),
           badge(std::move(badgeText)),
           badgeColour(badgeFill)
     {
+        if (enabledParamId.isNotEmpty())
+        {
+            enabledParam = state.getRawParameterValue(enabledParamId);
+            lastEnabledState = isModuleEnabled();
+        }
+
         for (const auto& id : ids)
         {
             if (const auto* found = synth::findParameterSpec(id))
@@ -461,8 +468,35 @@ public:
         return computeLayout(width, false);
     }
 
+    // True when this panel carries a module power toggle that drives its dimmed state.
+    bool hasEnabledState() const noexcept { return enabledParam != nullptr; }
+
+    // UI-thread read of the bound enable atomic; modules with no toggle read as on.
+    bool isModuleEnabled() const noexcept
+    {
+        return enabledParam == nullptr || enabledParam->load() >= 0.5f;
+    }
+
+    // Called from the editor timer for the visible page only. Repaints the panel when
+    // its power toggle flips so the header reflects bypass without per-frame churn.
+    void syncEnabledState()
+    {
+        if (enabledParam == nullptr)
+            return;
+
+        const auto enabled = isModuleEnabled();
+        if (enabled != lastEnabledState)
+        {
+            lastEnabledState = enabled;
+            repaint();
+        }
+    }
+
     void paint(juce::Graphics& g) override
     {
+        const auto hasState = hasEnabledState();
+        const auto on = isModuleEnabled();
+
         const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
         g.setColour(panelBg);
         g.fillRoundedRectangle(bounds, 6.0f);
@@ -470,11 +504,22 @@ public:
         g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
-        g.setColour(panelHeader);
+        g.setColour(hasState && !on ? panelHeader.darker(0.14f) : panelHeader);
         g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
         g.fillRect(headerArea.removeFromBottom(8)); // square off the lower header corners
 
         auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(12, 0);
+
+        // Power dot: a scan-friendly on/off indicator for modules with an enable toggle.
+        if (hasState)
+        {
+            auto dotArea = titleArea.removeFromLeft(14);
+            const auto dot = juce::Rectangle<float>(0.0f, 0.0f, 7.0f, 7.0f)
+                                 .withCentre(dotArea.toFloat().getCentre());
+            g.setColour(on ? live : juce::Colour::fromRGB(74, 82, 90));
+            g.fillEllipse(dot);
+        }
+
         juce::Rectangle<int> badgeArea;
         if (badge.isNotEmpty())
         {
@@ -483,15 +528,16 @@ public:
             titleArea.removeFromRight(8);
         }
 
-        g.setColour(text);
+        g.setColour(hasState && !on ? mutedText : text);
         g.setFont(uiFont(12.0f, true));
         g.drawText(title.toUpperCase(), titleArea, juce::Justification::centredLeft, true);
 
         if (badge.isNotEmpty())
         {
-            g.setColour(badgeColour.withAlpha(0.18f));
+            const auto badgeActive = !hasState || on;
+            g.setColour(badgeActive ? badgeColour.withAlpha(0.18f) : strokeSoft.withAlpha(0.35f));
             g.fillRoundedRectangle(badgeArea.toFloat(), 8.0f);
-            g.setColour(badgeColour);
+            g.setColour(badgeActive ? badgeColour : mutedText);
             g.setFont(uiFont(10.0f, true));
             g.drawText(badge, badgeArea, juce::Justification::centred, false);
         }
@@ -552,6 +598,8 @@ private:
     juce::String title;
     juce::String badge;
     juce::Colour badgeColour;
+    std::atomic<float>* enabledParam = nullptr;
+    bool lastEnabledState = true;
     std::vector<std::unique_ptr<ParameterControl>> controls;
 };
 
@@ -833,9 +881,11 @@ private:
         const auto starBounds = favoriteArea.withSizeKeepingCentre(20, 18).toFloat();
         g.setColour(item.favorite ? staged.withAlpha(0.22f) : strokeSoft.withAlpha(0.55f));
         g.fillRoundedRectangle(starBounds, 5.0f);
+        // Filled star when favorited, hollow star otherwise so the toggle affordance always reads.
         g.setColour(item.favorite ? staged : mutedText);
-        g.setFont(uiFont(10.0f, true));
-        g.drawText("F", favoriteArea, juce::Justification::centred, false);
+        g.setFont(uiFont(13.0f, false));
+        g.drawText(juce::String::fromUTF8(item.favorite ? "\xe2\x98\x85" : "\xe2\x98\x86"),
+                   favoriteArea, juce::Justification::centred, false);
 
         row.removeFromLeft(4);
         auto sourceArea = row.removeFromRight(92);
@@ -1151,7 +1201,10 @@ public:
 
         content.removeFromTop(sectionGap);
         auto routeLabelArea = content.removeFromTop(labelHeight);
-        paintSectionLabel(g, routeLabelArea, "ACTIVE ROUTES");
+        const auto activeRouteCount = static_cast<int>(routeView.activeRoutes.size());
+        paintSectionLabel(g, routeLabelArea,
+                          activeRouteCount > 0 ? "ACTIVE ROUTES  (" + juce::String(activeRouteCount) + ")"
+                                               : "ACTIVE ROUTES");
         paintRoutes(g, content.removeFromTop(routeRows * routeHeight + (routeRows - 1) * routeGap));
     }
 
@@ -1422,10 +1475,13 @@ public:
             configureSlider(chordVoices[index].velocity, prefix + "velocity", "Chord voice " + juce::String(voice) + " velocity");
         }
 
+        // Do not strip the "Chord " prefix here: these share the arp top-control flow, so
+        // they must read "Chord Enabled" / "Chord Voice Count" to avoid colliding with the
+        // arp "Enabled" toggle that sits a few cells to the left.
         if (const auto* spec = synth::findParameterSpec("chord.enabled"))
-            chordTopControls.push_back(makeTopControl(*spec, "Chord "));
+            chordTopControls.push_back(makeTopControl(*spec, {}));
         if (const auto* spec = synth::findParameterSpec("chord.voice_count"))
-            chordTopControls.push_back(makeTopControl(*spec, "Chord "));
+            chordTopControls.push_back(makeTopControl(*spec, {}));
     }
 
     int preferredHeight(int width) const override
@@ -1998,10 +2054,12 @@ SynthAudioProcessorEditor::Panel* SynthAudioProcessorEditor::addPanel(
     std::vector<std::string> ids,
     juce::String badge,
     juce::Colour badgeColour,
-    juce::String stripPrefix)
+    juce::String stripPrefix,
+    juce::String enabledParamId)
 {
     auto panel = std::make_unique<Panel>(audioProcessor.getValueTreeState(), std::move(title),
-                                         ids, std::move(badge), badgeColour, stripPrefix);
+                                         ids, std::move(badge), badgeColour, stripPrefix,
+                                         enabledParamId);
     auto* raw = panel.get();
     page.addAndMakeVisible(*raw);
     store.push_back(std::move(panel));
@@ -2085,36 +2143,37 @@ void SynthAudioProcessorEditor::buildPages()
                 prefix + "enabled", prefix + "source", prefix + "scaler",
                 prefix + "osc_pitch_semitones", prefix + "pulse_width",
                 prefix + "filter_cutoff_semitones", prefix + "amp_level_db", prefix + "pan"
-            }, {}, {}, title + " ");
+            }, {}, {}, title + " ", prefix + "enabled");
     }
 
     // ---- FX: a post-voice rack grouped by module, plus master/quality -----
+    // Each module passes its enable param so the header power dot/dim reflects bypass.
     saturationPanel = addPanel(fxPage, fxPanels, "01 Saturation", {
         "fx.saturation_enabled", "fx.distortion_mode", "fx.saturation_mix", "fx.saturation_drive"
-    }, "DRIVE", staged, "Saturation ");
+    }, "DRIVE", staged, "Saturation ", "fx.saturation_enabled");
     phaserPanel = addPanel(fxPage, fxPanels, "02 Phaser", {
         "fx.phaser_enabled", "fx.phaser_mix", "fx.phaser_rate_hz",
         "fx.phaser_depth", "fx.phaser_feedback"
-    }, "PHASE", accent, "Phaser ");
+    }, "PHASE", accent, "Phaser ", "fx.phaser_enabled");
     chorusPanel = addPanel(fxPage, fxPanels, "03 Chorus", {
         "fx.chorus_enabled", "fx.chorus_mix", "fx.chorus_rate_hz", "fx.chorus_depth_ms"
-    }, "MOD", accent, "Chorus ");
+    }, "MOD", accent, "Chorus ", "fx.chorus_enabled");
     eqPanel = addPanel(fxPage, fxPanels, "04 EQ", {
         "fx.eq_enabled", "fx.eq_low_gain_db", "fx.eq_high_gain_db"
-    }, "TONE", live, "EQ ");
+    }, "TONE", live, "EQ ", "fx.eq_enabled");
     delayPanel = addPanel(fxPage, fxPanels, "05 Delay", {
         "fx.delay_enabled", "fx.delay_mix", "fx.delay_sync_division", "fx.delay_feedback"
-    }, "ECHO", accent, "Delay ");
+    }, "ECHO", accent, "Delay ", "fx.delay_enabled");
     reverbPanel = addPanel(fxPage, fxPanels, "06 Reverb", {
         "fx.reverb_enabled", "fx.reverb_mix", "fx.reverb_decay"
-    }, "SPACE", accent, "Reverb ");
+    }, "SPACE", accent, "Reverb ", "fx.reverb_enabled");
     compressorPanel = addPanel(fxPage, fxPanels, "07 Compressor", {
         "fx.compressor_enabled", "fx.compressor_threshold_db", "fx.compressor_ratio",
         "fx.compressor_makeup_db", "fx.compressor_mix"
-    }, "DYN", staged, "Compressor ");
+    }, "DYN", staged, "Compressor ", "fx.compressor_enabled");
     masterFxPanel = addPanel(fxPage, fxPanels, "08 Master / Quality", {
         "fx.enabled", "quality.realtime_mode", "quality.offline_mode"
-    }, "HOST", live);
+    }, "HOST", live, {}, "fx.enabled");
 }
 
 void SynthAudioProcessorEditor::setSelectedLayer(int layerIndex)
@@ -2672,6 +2731,19 @@ void SynthAudioProcessorEditor::timerCallback()
     updateDiagnostics();
     if (midiControllerPanel != nullptr)
         midiControllerPanel->refresh();
-    if (currentPage == Page::Mod && modulationOverviewPanel != nullptr)
-        modulationOverviewPanel->refresh();
+
+    // Refresh module power dots/dim for the visible page only (keeps hidden tabs idle).
+    if (currentPage == Page::Fx)
+    {
+        for (auto& panel : fxPanels)
+            panel->syncEnabledState();
+    }
+    else if (currentPage == Page::Mod)
+    {
+        if (modulationOverviewPanel != nullptr)
+            modulationOverviewPanel->refresh();
+        for (auto* panel : transModPanels)
+            if (panel != nullptr)
+                panel->syncEnabledState();
+    }
 }

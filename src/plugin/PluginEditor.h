@@ -82,7 +82,8 @@ private:
                     std::vector<std::string> ids,
                     juce::String badge = {},
                     juce::Colour badgeColour = {},
-                    juce::String stripPrefix = {});
+                    juce::String stripPrefix = {},
+                    juce::String enabledParamId = {});
 
     SynthAudioProcessor& audioProcessor;
     std::unique_ptr<SynthLookAndFeel> lookAndFeel;
