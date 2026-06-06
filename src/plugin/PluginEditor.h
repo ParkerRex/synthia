@@ -13,13 +13,13 @@
 // The editor is a fixed dense shell rather than a long scrolling form:
 //   * a header with preset navigation, an output meter, live diagnostics, and panic;
 //   * a persistent Layer A/B selector that exposes the real layer.* mix state and a
-//     render-boundary pill (Layer A maps to the live core path, Layer B is staged);
+//     render-boundary pill for state that is not yet part of the renderer;
 //   * a SOUND / MOD / FX tabbed workspace whose panels bind to real APVTS parameters.
 //
 // Honesty boundary: the legacy flat osc.* path is what currently produces sound, so the
 // core oscillator panel is badged LIVE. The layer.N.osc.M.* slot panels bind to real,
-// preset-serialized state but are badged STATE because per-slot/Layer B rendering is not
-// implemented yet. The UI never implies that staged state is audible.
+// preset-serialized state but are badged STATE because per-layer and per-slot rendering
+// are not implemented yet. The UI never implies that staged state is audible.
 class SynthAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                         private juce::Timer
 {

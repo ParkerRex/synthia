@@ -39,33 +39,62 @@ juce::Font uiFont(float size = 13.0f, bool bold = false)
 
 juce::String formatValue(const synth::ParameterSpec& spec, double value)
 {
-    if (std::abs(value) < 1.0e-3)
-        value = 0.0; // clean sub-interval denormals (e.g. normalized-default round-trip) to a true zero
+    if (!std::isfinite(value))
+        value = 0.0;
+
+    auto snapToDisplayedZero = [](double number, double displayedStep) {
+        return std::abs(number) < displayedStep * 0.5 ? 0.0 : number;
+    };
 
     const auto& unit = spec.unit;
     if (unit == "dB")
-        return juce::String(value, 1) + " dB";
+        return juce::String(snapToDisplayedZero(value, 0.1), 1) + " dB";
     if (unit == "Hz")
-        return juce::String(value, value < 10.0 ? 2 : 1) + " Hz";
+    {
+        const auto decimals = value < 10.0 ? 2 : 1;
+        return juce::String(snapToDisplayedZero(value, decimals == 2 ? 0.01 : 0.1), decimals) + " Hz";
+    }
     if (unit == "milliseconds")
+    {
+        value = snapToDisplayedZero(value, value < 10.0 ? 0.1 : 1.0);
         return value >= 1000.0 ? juce::String(value / 1000.0, 2) + " s"
                                : juce::String(value, value < 10.0 ? 1 : 0) + " ms";
+    }
     if (unit == "semitones")
-        return juce::String(value, 1) + " st";
+        return juce::String(snapToDisplayedZero(value, 0.1), 1) + " st";
     if (unit == "cents")
-        return juce::String(juce::roundToInt(value)) + " ct";
+        return juce::String(juce::roundToInt(snapToDisplayedZero(value, 1.0))) + " ct";
     if (unit == "percent")
-        return juce::String(juce::roundToInt(value * 100.0)) + " %";
+        return juce::String(juce::roundToInt(snapToDisplayedZero(value, 0.01) * 100.0)) + " %";
     if (unit == "degrees")
-        return juce::String(juce::roundToInt(value)) + juce::String::fromUTF8("\xc2\xb0");
+        return juce::String(juce::roundToInt(snapToDisplayedZero(value, 1.0))) + juce::String::fromUTF8("\xc2\xb0");
     if (unit == "octaves")
     {
-        const auto octaves = static_cast<int>(std::round(value));
+        const auto octaves = static_cast<int>(std::round(snapToDisplayedZero(value, 1.0)));
         return (octaves > 0 ? "+" : "") + juce::String(octaves);
     }
     if (unit == "voices")
-        return juce::String(static_cast<int>(std::round(value)));
-    return juce::String(value, 2);
+        return juce::String(static_cast<int>(std::round(snapToDisplayedZero(value, 1.0))));
+    return juce::String(snapToDisplayedZero(value, 0.01), 2);
+}
+
+double parseValueText(const synth::ParameterSpec& spec, const juce::String& textValue)
+{
+    const auto trimmedText = textValue.trim().toLowerCase();
+    const auto number = trimmedText.retainCharacters("-0123456789.").getDoubleValue();
+
+    if (spec.unit == "percent")
+        return trimmedText.containsChar('%') || std::abs(number) > 1.0 ? number / 100.0 : number;
+
+    if (spec.unit == "milliseconds")
+    {
+        if (trimmedText.contains("ms"))
+            return number;
+        if (trimmedText.containsChar('s'))
+            return number * 1000.0;
+    }
+
+    return number;
 }
 
 void styleFlatButton(juce::Button& button, juce::Colour fill, juce::Colour textColour = text)
@@ -286,9 +315,7 @@ public:
             // text<->value functions in its constructor, so our formatter is applied after.
             sliderAttachment = std::make_unique<SliderAttachment>(state, spec.id, slider);
             slider.textFromValueFunction = [this](double value) { return formatValue(spec, value); };
-            slider.valueFromTextFunction = [](const juce::String& textValue) {
-                return textValue.retainCharacters("-0123456789.").getDoubleValue();
-            };
+            slider.valueFromTextFunction = [this](const juce::String& textValue) { return parseValueText(spec, textValue); };
             slider.updateText();
             addAndMakeVisible(slider);
         }
@@ -786,11 +813,10 @@ void SynthAudioProcessorEditor::setSelectedLayer(int layerIndex)
     styleFlatButton(layerAButton, selectedLayer == 0 ? activeColour : inactiveColour);
     styleFlatButton(layerBButton, selectedLayer == 1 ? activeColour : inactiveColour);
 
-    // Render-boundary truth: Layer A maps to the live core path; Layer B is staged state.
-    const auto live_ = selectedLayer == 0;
-    layerStatusPill.setText(live_ ? "LIVE - core path" : "STAGED - not yet rendered",
+    // Render-boundary truth: layer mix and slot state are editable state until the layer renderer lands.
+    layerStatusPill.setText(selectedLayer == 0 ? "STATE - mix not rendered" : "STAGED - not yet rendered",
                             juce::dontSendNotification);
-    layerStatusPill.setColour(juce::Label::textColourId, live_ ? live : staged);
+    layerStatusPill.setColour(juce::Label::textColourId, staged);
 
     // Rebuild per-layer mix controls for the selected layer.
     layerControls.clear();
@@ -928,16 +954,38 @@ void SynthAudioProcessorEditor::layoutHeader(juce::Rectangle<int> area)
 
     // Middle cluster: preset nav with a flexible combo.
     auto nav = area;
+    const auto compactPresetNav = nav.getWidth() < 650;
+    duplicateButton.setVisible(!compactPresetNav);
+    nameEditor.setVisible(!compactPresetNav);
+
     prevPresetButton.setBounds(centreInHeight(nav.removeFromLeft(30), 30));
     nav.removeFromLeft(4);
-    duplicateButton.setBounds(centreInHeight(nav.removeFromRight(88), 30));
-    nav.removeFromRight(6);
+
+    if (!compactPresetNav)
+    {
+        duplicateButton.setBounds(centreInHeight(nav.removeFromRight(88), 30));
+        nav.removeFromRight(6);
+    }
+    else
+    {
+        duplicateButton.setBounds({});
+    }
+
     saveButton.setBounds(centreInHeight(nav.removeFromRight(74), 30));
     nav.removeFromRight(6);
     loadButton.setBounds(centreInHeight(nav.removeFromRight(58), 30));
-    nav.removeFromRight(10);
-    nameEditor.setBounds(centreInHeight(nav.removeFromRight(150), 28));
-    nav.removeFromRight(8);
+    nav.removeFromRight(compactPresetNav ? 8 : 10);
+
+    if (!compactPresetNav)
+    {
+        nameEditor.setBounds(centreInHeight(nav.removeFromRight(150), 28));
+        nav.removeFromRight(8);
+    }
+    else
+    {
+        nameEditor.setBounds({});
+    }
+
     nextPresetButton.setBounds(centreInHeight(nav.removeFromRight(30), 30));
     nav.removeFromRight(6);
     presetCombo.setBounds(centreInHeight(nav, 30));
