@@ -50,7 +50,7 @@ Date: 2026-06-06.
 
 ## Outcomes & Retrospective
 
-Completed. `SylenthAIRender --randomize-test` now prepares seeds `1,42,12345,67890` by default, renders each seed with the overlap-pluck fixture, and writes a JSON report with prepared/rendered status, peak, RMS, nonzero sample count, invalid sample count, and per-seed pass/fail. The core suite now writes 12 reports, including `randomize.json`, and CTest includes `SylenthAIRandomizeRenderTest`.
+Completed. `SylenthAIRender --randomize-test` now prepares seeds `1,42,12345,67890` by default, renders each seed with the overlap-pluck fixture, and writes a JSON report with prepared/rendered status, peak, RMS, nonzero sample count, invalid sample count, and per-seed pass/fail. The core suite includes `randomize.json`, and CTest includes `SylenthAIRandomizeRenderTest`.
 
 The seed override is strict: malformed, partial, empty, or out-of-range tokens fail the command instead of silently falling back to default seed coverage.
 

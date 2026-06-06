@@ -1,6 +1,7 @@
 #include "../dsp/Filter.h"
 #include "../dsp/OscillatorStack.h"
 #include "../dsp/SynthEngine.h"
+#include "../modulation/ModulationRouteModel.h"
 #include "../plugin/ParameterRegistry.h"
 #include "../presets/PresetManager.h"
 #include "../presets/PresetValidator.h"
@@ -30,6 +31,7 @@ struct Options
     bool oscTest = false;
     bool filterTest = false;
     bool modulationTest = false;
+    bool modulationRouteRenderTest = false;
     bool randomizeTest = false;
     bool presetRender = false;
     bool dry = false;
@@ -180,6 +182,11 @@ Options parseOptions(int argc, char* argv[])
             options.modulationTest = true;
             options.output = "build/reports/modulation.json";
         }
+        else if (arg == "--modulation-route-render-test")
+        {
+            options.modulationRouteRenderTest = true;
+            options.output = "build/reports/modulation-route-render.json";
+        }
         else if (arg == "--randomize-test")
         {
             options.randomizeTest = true;
@@ -244,6 +251,7 @@ Options parseOptions(int argc, char* argv[])
             std::cout << "  SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output <path>\n";
             std::cout << "  SylenthAIRender --filter-test --output <path>\n";
             std::cout << "  SylenthAIRender --modulation-test --fixture <path> --output <path>\n";
+            std::cout << "  SylenthAIRender --modulation-route-render-test --fixture <path> --output <path>\n";
             std::cout << "  SylenthAIRender --randomize-test --seeds 1,42,12345 --fixture <path> --output <path>\n";
             std::cout << "  SylenthAIRender --suite core --output-dir <dir>\n";
             std::cout << "  SylenthAIRender --suite patch-recreation --output-dir <dir>\n";
@@ -1926,6 +1934,9 @@ struct AudioDiff
 
 AudioDiff compareAudio(const PresetRenderResult& a, const PresetRenderResult& b);
 void evaluateWetDifference(PresetRenderResult& wet, const PresetRenderResult& dry);
+void writeFailureReport(const std::filesystem::path& reportPath,
+                        const std::string& suite,
+                        const std::string& error);
 
 PresetRenderResult renderParameterAudio(synth::SynthParameters parameters,
                                         const std::filesystem::path& fixturePath,
@@ -2056,6 +2067,176 @@ PresetRenderResult renderPresetAudio(const std::filesystem::path& presetPath,
         return result;
 
     return renderParameterAudio(parameters, fixturePath, variant, fxMode);
+}
+
+bool applyModulationRouteEditsToParameters(
+    synth::SynthParameters& parameters,
+    const std::vector<synth::ModulationRouteParameterEdit>& edits,
+    std::string& error)
+{
+    for (const auto& edit : edits)
+    {
+        const auto* spec = synth::findParameterSpec(edit.parameterId);
+        if (spec == nullptr)
+        {
+            error = "modulation route edit references unknown parameter: " + edit.parameterId;
+            return false;
+        }
+
+        if (!std::isfinite(edit.value))
+        {
+            error = "modulation route edit contains non-finite value: " + edit.parameterId;
+            return false;
+        }
+
+        const auto value = synth::clampPhysicalParameterValue(*spec, edit.value);
+        applyPresetValue(parameters, edit.parameterId, juce::var(value));
+    }
+
+    return true;
+}
+
+bool hasExpectedRoute(const synth::ModulationRouteView& view)
+{
+    return std::any_of(view.activeRoutes.begin(), view.activeRoutes.end(), [](const auto& route) {
+        return route.slotNumber == 3
+            && route.sourceId == "macro.motion"
+            && route.scalerId == "none"
+            && route.destinationId == "amp.level"
+            && std::abs(route.depth - 6.0f) < 0.001f
+            && route.enabled;
+    });
+}
+
+void writeRouteEditArray(std::ofstream& out,
+                         const char* fieldName,
+                         const std::vector<synth::ModulationRouteParameterEdit>& edits)
+{
+    out << "  \"" << fieldName << "\": [\n";
+    for (std::size_t i = 0; i < edits.size(); ++i)
+    {
+        out << "    {\"parameter_id\": \"" << edits[i].parameterId << "\", ";
+        out << "\"value\": " << edits[i].value << "}";
+        out << (i + 1 == edits.size() ? "\n" : ",\n");
+    }
+    out << "  ],\n";
+}
+
+int writeModulationRouteRenderReport(const Options& options)
+{
+    constexpr auto routedMaxAbsThreshold = 1.0e-4;
+    constexpr auto routedRmsThreshold = 1.0e-5;
+    constexpr auto clearMaxAbsTolerance = 1.0e-7;
+    constexpr auto clearRmsTolerance = 1.0e-9;
+
+    const auto presetPath = std::filesystem::path { "presets/factory/pluck-core-01.json" };
+    synth::SynthParameters baselineParameters;
+    std::string error;
+    if (!loadPresetParameters(presetPath, baselineParameters, error))
+    {
+        writeFailureReport(options.output, "modulation-route-render", error);
+        return 1;
+    }
+
+    const auto write = synth::buildModulationRouteWrite({
+        3,
+        "macro.motion",
+        "none",
+        "amp.level",
+        6.0f
+    });
+    if (!write.ok)
+    {
+        writeFailureReport(options.output, "modulation-route-render", write.message);
+        return 1;
+    }
+
+    auto routedParameters = baselineParameters;
+    if (!applyModulationRouteEditsToParameters(routedParameters, write.edits, error))
+    {
+        writeFailureReport(options.output, "modulation-route-render", error);
+        return 1;
+    }
+
+    const auto routeView = synth::buildModulationRouteView(routedParameters.transMod);
+    const auto routeViewPassed = hasExpectedRoute(routeView);
+
+    const auto clear = synth::buildModulationSlotClear(3);
+    if (!clear.ok)
+    {
+        writeFailureReport(options.output, "modulation-route-render", clear.message);
+        return 1;
+    }
+
+    auto clearedParameters = routedParameters;
+    if (!applyModulationRouteEditsToParameters(clearedParameters, clear.edits, error))
+    {
+        writeFailureReport(options.output, "modulation-route-render", error);
+        return 1;
+    }
+
+    const auto baseline = renderParameterAudio(baselineParameters, options.fixturePath,
+                                               PresetRenderVariant::Default, RenderFxMode::Dry);
+    const auto routed = renderParameterAudio(routedParameters, options.fixturePath,
+                                             PresetRenderVariant::Default, RenderFxMode::Dry);
+    const auto cleared = renderParameterAudio(clearedParameters, options.fixturePath,
+                                              PresetRenderVariant::Default, RenderFxMode::Dry);
+    if (!baseline.ok || !routed.ok || !cleared.ok)
+    {
+        const auto renderError = !baseline.ok ? baseline.error : (!routed.ok ? routed.error : cleared.error);
+        writeFailureReport(options.output, "modulation-route-render", renderError);
+        return 1;
+    }
+
+    const auto routedDiff = compareAudio(baseline, routed);
+    const auto clearedDiff = compareAudio(baseline, cleared);
+    const auto routedAudioChanged = routedDiff.maxAbs > routedMaxAbsThreshold
+        && routedDiff.rms > routedRmsThreshold;
+    const auto clearedAudioRestored = clearedDiff.maxAbs <= clearMaxAbsTolerance
+        && clearedDiff.rms <= clearRmsTolerance;
+    const auto renderPassed = baseline.passed && routed.passed && cleared.passed;
+    const auto passed = routeViewPassed && renderPassed && routedAudioChanged && clearedAudioRestored;
+
+    ensureParentDirectory(options.output);
+    std::ofstream out(options.output);
+    out << "{\n";
+    out << "  \"schema_version\": 1,\n";
+    out << "  \"suite\": \"modulation-route-render\",\n";
+    out << "  \"preset\": \"" << genericString(presetPath) << "\",\n";
+    out << "  \"fixture\": \"" << genericString(options.fixturePath) << "\",\n";
+    out << "  \"slot_number\": 3,\n";
+    out << "  \"source_id\": \"macro.motion\",\n";
+    out << "  \"scaler_id\": \"none\",\n";
+    out << "  \"destination_id\": \"amp.level\",\n";
+    out << "  \"depth_db\": 6.0,\n";
+    out << "  \"route_write_message\": \"" << write.message << "\",\n";
+    writeRouteEditArray(out, "route_edits", write.edits);
+    writeRouteEditArray(out, "clear_edits", clear.edits);
+    out << "  \"active_route_count\": " << routeView.activeRoutes.size() << ",\n";
+    out << "  \"route_view_passed\": " << boolString(routeViewPassed) << ",\n";
+    out << "  \"baseline_peak\": " << baseline.metrics.peak << ",\n";
+    out << "  \"routed_peak\": " << routed.metrics.peak << ",\n";
+    out << "  \"cleared_peak\": " << cleared.metrics.peak << ",\n";
+    out << "  \"baseline_rms\": " << baseline.metrics.rms << ",\n";
+    out << "  \"routed_rms\": " << routed.metrics.rms << ",\n";
+    out << "  \"cleared_rms\": " << cleared.metrics.rms << ",\n";
+    out << "  \"routed_max_abs_diff\": " << routedDiff.maxAbs << ",\n";
+    out << "  \"routed_rms_diff\": " << routedDiff.rms << ",\n";
+    out << "  \"routed_peak_delta\": " << routedDiff.peakDelta << ",\n";
+    out << "  \"routed_max_abs_threshold\": " << routedMaxAbsThreshold << ",\n";
+    out << "  \"routed_rms_threshold\": " << routedRmsThreshold << ",\n";
+    out << "  \"routed_audio_changed\": " << boolString(routedAudioChanged) << ",\n";
+    out << "  \"cleared_max_abs_diff\": " << clearedDiff.maxAbs << ",\n";
+    out << "  \"cleared_rms_diff\": " << clearedDiff.rms << ",\n";
+    out << "  \"cleared_peak_delta\": " << clearedDiff.peakDelta << ",\n";
+    out << "  \"clear_max_abs_tolerance\": " << clearMaxAbsTolerance << ",\n";
+    out << "  \"clear_rms_tolerance\": " << clearRmsTolerance << ",\n";
+    out << "  \"cleared_audio_restored\": " << boolString(clearedAudioRestored) << ",\n";
+    out << "  \"render_passed\": " << boolString(renderPassed) << ",\n";
+    out << "  \"passed\": " << boolString(passed) << "\n";
+    out << "}\n";
+
+    return passed ? 0 : 1;
 }
 
 void writePresetRenderReport(const std::filesystem::path& reportPath,
@@ -2489,6 +2670,13 @@ int writeCoreSuite(const Options& options)
     }
 
     {
+        auto routeRenderOptions = options;
+        routeRenderOptions.output = outputDir / "modulation-route-render.json";
+        addItem("modulation-route-render", routeRenderOptions.output,
+                writeModulationRouteRenderReport(routeRenderOptions));
+    }
+
+    {
         auto randomizeOptions = options;
         randomizeOptions.output = outputDir / "randomize.json";
         addItem("randomize-render", randomizeOptions.output, writeRandomizeReport(randomizeOptions));
@@ -2844,6 +3032,13 @@ int main(int argc, char* argv[])
     {
         const auto exitCode = writeModulationReport(options);
         std::cout << "Modulation validation " << (exitCode == 0 ? "passed." : "failed.") << "\n";
+        return exitCode;
+    }
+
+    if (options.modulationRouteRenderTest)
+    {
+        const auto exitCode = writeModulationRouteRenderReport(options);
+        std::cout << "Modulation route render validation " << (exitCode == 0 ? "passed." : "failed.") << "\n";
         return exitCode;
     }
 

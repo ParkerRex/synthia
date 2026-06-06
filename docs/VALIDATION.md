@@ -23,6 +23,7 @@ ctest --test-dir build --output-on-failure
 ./build/SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
 ./build/SylenthAIRender --filter-test --output build/reports/filter.json
 ./build/SylenthAIRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
+./build/SylenthAIRender --modulation-route-render-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation-route-render.json
 ./build/SylenthAIRender --randomize-test --seeds 1,42,12345,67890 --fixture fixtures/midi/overlap-pluck.mid --output build/reports/randomize.json
 ./build/SylenthAIRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
 ./build/SylenthAIRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --wet --output build/renders/pluck-core-01-wet.wav --report build/reports/pluck-core-01-wet.json
@@ -69,14 +70,16 @@ The current DSP validation proves:
 - direct chord expansion, overlapping chord-output release ownership, chord parameter-change note-off symmetry, arp up-mode timing, host-tempo step duration, gate-off timing, octave wrapping, step pitch and velocity scaling, tie/hold behavior, arp enable/disable while input notes are held, hold-disable latch clearing, and panic clearing generated notes.
 - top-level `mod_slots` preset schema objects are applied by render loading, including schema-only modulation fixtures that omit flat APVTS-style `transmod.*` parameters.
 - modulation route model catalogs and derived route rows are covered by `SylenthAIContractTest`, including source/scaler IDs, destination IDs, active route filtering, and legacy `transmod.N.depth` cutoff contribution.
+- `SylenthAIRender --modulation-route-render-test` compiles a route write through `ModulationRouteModel`, applies it to `transmod.3.*`, proves the rendered audio changes, then applies a clear-slot edit and proves the render returns to baseline within deterministic tolerances.
 - preset browser metadata validation, saved user preset browser metadata, factory/user/legacy source summaries, sidecar favorite add/remove behavior, search/category/tag/favorite filtering, and browser catalog facets are covered by `SylenthAIContractTest`.
 - MIDI controller-map persistence is covered by `SylenthAIContractTest`; remaining host proof must show learned CCs updating APVTS parameters in AU and VST3.
 - FX bypass stays null-equivalent to dry rendering when globally bypassed, disabled expanded-rack modules are dry-equivalent, phaser/EQ/compressor/distortion-mode processing is finite and measurably audible when enabled, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active time-based FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
 - `SylenthAIRender --randomize-test` prepares seedable bounded randomized APVTS state through `PresetManager`, renders each seed through the standalone engine as prepared, rejects malformed seed lists, and checks finite non-silent non-clipping output.
-- `SylenthAIRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, randomize render, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
+- `SylenthAIRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, modulation route render, randomize render, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
 - `SylenthAIRender --suite patch-recreation` renders `Pluck Core 01`, `Supersaw Stack 01`, `Bass Wub 01`, `Pad Wide 01`, `Arp Motion 01`, and `FX Space 01` against the overlap-pluck fixture, writes WAV/report artifacts for each, and checks finite non-clipping output plus meaningful wet-versus-dry FX differences. The arp/chord patch also asserts that `SynthRender` applies preset-loaded `arp.*` and `chord.*` state.
 - `SylenthAIRenderCoreSuite` runs the core suite under CTest.
 - `SylenthAIRandomizeRenderTest` runs the randomized preset render proof under CTest.
+- `SylenthAIModulationRouteRenderTest` runs the modulation route write/render/clear proof under CTest.
 - `SylenthAIPatchRecreationSuite` runs the patch-recreation suite under CTest.
 
 Preset render validation is expected to fail if the preset file is missing, the preset JSON is invalid, the MIDI fixture is missing, the fixture is not a valid MIDI file, or the fixture has no note events.
@@ -121,6 +124,7 @@ Current standalone core-suite artifacts:
 - `pluck-core-01-dry.json`: dry factory pluck metrics plus WAV artifact path.
 - `pluck-core-01-wet.json`: wet factory pluck metrics plus WAV artifact path, FX mode, delay division, tempo-synced delay samples, tail length, post-event render length, active quality mode, and wet-versus-dry difference metrics.
 - `randomize.json`: seed list, per-seed prepared/rendered status, prepared FX-enabled state, peak, RMS, nonzero sample count, invalid sample count, and pass/fail for bounded randomized state render proof.
+- `modulation-route-render.json`: route write edits, clear-slot edits, active route count, baseline/routed/cleared peak and RMS, routed audio-difference thresholds, clear-to-baseline tolerances, and pass/fail for route creation plus clear-slot restore.
 - `lfo-ablation.json`: compares per-voice LFO and mono LFO renders using note-local LFO spread and audio difference.
 - `determinism.json`: renders the dry pluck twice and compares `max_abs_diff`, `rms_diff`, and `peak_delta` against fixed tolerances.
 - `artifacts/*.wav`: retained dry/per-voice/mono render WAVs.
@@ -191,6 +195,7 @@ Implemented standalone metrics:
 - `note_local_lfo_spread`: spread of per-voice LFO values while notes overlap.
 - `fx_mode`, `delay_division_beats`, `tempo_synced_delay_samples`, `fx_tail_seconds`, `post_last_event_seconds`, `quality_mode`, `wet_dry_max_abs_diff`, `wet_dry_rms_diff`, and `wet_meaningful_passed`: wet-render proof for the onboard fixed-order FX path.
 - `mod_slot_schema_passed`: modulation harness check that canonical preset `mod_slots` objects are loaded into runtime TransMod slots.
+- `routed_max_abs_diff`, `routed_rms_diff`, `cleared_max_abs_diff`, and `cleared_rms_diff`: modulation route render proof metrics for created-route audibility and clear-slot determinism.
 - `max_abs_diff`, `rms_diff`, `peak_delta`: deterministic repeat comparison metrics.
 
 ## Render Artifact Contract

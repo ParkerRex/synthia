@@ -247,6 +247,10 @@ if(SYLENTH_AI_ENABLE_TESTS)
         COMMAND SylenthAIRender --randomize-test --output build/reports/ctest-randomize.json)
     set_tests_properties(SylenthAIRandomizeRenderTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
+    add_test(NAME SylenthAIModulationRouteRenderTest
+        COMMAND SylenthAIRender --modulation-route-render-test --output build/reports/ctest-modulation-route-render.json)
+    set_tests_properties(SylenthAIModulationRouteRenderTest PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
     add_test(NAME SylenthAIPatchRecreationSuite
         COMMAND SylenthAIRender --suite patch-recreation --output-dir build/reports/ctest-patch-recreation)
     set_tests_properties(SylenthAIPatchRecreationSuite PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
