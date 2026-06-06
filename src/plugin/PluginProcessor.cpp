@@ -618,12 +618,12 @@ bool SynthAudioProcessor::loadPresetFile(const juce::File& file, juce::String& m
 
         const auto presetName = result.displayName.empty() ? file.getFileNameWithoutExtension()
                                                            : juce::String(result.displayName);
-        setPresetMetadata(presetName, message);
+        setPresetMetadata(presetName, message, file.getFullPathName());
         panicRequested.store(true, std::memory_order_release);
     }
     else
     {
-        setPresetMetadata(getCurrentPresetName(), message);
+        setPresetMetadata(getCurrentPresetName(), message, getCurrentPresetFilePath());
     }
 
     return result.loaded;
@@ -639,13 +639,14 @@ bool SynthAudioProcessor::savePresetFile(const juce::File& file,
     if (saved)
     {
         const auto presetName = displayName.isNotEmpty() ? displayName : file.getFileNameWithoutExtension();
+        const auto presetFile = file.hasFileExtension(".json") ? file : file.withFileExtension(".json");
         message = "Saved preset: " + presetName;
-        setPresetMetadata(presetName, message);
+        setPresetMetadata(presetName, message, presetFile.getFullPathName());
         return true;
     }
 
     message = "Preset save failed: " + juce::String(error);
-    setPresetMetadata(getCurrentPresetName(), message);
+    setPresetMetadata(getCurrentPresetName(), message, getCurrentPresetFilePath());
     return false;
 }
 
@@ -653,6 +654,12 @@ juce::String SynthAudioProcessor::getCurrentPresetName() const
 {
     const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
     return currentPresetName;
+}
+
+juce::String SynthAudioProcessor::getCurrentPresetFilePath() const
+{
+    const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
+    return currentPresetFilePath;
 }
 
 SynthAudioProcessor::DiagnosticsSnapshot SynthAudioProcessor::getDiagnosticsSnapshot() const
@@ -676,10 +683,13 @@ void SynthAudioProcessor::requestPanic() noexcept
     panicRequested.store(true, std::memory_order_release);
 }
 
-void SynthAudioProcessor::setPresetMetadata(const juce::String& presetName, const juce::String& status)
+void SynthAudioProcessor::setPresetMetadata(const juce::String& presetName,
+                                            const juce::String& status,
+                                            const juce::String& presetFilePath)
 {
     const juce::CriticalSection::ScopedLockType lock(presetMetadataLock);
     currentPresetName = presetName;
+    currentPresetFilePath = presetFilePath;
     lastPresetStatus = status;
 }
 
@@ -689,6 +699,7 @@ void SynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     state.setProperty("schema_version", 1, nullptr);
     state.setProperty("plugin_version", ProjectInfo::versionString, nullptr);
     state.setProperty("current_preset", getCurrentPresetName(), nullptr);
+    state.setProperty("current_preset_path", getCurrentPresetFilePath(), nullptr);
 
     if (auto xml = state.createXml())
         copyXmlToBinary(*xml, destData);
@@ -704,12 +715,13 @@ void SynthAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
             if (state.isValid())
             {
                 const auto presetName = state.getProperty("current_preset", "Restored State").toString();
+                const auto presetPath = state.getProperty("current_preset_path", "").toString();
                 const auto migratedState = synth::mergeParameterStateWithDefaults(parameters, state);
                 {
                     ScopedParameterStateUpdate update(parameterStateSequence);
                     parameters.replaceState(migratedState);
                 }
-                setPresetMetadata(presetName, "Host state restored");
+                setPresetMetadata(presetName, "Host state restored", presetPath);
                 panicRequested.store(true, std::memory_order_release);
             }
         }

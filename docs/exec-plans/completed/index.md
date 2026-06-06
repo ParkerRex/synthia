@@ -11,3 +11,8 @@
 - `2026-06-04-build-editor-ui-and-preset-workflow.md`
 - `2026-06-04-build-onboard-fx-and-quality-modes.md`
 - `2026-06-05-build-sylenth-layer-oscillator-backbone.md`
+- `2026-06-05-build-sylenth-layer-b-and-four-osc-rendering.md`
+- `2026-06-05-build-arp-step-chord-workflow.md`
+- `2026-06-05-handoff-modern-sylenth-ui-shell.md`
+- `2026-06-05-rename-project-identity-to-sylenth-ai.md`
+- `2026-06-06-build-preset-browser-and-bank-workflow.md`

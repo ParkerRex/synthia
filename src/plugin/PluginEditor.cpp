@@ -1124,6 +1124,19 @@ void SynthAudioProcessorEditor::refreshPresetMenu()
         return;
     }
 
+    const auto currentFilePath = audioProcessor.getCurrentPresetFilePath();
+    if (currentFilePath.isNotEmpty())
+    {
+        for (int i = 0; i < static_cast<int>(presetItems.size()); ++i)
+        {
+            if (presetItems[static_cast<std::size_t>(i)].file.getFullPathName() == currentFilePath)
+            {
+                presetCombo.setSelectedItemIndex(i, juce::dontSendNotification);
+                return;
+            }
+        }
+    }
+
     const auto currentName = audioProcessor.getCurrentPresetName();
     for (int i = 0; i < static_cast<int>(presetItems.size()); ++i)
     {

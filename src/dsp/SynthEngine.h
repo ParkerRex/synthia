@@ -68,6 +68,7 @@ private:
     void resetInputNoteTracking() noexcept;
     void rebuildArpeggiatorFromInputNotes() noexcept;
     void triggerDirectNotesFromInputNotes() noexcept;
+    void resetVoicesForHeldInputRebuild() noexcept;
 
     double sampleRate = 44100.0;
     int maxBlockSize = 512;
@@ -80,6 +81,7 @@ private:
     std::uint64_t inputOrderCounter = 0;
     std::array<DirectChordInputState, 128> directChordInputs {};
     std::array<int, 128> directChordOutputRefCounts {};
+    bool sustainPedalDown = false;
     VoiceAllocator voices { 32 };
     FxChain fx;
 };

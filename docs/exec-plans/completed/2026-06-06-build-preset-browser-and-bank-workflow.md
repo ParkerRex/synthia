@@ -1,6 +1,6 @@
 ---
 title: Build Preset Browser And Bank Workflow
-status: active
+status: completed
 created_at: 2026-06-06
 completed_at: 2026-06-06
 summary: Add the Phase 1 preset browser, bank/category metadata, favorites, search/filter state, and validation hooks needed before deeper Claude Code preset UI polish.
@@ -45,7 +45,7 @@ Date: 2026-06-06.
 
 ## Outcomes & Retrospective
 
-Completed. `PresetManager` now exposes structured browser summaries and pure catalog/filter helpers. Preset scans distinguish `Factory`, `User`, and `Legacy User`, read optional `metadata.browser.bank/category/source`, preserve older preset visibility with source-derived fallbacks, and mark favorites from `~/Music/ParkerX/sylenth-ai/PresetFavorites.json`. Saved user presets write `metadata.browser` with `User` bank/category/source. The editor's existing combo now displays source/bank/category/favorite hints; the visual browser drawer remains a Claude Code handoff item.
+Completed. `PresetManager` now exposes structured browser summaries and pure catalog/filter helpers. Preset scans distinguish `Factory`, `User`, and `Legacy User`, read optional `metadata.browser.bank/category/source`, preserve older preset visibility with source-derived fallbacks, and mark favorites from `~/Music/ParkerX/sylenth-ai/PresetFavorites.json`. Factory favorites are keyed by source and preset ID; user and legacy favorites also include the file path so duplicate user preset IDs do not collide. Saved user presets write `metadata.browser` with `User` bank/category/source. The editor's existing combo now displays source/bank/category/favorite hints and reselects by exact preset file path when available; the visual browser drawer remains a Claude Code handoff item.
 
 Factory preset metadata was updated to remove legacy source-policy fields and declare browser metadata. `PresetValidator` now validates optional `metadata.browser` types and source values.
 

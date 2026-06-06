@@ -47,6 +47,7 @@ void SynthEngine::reset() noexcept
 {
     performance = {};
     parameters.performance = performance;
+    sustainPedalDown = false;
     arpeggiator.reset();
     resetInputNoteTracking();
     resetDirectChordTracking();
@@ -94,6 +95,7 @@ void SynthEngine::noteOff(int midiNote) noexcept
 
 void SynthEngine::setSustainPedal(bool down) noexcept
 {
+    sustainPedalDown = down;
     voices.setSustainPedal(down);
 }
 
@@ -128,6 +130,7 @@ void SynthEngine::panic() noexcept
     arpeggiator.reset();
     resetInputNoteTracking();
     resetDirectChordTracking();
+    sustainPedalDown = false;
     voices.panic();
     fx.reset();
 }
@@ -279,22 +282,30 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
     {
         arpeggiator.reset();
         resetDirectChordTracking();
-        voices.allNotesOff();
+        resetVoicesForHeldInputRebuild();
         if (parameters.arp.enabled)
             rebuildArpeggiatorFromInputNotes();
         else
             triggerDirectNotesFromInputNotes();
     }
-    else if (!parameters.arp.enabled && chordConfigChanged)
+    else if (chordConfigChanged)
     {
         resetDirectChordTracking();
-        voices.allNotesOff();
-        triggerDirectNotesFromInputNotes();
+        resetVoicesForHeldInputRebuild();
+        if (parameters.arp.enabled)
+        {
+            arpeggiator.reset();
+            rebuildArpeggiatorFromInputNotes();
+        }
+        else
+        {
+            triggerDirectNotesFromInputNotes();
+        }
     }
     else if (parameters.arp.enabled && arpHoldWasEnabled && !parameters.arp.hold)
     {
         arpeggiator.reset();
-        voices.allNotesOff();
+        resetVoicesForHeldInputRebuild();
         rebuildArpeggiatorFromInputNotes();
     }
 }
@@ -539,5 +550,12 @@ void SynthEngine::triggerDirectNotesFromInputNotes() noexcept
         if (inputHeldNotes[noteIndex])
             triggerDirectNoteOn(note, inputHeldVelocities[noteIndex]);
     }
+}
+
+void SynthEngine::resetVoicesForHeldInputRebuild() noexcept
+{
+    voices.panic();
+    if (sustainPedalDown)
+        voices.setSustainPedal(true);
 }
 } // namespace synth

@@ -59,7 +59,7 @@ The current browser-facing scan summary exposes:
 - `bank`: display bank name, for example `Factory` or `User`.
 - `category`: browser category, for example `Init`, `Plucks`, or `User`.
 - `tags`: top-level tag strings from the preset JSON.
-- `favorite_key`: stable local key in the form `<source>:<preset_id>`.
+- `favorite_key`: stable local key. Factory presets use `<source>:<preset_id>`; user and legacy-user presets add the normalized local file path so duplicate user preset IDs do not share favorite state.
 - `favorite`: local favorite state resolved from the sidecar favorites file.
 
 Preset JSON may provide browser metadata as:
@@ -86,7 +86,10 @@ The sidecar shape is:
 ```json
 {
   "schema_version": 1,
-  "favorite_keys": ["factory:pluck-core-01"]
+  "favorite_keys": [
+    "factory:pluck-core-01",
+    "user:browser-favorite-test:/Users/example/Music/ParkerX/sylenth-ai/Presets/browser-favorite-test.json"
+  ]
 }
 ```
 

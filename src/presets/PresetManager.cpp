@@ -390,6 +390,22 @@ bool containsFavoriteKey(const std::vector<std::string>& favoriteKeys, const std
     return std::find(favoriteKeys.begin(), favoriteKeys.end(), key) != favoriteKeys.end();
 }
 
+std::string normalizedFavoritePath(const std::filesystem::path& path)
+{
+    std::error_code error;
+    auto normalized = std::filesystem::weakly_canonical(path, error);
+    if (error)
+    {
+        error.clear();
+        normalized = std::filesystem::absolute(path, error);
+    }
+
+    if (error)
+        normalized = path;
+
+    return normalized.generic_string();
+}
+
 std::vector<std::string> normalizedFavoriteKeys(std::vector<std::string> favoriteKeys)
 {
     favoriteKeys.erase(std::remove_if(favoriteKeys.begin(), favoriteKeys.end(), [](const auto& key) {
@@ -541,7 +557,11 @@ std::string presetFavoriteKey(PresetSource source, const std::string& presetId, 
     if (keyId.empty())
         keyId = presetIdFromDisplayName(path.stem().string());
 
-    return presetSourceId(source) + ":" + keyId;
+    const auto prefix = presetSourceId(source) + ":" + keyId;
+    if (source == PresetSource::Factory)
+        return prefix;
+
+    return prefix + ":" + normalizedFavoritePath(path);
 }
 
 std::vector<PresetSummary> scanPresetDirectory(const std::filesystem::path& directory, bool factory)

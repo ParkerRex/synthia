@@ -73,6 +73,7 @@ public:
     bool loadPresetFile(const juce::File& file, juce::String& message);
     bool savePresetFile(const juce::File& file, const juce::String& displayName, juce::String& message);
     juce::String getCurrentPresetName() const;
+    juce::String getCurrentPresetFilePath() const;
     DiagnosticsSnapshot getDiagnosticsSnapshot() const;
     void requestPanic() noexcept;
 
@@ -240,7 +241,9 @@ private:
     float currentTempoBpm() const noexcept;
     void handleMidiMessage(const juce::MidiMessage& message) noexcept;
     synth::RenderStats renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept;
-    void setPresetMetadata(const juce::String& presetName, const juce::String& status);
+    void setPresetMetadata(const juce::String& presetName,
+                           const juce::String& status,
+                           const juce::String& presetFilePath);
 
     juce::AudioProcessorValueTreeState parameters;
     synth::SynthEngine engine;
@@ -259,6 +262,7 @@ private:
     std::atomic<std::uint64_t> parameterStateSequence { 0 };
     mutable juce::CriticalSection presetMetadataLock;
     juce::String currentPresetName { "Init" };
+    juce::String currentPresetFilePath;
     juce::String lastPresetStatus { "Init state" };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthAudioProcessor)

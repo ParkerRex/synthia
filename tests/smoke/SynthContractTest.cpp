@@ -400,6 +400,30 @@ bool checkPresetManagerLoadAndSave()
         return false;
     }
 
+    const auto duplicateBrowserPresetFile = browserDirectory.getChildFile("browser-favorite-test-duplicate.json");
+    if (!synth::writeCurrentPreset(processor.parameters, duplicateBrowserPresetFile.getFullPathName().toStdString(),
+                                   "Browser Favorite Test", error))
+    {
+        std::cerr << error << "\n";
+        browserDirectory.deleteRecursively();
+        return false;
+    }
+
+    const auto duplicateBrowserPresets = synth::scanPresetDirectory(browserDirectory.getFullPathName().toStdString(),
+                                                                    synth::PresetSource::User,
+                                                                    favoriteKeys);
+    const auto duplicateFavoriteCount = std::count_if(duplicateBrowserPresets.begin(),
+                                                      duplicateBrowserPresets.end(),
+                                                      [](const auto& preset) {
+                                                          return preset.favorite;
+                                                      });
+    if (duplicateBrowserPresets.size() != 2 || duplicateFavoriteCount != 1)
+    {
+        std::cerr << "Preset browser favorite keys must not collide for duplicate user preset IDs.\n";
+        browserDirectory.deleteRecursively();
+        return false;
+    }
+
     synth::PresetBrowserFilter filter;
     filter.searchText = "favorite";
     filter.category = "User";

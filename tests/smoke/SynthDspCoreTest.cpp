@@ -522,6 +522,87 @@ bool testDirectChordParameterChangeReleasesOriginalOutputs()
     return heldSnapshots(engine).empty();
 }
 
+bool testDirectChordSustainParameterChangeClearsOriginalOutputs()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = false;
+    parameters.ampEnv.releaseMs = 1.0f;
+    parameters.chord.enabled = true;
+    parameters.chord.voiceCount = 2;
+    parameters.chord.voices[0] = { true, 0, 1.0f };
+    parameters.chord.voices[1] = { true, 7, 1.0f };
+
+    synth::SynthEngine engine;
+    engine.prepare(1000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.8f);
+    processSamples(engine, 1);
+    if (!hasHeldNote(engine, 60) || !hasHeldNote(engine, 67))
+        return false;
+
+    engine.setSustainPedal(true);
+    parameters.chord.enabled = false;
+    engine.setParameters(parameters);
+    processSamples(engine, 2);
+    if (!hasHeldNote(engine, 60) || hasHeldNote(engine, 67))
+        return false;
+
+    engine.noteOff(60);
+    processSamples(engine, 2);
+    if (!hasHeldNote(engine, 60))
+        return false;
+
+    engine.setSustainPedal(false);
+    processSamples(engine, 2);
+    return heldSnapshots(engine).empty();
+}
+
+bool testArpChordSustainParameterChangeClearsOriginalOutputs()
+{
+    synth::SynthParameters parameters;
+    parameters.filter.enabled = false;
+    parameters.ampEnv.attackMs = 0.0f;
+    parameters.ampEnv.releaseMs = 1.0f;
+    parameters.arp.enabled = true;
+    parameters.arp.mode = synth::ArpMode::Up;
+    parameters.arp.rate = synth::ArpRateDivision::Sixteenth;
+    parameters.arp.gate = 1.0f;
+    parameters.arp.stepCount = 1;
+    parameters.tempoBpm = 120.0f;
+    parameters.chord.enabled = true;
+    parameters.chord.voiceCount = 2;
+    parameters.chord.voices[0] = { true, 0, 1.0f };
+    parameters.chord.voices[1] = { true, 7, 1.0f };
+
+    synth::SynthEngine engine;
+    engine.prepare(1000.0, 1);
+    engine.setParameters(parameters);
+    engine.noteOn(60, 0.8f);
+    processSamples(engine, 1);
+    if (firstHeldNote(engine) != 60)
+        return false;
+
+    processSamples(engine, 125);
+    if (!hasHeldNote(engine, 67))
+        return false;
+
+    engine.setSustainPedal(true);
+    parameters.chord.enabled = false;
+    engine.setParameters(parameters);
+    processSamples(engine, 1);
+    if (!hasHeldNote(engine, 60) || hasHeldNote(engine, 67))
+        return false;
+
+    engine.noteOff(60);
+    processSamples(engine, 2);
+    if (!hasHeldNote(engine, 60))
+        return false;
+
+    engine.setSustainPedal(false);
+    processSamples(engine, 2);
+    return heldSnapshots(engine).empty();
+}
+
 bool testArpUpModeTimingAndGate()
 {
     synth::SynthParameters parameters;
@@ -1519,6 +1600,18 @@ int main()
     if (!testDirectChordParameterChangeReleasesOriginalOutputs())
     {
         std::cerr << "Direct chord parameter-change release test failed.\n";
+        return 1;
+    }
+
+    if (!testDirectChordSustainParameterChangeClearsOriginalOutputs())
+    {
+        std::cerr << "Direct chord sustain parameter-change release test failed.\n";
+        return 1;
+    }
+
+    if (!testArpChordSustainParameterChangeClearsOriginalOutputs())
+    {
+        std::cerr << "Arp chord sustain parameter-change release test failed.\n";
         return 1;
     }
 
