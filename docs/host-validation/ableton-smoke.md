@@ -13,11 +13,13 @@ Completed current-build proof:
 - VST3 transport run/stop, VST3 offline bounce artifact creation, and AU transport run/stop.
 - AU and VST3 hosted editor open/close/reopen while transport runs.
 - VST3 global MIDI Learn capture/persistence, continuous mapped value application, stepped mapped value application, and Forget.
+- AU seeded MIDI controller map loading and continuous mapped value application.
+- AU in-editor MIDI Learn capture and sidecar persistence.
 
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping and value-application proof in Ableton.
+- AU global-panel MIDI Forget proof in Ableton.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -123,7 +125,8 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps after this VST3 smoke pass:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC, continuous value-application, Forget, and stepped-controller proof later passed.
+- AU global-panel MIDI Forget proof in Ableton.
+- VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, and AU in-editor Learn capture later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
@@ -159,7 +162,8 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps after this restore smoke pass:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC, continuous value-application, Forget, and stepped-controller proof later passed.
+- AU global-panel MIDI Forget proof in Ableton.
+- VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, and AU in-editor Learn capture later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
@@ -194,7 +198,8 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Host-validation gaps after this slice:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC, continuous value-application, Forget, and stepped-controller proof later passed.
+- AU global-panel MIDI Forget proof in Ableton.
+- VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, and AU in-editor Learn capture later passed.
 - AU transport run/stop proof was later covered by `Ableton Current-Build AU Transport Smoke - 2026-06-06`.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
@@ -234,7 +239,8 @@ Export-setting screenshots are local build artifacts under `build/reports/ableto
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC, continuous value-application, Forget, and stepped-controller proof later passed.
+- AU global-panel MIDI Forget proof in Ableton.
+- VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, and AU in-editor Learn capture later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -273,7 +279,8 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC, continuous value-application, Forget, and stepped-controller proof later passed.
+- AU global-panel MIDI Forget proof in Ableton.
+- VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, and AU in-editor Learn capture later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -310,7 +317,8 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC, continuous value-application, Forget, and stepped-controller proof later passed.
+- AU global-panel MIDI Forget proof in Ableton.
+- VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, and AU in-editor Learn capture later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -351,7 +359,8 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC, continuous value-application, Forget, and stepped-controller proof later passed.
+- AU global-panel MIDI Forget proof in Ableton.
+- VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, and AU in-editor Learn capture later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -392,7 +401,8 @@ Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping proof in Ableton. Follow-on VST3 learned-CC, continuous value-application, Forget, and stepped-controller proof later passed.
+- AU global-panel MIDI Forget proof in Ableton.
+- VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, and AU in-editor Learn capture later passed.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -423,7 +433,7 @@ Results:
 ```
 
 - The proof sidecar was copied to `build/reports/ableton/midi-controller-map-vst3-proof.json`, then the temporary user-level sidecar was removed to avoid polluting future validation.
-- A short Arrangement record attempt from the CC/note stream produced live MIDI input and learned-assignment persistence, but Arrangement view showed no captured clip or envelope. AU/VST3 automation record/playback remains open. Later VST3 continuous value-application and Forget/stepped proofs showed the persisted controller map driving continuous and choice parameters and being cleared from the hosted panel; AU controller proof remains open.
+- A short Arrangement record attempt from the CC/note stream produced live MIDI input and learned-assignment persistence, but Arrangement view showed no captured clip or envelope. AU/VST3 automation record/playback remains open. Later VST3 continuous value-application and Forget/stepped proofs showed the persisted controller map driving continuous and choice parameters and being cleared from the hosted panel; later AU proofs showed a seeded AU controller map driving a continuous parameter and the hosted AU editor capturing a fresh learned CC.
 
 Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
 
@@ -439,7 +449,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping and value-application proof in Ableton.
+- AU global-panel MIDI Forget proof in Ableton.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -478,7 +488,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping and value-application proof in Ableton.
+- AU global-panel MIDI Forget proof in Ableton.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
@@ -526,7 +536,88 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- AU learned CC mapping and value-application proof in Ableton.
+- AU global-panel MIDI Forget proof in Ableton.
+- Current preset recreation and modulation exercise.
+- Offline bounce versus realtime comparison.
+- Sample-rate and buffer-size changes.
+- All-notes-off/panic proof.
+
+## Ableton Current-Build AU Controller Value Proof - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: fresh Ableton `Untitled` validation set
+- plugin format tested in this pass: AU
+- build under test: installed local current-build AU from the previous Ableton validation passes
+
+Results:
+
+- The validation pass seeded `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json` with `CC72 -> filter.resonance` before plugin construction.
+- A temporary CoreMIDI source named `SylenthAI Codex AU Value Source` was created before Ableton launch.
+- Ableton logged `MidiInDevice [Name="SylenthAI Codex AU Value Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
+- The current `sylenth-ai` AU was loaded from `Audio Units > ParkerX > sylenth-ai` into a fresh `Untitled` set. Ableton logged `Au: Going to create: sylenth-ai` at `2026-06-06T14:44:51.525961` and `Au: Created: sylenth-ai` at `2026-06-06T14:44:51.698979`.
+- The hosted MIDI CONTROL panel displayed `Loaded 1 MIDI CC mappings` and `CC72 -> filter.resonance`.
+- With the hosted editor scrolled to the Filter section, the initial state showed `Resonance 0.00`, CC72 value `127` changed the readout to `Resonance 1.00`, and CC72 value `0` returned it to `Resonance 0.00`.
+- The temporary user-level sidecar was copied to ignored local evidence, then removed to avoid polluting future validation.
+
+Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
+
+- `au-value-proof-live-fresh-launched.png`
+- `au-value-proof-au-loaded-after-return.png`
+- `au-value-proof-filter-visible-before-cc-2.png`
+- `au-value-proof-cc72-high-resonance.png`
+- `au-value-proof-cc72-low-resonance.png`
+- `midi-controller-map-au-value-proof-current.json`
+- `au-value-proof-ableton-log-excerpt.txt`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- AU global-panel MIDI Forget proof in Ableton.
+- Current preset recreation and modulation exercise.
+- Offline bounce versus realtime comparison.
+- Sample-rate and buffer-size changes.
+- All-notes-off/panic proof.
+
+## Ableton Current-Build AU Controller Learn Proof - 2026-06-06
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: fresh Ableton `Untitled` validation set
+- plugin format tested in this pass: AU
+- build under test: installed local current-build AU from the previous Ableton validation passes
+
+Results:
+
+- The validation pass started with no `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json`.
+- A temporary CoreMIDI source named `SylenthAI Codex AU Learn Source` was created before Ableton launch.
+- Ableton logged `MidiInDevice [Name="SylenthAI Codex AU Learn Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
+- The current `sylenth-ai` AU was loaded from `Audio Units > ParkerX > sylenth-ai` into a fresh `Untitled` set. Ableton logged `Au: Going to create: sylenth-ai` at `2026-06-06T15:09:19.460935` and `Au: Created: sylenth-ai` at `2026-06-06T15:09:19.475730`.
+- The hosted MIDI CONTROL panel started with `MIDI learn ready`, `No MIDI CC mappings`, and footer `MIDI 0`.
+- The panel selected `FILTER / Resonance`, armed Learn, then captured CC74 value `99` from the temporary source.
+- The hosted panel displayed `Mapped CC74 to filter.resonance` and `CC74 -> filter.resonance`, with footer `MIDI 1`.
+- The temporary user sidecar persisted `{"schema_version":1,"mappings":[{"cc":74,"parameter_id":"filter.resonance"}]}` and was copied to ignored local evidence before cleanup.
+
+Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
+
+- `au-learn-proof-live-fresh-launched.png`
+- `au-learn-proof-au-loaded-no-map.png`
+- `au-learn-proof-resonance-selected.png`
+- `au-learn-proof-resonance-armed.png`
+- `au-learn-proof-cc74-mapped.png`
+- `midi-controller-map-au-learn-proof.json`
+- `au-learn-proof-ableton-log-excerpt.txt`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- AU global-panel MIDI Forget proof in Ableton.
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
