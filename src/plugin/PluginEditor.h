@@ -42,6 +42,7 @@ private:
     class LayoutSection;
     class ParameterControl;
     class Panel;
+    class EnvelopePanel;
     class PresetWorkflowPanel;
     class PresetMetadataPanel;
     class SequencerPanel;
@@ -158,8 +159,8 @@ private:
     Panel* voicePanel = nullptr;
     Panel* coreOscPanel = nullptr;
     Panel* filterPanel = nullptr;
-    Panel* ampEnvPanel = nullptr;
-    Panel* modEnvPanel = nullptr;
+    std::unique_ptr<EnvelopePanel> ampEnvPanel;
+    std::unique_ptr<EnvelopePanel> modEnvPanel;
     Panel* lfoPanel = nullptr;
     Panel* rampPanel = nullptr;
     Panel* ampPanel = nullptr;

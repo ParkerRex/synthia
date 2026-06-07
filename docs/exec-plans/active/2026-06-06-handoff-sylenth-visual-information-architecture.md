@@ -41,6 +41,8 @@ The goal is not to add backend features. The goal is to make the current real fe
 - [x] 2026-06-06 EDT: Handed off to Claude Code.
 - [x] 2026-06-06 EDT: Implemented the bounded visual IA pass in `src/plugin/PluginEditor.{h,cpp}` only: synthesis-first Sound page, functional-zone header ticks, clarified `Osc A1 Tone` naming, denser knob cells, knob end ticks, slimmer brand, shorter layer bar, selected-part accent. No DSP/parameters/schema/processor APIs added; no fake controls.
 - [x] 2026-06-06 EDT: Validated `git diff --check`, Debug build, CTest (5/5), and `SylenthAIRender --suite core` (11 reports); captured Sound/Modulation/Effects/Browser/compact screenshots under `build/reports/ui/`.
+- [x] 2026-06-07 EDT: Visual fidelity follow-up on branch `ui-polish-sylenth-fidelity` (UI-only, `PluginEditor.{h,cpp}`): Sylenth radial-tick rotary knobs, vertical ADSR `EnvelopePanel` (Amp/Mod env) with a derived read-only contour, `Osc A1 | Amp Env | Osc A2` + `Filter | Mod Env | LFO` Sylenth grid rows, caption-bar gradient/divider on every module, and taller knob cells. No DSP/parameters/schema/processor APIs added; no fake controls.
+- [x] 2026-06-07 EDT: Validated `git diff --check` (clean), Debug build (clean), CTest (9/9), and `SylenthAIRender --suite core` (14 reports); captured `sylenth-fidelity-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`.
 - [ ] Parker review of the patch for real bindings, layout fidelity, and no fake feature controls.
 
 ## Surprises & Discoveries
@@ -108,6 +110,19 @@ Captured from the standalone (`build/SylenthAIPlugin_artefacts/Standalone/sylent
 - Per-layer Filter A/B, per-layer envelopes, cross-routing, and post-filter mixer/master parity.
 - Full visualization/migration of legacy flat `osc.*` fields into the Osc A1 slot.
 - Standalone JUCE UI automation for tab/scroll/learn flows (this pass used `screencapture` + peekaboo for manual QA).
+
+### Visual fidelity follow-up (2026-06-07, branch `ui-polish-sylenth-fidelity`)
+
+UI-only pass to make the surface read like a hardware Sylenth instrument rather than a flat dark form. All in `src/plugin/PluginEditor.{h,cpp}`; no DSP, parameters, schema, processor APIs, or fake controls.
+
+- **Rotary knobs.** `SynthLookAndFeel::drawRotarySlider` now draws a radial tick ring (brighter min/max ticks), a top-lit gradient knob body, and a bright-capped accent pointer — the signature Sylenth knob read. Affects every knob.
+- **Vertical ADSR envelopes.** New `EnvelopePanel` renders Amp Env and Mod Env as four vertical A/D/S/R faders bound to the same `amp_env.*` / `mod_env.*` APVTS parameters, with a read-only contour drawn above from the live fader values. The contour is a derived visualization, not new control state.
+- **Sylenth grid rows.** Sound page top row is now `Osc A1 | Amp Env | Osc A2` and the shaping row is `Filter | Mod Env | LFO`, mirroring Sylenth's `OSC A1 | AMP ENV | OSC A2` hierarchy. The legacy `Osc A1 Tone` panel still spans full width below.
+- **Module caption bars.** New `paintCaptionBar` helper gives every panel a soft top-down gradient header and a 1px base divider, so modules read as titled racks. Knob cells are slightly taller (60→64) so knobs read bigger.
+
+Validation: `git diff --check` clean; Debug build clean; CTest 9/9; `SylenthAIRender --suite core` wrote 14 reports. Screenshots: `build/reports/ui/sylenth-fidelity-{sound,modulation,effects,browser,compact}.png` (default 1320×940 and compact 1080×760).
+
+Residual UI gaps unchanged and still backend/scope-bound: writable modulation (drag/drop, halos, matrix, hover, per-route bypass/remove); LFO2 and editable LFO movement graph; filter response graph with modulation overlays (the envelope contour here is read-only, not drag-editable); per-control MIDI context menus; per-layer Filter A/B and master-stage parity; richer scanned-preset detail; reliable JUCE viewport scroll automation (browser shot used a CGEvent wheel helper over the page gutter).
 
 ## Context and Orientation
 

@@ -175,6 +175,21 @@ void paintModuleHeaderTick(juce::Graphics& g, juce::Rectangle<int> headerArea,
     g.setColour(enabled ? colour : colour.withAlpha(0.32f));
     g.fillRoundedRectangle(tick, 1.5f);
 }
+
+// Fills a module caption bar with a soft top-down gradient and a 1px base divider so each
+// panel reads as a defined titled module (the Sylenth caption-bar rhythm) rather than a
+// flat header. Squares the lower corners so the caption meets the panel body cleanly.
+void paintCaptionBar(juce::Graphics& g, juce::Rectangle<int> header, bool enabled = true)
+{
+    const auto full = header;
+    const auto base = enabled ? panelHeader : panelHeader.darker(0.14f);
+    g.setGradientFill(juce::ColourGradient(base.brighter(0.08f), 0.0f, static_cast<float>(full.getY()),
+                                           base.darker(0.07f), 0.0f, static_cast<float>(full.getBottom()), false));
+    g.fillRoundedRectangle(full.toFloat().reduced(0.5f), 6.0f);
+    g.fillRect(full.withTop(full.getBottom() - 8));
+    g.setColour(stroke.withAlpha(0.5f));
+    g.fillRect(full.getX() + 1, full.getBottom() - 1, full.getWidth() - 2, 1);
+}
 } // namespace
 
 // ============================================================================
@@ -214,8 +229,25 @@ public:
         const auto centreX = bounds.getCentreX();
         const auto centreY = bounds.getCentreY();
         const auto toAngle = startAngle + sliderPos * (endAngle - startAngle);
-        const auto lineWidth = 3.0f;
+        const auto lineWidth = juce::jmax(3.0f, radius * 0.16f);
         const auto arcRadius = radius - lineWidth * 0.5f - 1.0f;
+
+        // Radial tick ring just outside the track: the signature hardware read of a
+        // Sylenth-style knob. End ticks render brighter so min/max land at a glance.
+        const auto tickInner = arcRadius + 2.0f;
+        const auto tickOuter = arcRadius + (radius > 16.0f ? 5.0f : 4.0f);
+        constexpr int tickCount = 11;
+        for (int i = 0; i < tickCount; ++i)
+        {
+            const auto t = static_cast<float>(i) / static_cast<float>(tickCount - 1);
+            const auto angle = startAngle + t * (endAngle - startAngle);
+            const auto extreme = (i == 0 || i == tickCount - 1);
+            const auto sinA = std::sin(angle);
+            const auto cosA = std::cos(angle);
+            g.setColour(juce::Colour::fromRGB(74, 82, 90).withAlpha(extreme ? 0.95f : 0.55f));
+            g.drawLine(centreX + tickInner * sinA, centreY - tickInner * cosA,
+                       centreX + tickOuter * sinA, centreY - tickOuter * cosA, extreme ? 1.5f : 1.1f);
+        }
 
         juce::Path backTrack;
         backTrack.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
@@ -234,30 +266,29 @@ public:
                                                         juce::PathStrokeType::rounded));
         }
 
-        // Faint min/max ticks just outside the track give the knob a hardware-instrument read.
-        const auto tickInner = arcRadius + 1.5f;
-        const auto tickOuter = arcRadius + 4.0f;
-        g.setColour(juce::Colour::fromRGB(70, 78, 86));
-        for (const auto angle : { startAngle, endAngle })
-        {
-            const auto sinA = std::sin(angle);
-            const auto cosA = std::cos(angle);
-            g.drawLine(centreX + tickInner * sinA, centreY - tickInner * cosA,
-                       centreX + tickOuter * sinA, centreY - tickOuter * cosA, 1.4f);
-        }
-
+        // Knob body: a soft top-lit radial gradient over a stroked rim reads as a moulded
+        // cap rather than a flat disc, closer to the Sylenth instrument chrome.
         const auto bodyRadius = arcRadius - lineWidth * 0.5f - 3.0f;
-        g.setColour(knobFill);
-        g.fillEllipse(centreX - bodyRadius, centreY - bodyRadius, bodyRadius * 2.0f, bodyRadius * 2.0f);
+        const auto bodyBox = juce::Rectangle<float>(centreX - bodyRadius, centreY - bodyRadius,
+                                                    bodyRadius * 2.0f, bodyRadius * 2.0f);
+        juce::ColourGradient bodyGrad(knobFill.brighter(0.22f), centreX, centreY - bodyRadius,
+                                      knobFill.darker(0.28f), centreX, centreY + bodyRadius, false);
+        g.setGradientFill(bodyGrad);
+        g.fillEllipse(bodyBox);
         g.setColour(knobStroke);
-        g.drawEllipse(centreX - bodyRadius, centreY - bodyRadius, bodyRadius * 2.0f, bodyRadius * 2.0f, 1.0f);
+        g.drawEllipse(bodyBox, 1.0f);
+        g.setColour(juce::Colours::black.withAlpha(0.18f));
+        g.drawEllipse(bodyBox.reduced(1.0f), 1.0f);
 
+        // Pointer: a bright cap over an accent base so the indicator reads at any size.
         const juce::Point<float> tip(centreX + (bodyRadius - 2.0f) * std::sin(toAngle),
                                      centreY - (bodyRadius - 2.0f) * std::cos(toAngle));
-        const juce::Point<float> root(centreX + (bodyRadius * 0.32f) * std::sin(toAngle),
-                                      centreY - (bodyRadius * 0.32f) * std::cos(toAngle));
+        const juce::Point<float> root(centreX + (bodyRadius * 0.30f) * std::sin(toAngle),
+                                      centreY - (bodyRadius * 0.30f) * std::cos(toAngle));
+        g.setColour(accent.brighter(0.2f));
+        g.drawLine({ root, tip }, juce::jmax(2.0f, radius * 0.12f));
         g.setColour(text);
-        g.drawLine({ root, tip }, 2.0f);
+        g.fillEllipse(tip.x - 1.6f, tip.y - 1.6f, 3.2f, 3.2f);
     }
 
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
@@ -385,7 +416,7 @@ public:
         {
             slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
             slider.setRotaryParameters(rotaryStart, rotaryEnd, true);
-            slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 15);
+            slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 14);
             slider.setColour(juce::Slider::textBoxTextColourId, text);
             slider.setNumDecimalPlacesToDisplay(2); // fallback so text never renders in scientific form
 
@@ -404,7 +435,7 @@ public:
     void resized() override
     {
         auto bounds = getLocalBounds();
-        nameLabel.setBounds(bounds.removeFromTop(14));
+        nameLabel.setBounds(bounds.removeFromTop(13));
 
         if (spec.kind == synth::ParameterKind::Choice)
             combo.setBounds(bounds.withSizeKeepingCentre(bounds.getWidth() - 4, 28));
@@ -551,9 +582,7 @@ public:
         g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
-        g.setColour(hasState && !on ? panelHeader.darker(0.14f) : panelHeader);
-        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
-        g.fillRect(headerArea.removeFromBottom(8)); // square off the lower header corners
+        paintCaptionBar(g, headerArea, !hasState || on);
 
         // Zone identity tick: badgeColour doubles as the functional-zone hue.
         const auto tickColour = badgeColour.isTransparent() ? accent.withAlpha(0.65f) : badgeColour;
@@ -639,7 +668,7 @@ private:
 
     static constexpr int headerHeight = 26;
     static constexpr int unitWidth = 62;
-    static constexpr int cellHeight = 60;
+    static constexpr int cellHeight = 64;
     static constexpr int gap = 7;
     static constexpr int rowGap = 4;
     static constexpr int padX = 11;
@@ -652,6 +681,240 @@ private:
     std::atomic<float>* enabledParam = nullptr;
     bool lastEnabledState = true;
     std::vector<std::unique_ptr<ParameterControl>> controls;
+};
+
+// ============================================================================
+// EnvelopePanel: ADSR as vertical faders with a derived contour preview.
+//
+// This is a Sylenth-style envelope module: the four real APVTS parameters
+// (attack / decay / sustain / release) are bound to vertical faders, and a
+// read-only contour drawn above them is computed from the live fader values.
+// The contour is a derived visualization, not a new control or stored state.
+// ============================================================================
+class SynthAudioProcessorEditor::EnvelopePanel final : public LayoutSection
+{
+public:
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+
+    EnvelopePanel(juce::AudioProcessorValueTreeState& state,
+                  juce::String panelTitle,
+                  juce::Colour zoneColour,
+                  const juce::String& prefix)
+        : title(std::move(panelTitle)), zone(zoneColour)
+    {
+        struct StageDef { const char* suffix; const char* label; };
+        const std::array<StageDef, stageCount> defs { {
+            { "attack_ms", "A" }, { "decay_ms", "D" }, { "sustain", "S" }, { "release_ms", "R" }
+        } };
+
+        for (std::size_t i = 0; i < defs.size(); ++i)
+        {
+            const auto id = (prefix + defs[i].suffix).toStdString();
+            const auto* found = synth::findParameterSpec(id);
+            if (found == nullptr)
+                continue;
+
+            auto& stage = stages[i];
+            stage.label = defs[i].label;
+            stage.spec = *found;
+            stage.hasSpec = true;
+
+            auto& slider = stage.slider;
+            slider.setSliderStyle(juce::Slider::LinearVertical);
+            slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 14);
+            slider.setColour(juce::Slider::trackColourId, zone.withAlpha(0.88f));
+            slider.setColour(juce::Slider::backgroundColourId, fieldBg);
+            slider.setColour(juce::Slider::thumbColourId, text);
+            slider.setColour(juce::Slider::textBoxTextColourId, text);
+            slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
+            slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+
+            const auto spec = stage.spec;
+            stage.attachment = std::make_unique<SliderAttachment>(state, id, slider);
+            slider.textFromValueFunction = [spec](double value) { return formatValue(spec, value); };
+            slider.valueFromTextFunction = [spec](const juce::String& textValue) {
+                return parseValueText(spec, textValue);
+            };
+            slider.updateText();
+            slider.onValueChange = [this] { repaint(); }; // keep the derived contour in sync
+            addAndMakeVisible(slider);
+        }
+    }
+
+    int preferredHeight(int) const override { return 192; }
+
+    void paint(juce::Graphics& g) override
+    {
+        const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
+        g.setColour(panelBg);
+        g.fillRoundedRectangle(bounds, 6.0f);
+        g.setColour(strokeSoft);
+        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+
+        auto headerArea = getLocalBounds().removeFromTop(headerHeight);
+        paintCaptionBar(g, headerArea);
+        paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zone);
+
+        auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
+        auto badgeArea = titleArea.removeFromRight(46).withSizeKeepingCentre(46, 16);
+        titleArea.removeFromRight(8);
+        g.setColour(text);
+        g.setFont(uiFont(12.0f, true));
+        g.drawText(title.toUpperCase(), titleArea, juce::Justification::centredLeft, true);
+
+        g.setColour(zone.withAlpha(0.18f));
+        g.fillRoundedRectangle(badgeArea.toFloat(), 8.0f);
+        g.setColour(zone);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText("ADSR", badgeArea, juce::Justification::centred, false);
+
+        const auto areas = computeAreas();
+        paintContour(g, areas.contour);
+
+        // Stage letters sit above each fader so the column reads A D S R like the hardware.
+        g.setFont(uiFont(10.0f, true));
+        const auto columns = faderColumns(areas.faders);
+        for (std::size_t i = 0; i < stages.size(); ++i)
+        {
+            if (!stages[i].hasSpec)
+                continue;
+            g.setColour(mutedText);
+            g.drawText(stages[i].label, columns[i].withY(areas.labels.getY()).withHeight(areas.labels.getHeight()),
+                       juce::Justification::centred, false);
+        }
+    }
+
+    void resized() override
+    {
+        const auto areas = computeAreas();
+        const auto columns = faderColumns(areas.faders);
+        for (std::size_t i = 0; i < stages.size(); ++i)
+        {
+            if (stages[i].hasSpec)
+                stages[i].slider.setBounds(columns[i]);
+        }
+    }
+
+private:
+    static constexpr int stageCount = 4;
+    static constexpr int headerHeight = 26;
+    static constexpr int padX = 12;
+    static constexpr int padTop = 8;
+    static constexpr int padBottom = 8;
+    static constexpr int contourHeight = 44;
+    static constexpr int labelHeight = 13;
+    static constexpr int faderGap = 8;
+
+    struct Stage
+    {
+        juce::Slider slider;
+        std::unique_ptr<SliderAttachment> attachment;
+        synth::ParameterSpec spec;
+        juce::String label;
+        bool hasSpec = false;
+    };
+
+    struct Areas
+    {
+        juce::Rectangle<int> contour;
+        juce::Rectangle<int> labels;
+        juce::Rectangle<int> faders;
+    };
+
+    Areas computeAreas() const
+    {
+        auto content = getLocalBounds();
+        content.removeFromTop(headerHeight);
+        content = content.reduced(padX, 0);
+        content.removeFromTop(padTop);
+        content.removeFromBottom(padBottom);
+
+        Areas areas;
+        areas.contour = content.removeFromTop(contourHeight);
+        content.removeFromTop(6);
+        areas.labels = content.removeFromTop(labelHeight);
+        areas.faders = content;
+        return areas;
+    }
+
+    std::array<juce::Rectangle<int>, stageCount> faderColumns(juce::Rectangle<int> faders) const
+    {
+        const auto columnWidth = (faders.getWidth() - (stageCount - 1) * faderGap) / stageCount;
+        std::array<juce::Rectangle<int>, stageCount> columns;
+        for (int i = 0; i < stageCount; ++i)
+            columns[static_cast<std::size_t>(i)] =
+                juce::Rectangle<int>(faders.getX() + i * (columnWidth + faderGap), faders.getY(),
+                                     columnWidth, faders.getHeight());
+        return columns;
+    }
+
+    // Derived ADSR contour from the live fader values. Times are compressed with a square
+    // root so short and long stages stay legible; the sustain hold is a fixed segment.
+    void paintContour(juce::Graphics& g, juce::Rectangle<int> area) const
+    {
+        const auto frame = area.toFloat().reduced(0.5f);
+        g.setColour(juce::Colour::fromRGB(16, 19, 22));
+        g.fillRoundedRectangle(frame, 4.0f);
+        g.setColour(strokeSoft.withAlpha(0.8f));
+        g.drawRoundedRectangle(frame, 4.0f, 1.0f);
+
+        if (!stages[0].hasSpec || !stages[1].hasSpec || !stages[2].hasSpec || !stages[3].hasSpec)
+            return;
+
+        const auto plot = area.toFloat().reduced(7.0f, 6.0f);
+        const auto compress = [](double ms) { return std::sqrt(juce::jmax(0.0, ms)); };
+        const auto attack = compress(stages[0].slider.getValue());
+        const auto decay = compress(stages[1].slider.getValue());
+        const auto release = compress(stages[3].slider.getValue());
+        const auto sustain = juce::jlimit(0.0, 1.0, stages[2].slider.getValue());
+
+        auto timeSum = attack + decay + release;
+        if (timeSum <= 0.0)
+            timeSum = 1.0;
+
+        const auto holdFraction = 0.18f;
+        const auto dynamicWidth = plot.getWidth() * (1.0f - holdFraction);
+        const auto attackWidth = dynamicWidth * static_cast<float>(attack / timeSum);
+        const auto decayWidth = dynamicWidth * static_cast<float>(decay / timeSum);
+        const auto releaseWidth = dynamicWidth * static_cast<float>(release / timeSum);
+        const auto holdWidth = plot.getWidth() * holdFraction;
+
+        const auto yFor = [&plot](double level) {
+            return plot.getBottom() - static_cast<float>(level) * plot.getHeight();
+        };
+
+        const juce::Point<float> start(plot.getX(), yFor(0.0));
+        const juce::Point<float> peak(start.x + attackWidth, yFor(1.0));
+        const juce::Point<float> sustainStart(peak.x + decayWidth, yFor(sustain));
+        const juce::Point<float> sustainEnd(sustainStart.x + holdWidth, yFor(sustain));
+        const juce::Point<float> end(sustainEnd.x + releaseWidth, yFor(0.0));
+
+        juce::Path contour;
+        contour.startNewSubPath(start);
+        contour.lineTo(peak);
+        contour.lineTo(sustainStart);
+        contour.lineTo(sustainEnd);
+        contour.lineTo(end);
+
+        juce::Path fill = contour;
+        fill.lineTo(end.x, plot.getBottom());
+        fill.lineTo(start.x, plot.getBottom());
+        fill.closeSubPath();
+        g.setColour(zone.withAlpha(0.16f));
+        g.fillPath(fill);
+
+        g.setColour(zone);
+        g.strokePath(contour, juce::PathStrokeType(1.8f, juce::PathStrokeType::curved,
+                                                   juce::PathStrokeType::rounded));
+
+        // Sustain-level guide so the held portion reads as a level, not a slope.
+        g.setColour(zone.withAlpha(0.3f));
+        g.drawHorizontalLine(juce::roundToInt(yFor(sustain)), sustainStart.x, sustainEnd.x);
+    }
+
+    juce::String title;
+    juce::Colour zone;
+    std::array<Stage, stageCount> stages;
 };
 
 // ============================================================================
@@ -718,9 +981,7 @@ public:
         g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
-        g.setColour(panelHeader);
-        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
-        g.fillRect(headerArea.removeFromBottom(8));
+        paintCaptionBar(g, headerArea);
 
         paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneUtility);
         auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
@@ -1095,9 +1356,7 @@ public:
         g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
-        g.setColour(panelHeader);
-        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
-        g.fillRect(headerArea.removeFromBottom(8));
+        paintCaptionBar(g, headerArea);
 
         paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneUtility);
         auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
@@ -1238,9 +1497,7 @@ public:
         g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
-        g.setColour(panelHeader);
-        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
-        g.fillRect(headerArea.removeFromBottom(8));
+        paintCaptionBar(g, headerArea);
 
         paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneUtility);
         auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
@@ -1464,9 +1721,7 @@ public:
         g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
-        g.setColour(panelHeader);
-        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
-        g.fillRect(headerArea.removeFromBottom(8));
+        paintCaptionBar(g, headerArea);
 
         paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneUtility);
         auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
@@ -1576,9 +1831,7 @@ public:
         g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
-        g.setColour(panelHeader);
-        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
-        g.fillRect(headerArea.removeFromBottom(8));
+        paintCaptionBar(g, headerArea);
 
         paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneMod);
         auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
@@ -1904,9 +2157,7 @@ public:
         g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
-        g.setColour(panelHeader);
-        g.fillRoundedRectangle(headerArea.toFloat().reduced(0.5f), 6.0f);
-        g.fillRect(headerArea.removeFromBottom(8));
+        paintCaptionBar(g, headerArea);
 
         paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zoneSource);
         auto titleArea = getLocalBounds().removeFromTop(headerHeight).reduced(16, 0);
@@ -2510,13 +2761,15 @@ void SynthAudioProcessorEditor::buildPages()
         "filter.drive", "filter.keytrack", "filter.oversampling"
     }, {}, zoneShape);
 
-    ampEnvPanel = addPanel(soundPage, soundPanels, "Amp Envelope", {
-        "amp_env.attack_ms", "amp_env.decay_ms", "amp_env.sustain", "amp_env.release_ms"
-    }, {}, zoneShape);
+    // Amp/Mod envelopes render as Sylenth-style vertical ADSR faders with a derived
+    // contour. Same APVTS parameters as before, presented as a hardware envelope module.
+    ampEnvPanel = std::make_unique<EnvelopePanel>(audioProcessor.getValueTreeState(),
+                                                  "Amp Env", zoneShape, "amp_env.");
+    soundPage.addAndMakeVisible(*ampEnvPanel);
 
-    modEnvPanel = addPanel(soundPage, soundPanels, "Mod Envelope", {
-        "mod_env.attack_ms", "mod_env.decay_ms", "mod_env.sustain", "mod_env.release_ms"
-    }, {}, zoneShape);
+    modEnvPanel = std::make_unique<EnvelopePanel>(audioProcessor.getValueTreeState(),
+                                                  "Mod Env", zoneShape, "mod_env.");
+    soundPage.addAndMakeVisible(*modEnvPanel);
 
     lfoPanel = addPanel(soundPage, soundPanels, "LFO", {
         "lfo.shape", "lfo.rate_mode", "lfo.rate_hz", "lfo.sync_division",
@@ -2877,17 +3130,19 @@ void SynthAudioProcessorEditor::layoutActivePage()
     if (currentPage == Page::Sound)
     {
         if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr
+            || ampEnvPanel == nullptr || modEnvPanel == nullptr
             || sequencerPanel == nullptr || presetWorkflowPanel == nullptr || presetMetadataPanel == nullptr
             || presetBrowserPanel == nullptr || midiControllerPanel == nullptr)
             return;
-        // Synthesis is the hero: oscillator slots, tone source, filter/envelopes/LFO, and
-        // performance modules read first, matching the Sylenth everything-visible grid. The
-        // preset browser and MIDI utility panels move to the bottom so the core patching
-        // surface fills the first screen with minimal scrolling.
+        // Synthesis is the hero, ordered like the Sylenth grid: the top row pairs the two
+        // oscillator slots around the amp envelope (Osc A1 | Amp Env | Osc A2), the legacy
+        // A1 tone source spans below, then Filter | Mod Env | LFO and the performance
+        // modules. The preset browser and MIDI utility panels move to the bottom so the
+        // core patching surface fills the first screen with minimal scrolling.
         std::vector<std::vector<RowItem>> rows = {
-            { { slotPanels[0].get(), 0.5f }, { slotPanels[1].get(), 0.5f } },
+            { { slotPanels[0].get(), 0.40f }, { ampEnvPanel.get(), 0.20f }, { slotPanels[1].get(), 0.40f } },
             { { coreOscPanel, 1.0f } },
-            { { filterPanel, 0.34f }, { ampEnvPanel, 0.16f }, { modEnvPanel, 0.16f }, { lfoPanel, 0.34f } },
+            { { filterPanel, 0.40f }, { modEnvPanel.get(), 0.20f }, { lfoPanel, 0.40f } },
             { { voicePanel, 0.26f }, { ampPanel, 0.24f }, { rampPanel, 0.24f }, { macroPanel, 0.26f } },
             { { sequencerPanel.get(), 1.0f } },
             { { presetWorkflowPanel.get(), 1.0f } },
