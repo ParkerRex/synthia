@@ -98,6 +98,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-07 EDT: Added standalone offline/realtime quality comparison with `SylenthAIRender --offline-realtime-compare-test`; the later Ableton proof below records a bounded host sanity check but does not close the stronger offline/realtime host gap.
 - [x] 2026-06-07 EDT: Executed AU/VST3 automation record/playback proof: recorded `Layer A Level` envelopes in Ableton on hosted AU and VST3 tracks, parsed the copied Live set XML, and proved playback value movement for both formats.
 - [x] 2026-06-07 EDT: Executed bounded Ableton bounce-versus-realtime comparison: exported a 12-second Master offline bounce, recorded realtime Master output through Ableton `Resampling`, aligned the capture, and recorded finite/non-clipping energy-matched metrics while explicitly not claiming waveform-null equivalence.
+- [x] 2026-06-07 EDT: Executed stronger Ableton bounce-versus-realtime content comparison with `scripts/compare-ableton-bounce-realtime.py`, envelope alignment, per-channel filtered-band thresholds, and negative controls that reject mismatched audio.
 - [x] 2026-06-06 EDT: Executed Phase 1 patch recreation suite with five additional lab-authored Factory presets, renderer support for preset-loaded arp/chord state, standalone WAV/JSON proof, and CTest coverage.
 - [x] 2026-06-06 EDT: Executed modulation write adapter slice with route-write compilation to existing `transmod.N.*` APVTS fields, processor write/clear APIs, and contract tests for writes, invalid inputs, clamping, and slot clearing.
 - [x] 2026-06-06 EDT: Executed patch cost and voice math model slice with a shared estimator, processor diagnostic exposure, header active/max voice display, and contract tests for default, high-cost, zero-level, solo/mute, mono/unison/poly, filter, and FX cases.
@@ -110,7 +111,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] Model-ready UI handoff and first local polish passes exist for preset browser, arp/step/chord, FX rack, and read-only modulation inspection.
 - [x] 2026-06-06 EDT: Created a Claude Code visual information architecture handoff to make the model-backed shell look materially closer to the Sylenth screenshot corpus without adding fake controls.
 - [ ] Complete or explicitly close deeper UI visual/control polish follow-ups.
-- [ ] Complete a stronger Ableton offline/realtime comparison that can reject mismatched audio.
+- [x] Complete a stronger Ableton offline/realtime comparison that can reject mismatched audio.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
 - [ ] Execute Phase 3 conversational VST and reference-sound workflows.
 
@@ -170,16 +171,17 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-07-validate-ableton-au-preset-playback-proof.md`
 - `docs/exec-plans/completed/2026-06-07-validate-ableton-automation-record-playback.md`
 - `docs/exec-plans/completed/2026-06-07-validate-ableton-bounce-realtime-compare.md`
+- `docs/exec-plans/completed/2026-06-07-build-ableton-strong-bounce-compare.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
 ## Next Slice
 
-Product-order next Codex slice: complete a stronger Ableton offline/realtime comparison that can reject mismatched audio, such as minimum aligned correlation or bounded diff-to-signal ratio.
+Product-order next Codex slice: no non-UI Phase 1 Ableton host-matrix item remains open. Stop for Claude Code UI visual/control polish unless release criteria add stricter waveform-null proof.
 
 Preset browser, visible invalid-preset browser errors, arp/step/chord, FX rack, modulation inspection/write adapter with audio render proof, model-backed patch cost, backend preset commands, preset workflow state model plus visible dirty/init/randomize/reset/A-B and metadata-aware safe-save controls, layer/slot rendering, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; per-route bypass/remove, per-control MIDI context menus, expanded modulation destinations, and per-layer filter/envelope/master parity remain later slices.
 
-Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, AU/VST3 all-notes-off/all-sound-off/hosted Panic proof, AU seeded controller value proof, AU in-editor MIDI Learn proof, AU global-panel MIDI Forget proof, AU/VST3 sample-rate/buffer proof, hosted AU/VST3 preset editor-state proof, hosted AU/VST3 playback after preset load, AU/VST3 automation record/playback, bounded Ableton offline/realtime host sanity comparison, standalone modulation route render proof, standalone offline/realtime quality comparison, and standalone patch recreation are already recorded. A stronger Ableton offline/realtime comparison remains the non-UI host gap; Ableton audio-diff modulation capture and strict offline/realtime waveform-null proof remain unclaimed unless release criteria change.
+Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, AU/VST3 all-notes-off/all-sound-off/hosted Panic proof, AU seeded controller value proof, AU in-editor MIDI Learn proof, AU global-panel MIDI Forget proof, AU/VST3 sample-rate/buffer proof, hosted AU/VST3 preset editor-state proof, hosted AU/VST3 playback after preset load, AU/VST3 automation record/playback, Ableton offline/realtime content comparison with negative controls, standalone modulation route render proof, standalone offline/realtime quality comparison, and standalone patch recreation are already recorded. Ableton audio-diff modulation capture and strict offline/realtime waveform-null proof remain unclaimed unless release criteria change.
 
 ## Risks and Watchpoints
 
@@ -199,7 +201,7 @@ Pending implementation.
 Program-level acceptance requires:
 
 - Phase 1 A/B layers, four oscillator slots, arp/step workflow, FX rack, preset browser, MIDI/controller workflow, UI shell, and modulation UX are implemented and validated.
-- AU and VST3 load in Ableton, automate, save/reopen, restore state, prove learned controller mapping for both formats, exercise current presets/modulation, export offline bounce artifacts, compare offline bounce against realtime render, handle sample-rate/buffer-size changes, pass all-notes-off/panic checks, and survive hosted UI close/reopen while playing with the Phase 1 build. Current proof has already covered AU/VST3 load, restore, automation, controller mapping, hosted UI lifecycle, VST3 offline bounce artifact creation, bounded Ableton offline/realtime host sanity comparison, AU/VST3 all-notes-off/all-sound-off/hosted Panic, AU/VST3 sample-rate/buffer changes, hosted AU/VST3 preset editor-state inspection, and hosted AU/VST3 playback after preset load; a stronger offline/realtime comparison remains open.
+- AU and VST3 load in Ableton, automate, save/reopen, restore state, prove learned controller mapping for both formats, exercise current presets/modulation, export offline bounce artifacts, compare offline bounce against realtime render, handle sample-rate/buffer-size changes, pass all-notes-off/panic checks, and survive hosted UI close/reopen while playing with the Phase 1 build. Current proof has already covered AU/VST3 load, restore, automation, controller mapping, hosted UI lifecycle, VST3 offline bounce artifact creation, Ableton offline/realtime content comparison with negative controls, AU/VST3 all-notes-off/all-sound-off/hosted Panic, AU/VST3 sample-rate/buffer changes, hosted AU/VST3 preset editor-state inspection, and hosted AU/VST3 playback after preset load.
 - Claude Code UI handoff plans are completed or explicitly closed with screenshots/manual QA notes.
 - Phase 2 AI generation can create finite, valid, editable preset/arp/modulation state.
 - Phase 3 conversational/reference workflows can produce reversible edits with clear reports.

@@ -53,3 +53,4 @@
 - `2026-06-07-build-offline-realtime-render-compare.md`
 - `2026-06-07-validate-ableton-automation-record-playback.md`
 - `2026-06-07-validate-ableton-bounce-realtime-compare.md`
+- `2026-06-07-build-ableton-strong-bounce-compare.md`

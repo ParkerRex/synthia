@@ -11,7 +11,7 @@ Active Claude handoff slice: `2026-06-06-handoff-sylenth-visual-information-arch
 
 UI handoff rule: the modern shell handoff is completed, and the roadmap truth audit says A/B layer plus four-slot rendering is real enough for a broad visual information architecture pass. Preset browser, invalid-preset browser error rows, preset workflow controls, metadata-aware safe-save controls, arp/step/chord, FX rack, patch cost, modulation inspection, and single-slot modulation route writing have model-backed surfaces; the main visible surfaces have screenshot evidence, while invalid-row bottom-browser proof remains manual until JUCE viewport automation is reliable. Per-route bypass/remove, richer bank management, and expanded modulation destinations still need later schema/workflow work.
 
-Product-order Codex slice: complete a stronger Ableton offline/realtime comparison that can reject mismatched audio, such as minimum aligned correlation or bounded diff-to-signal ratio. AU/VST3 automation record/playback and a bounded bounce-versus-realtime sanity check are covered by Ableton proof; rendered route behavior is covered by standalone modulation-route render proof. Ableton currently covers route visibility/playback, not audio-diff modulation capture, and strict offline/realtime waveform-null proof is not claimed.
+Product-order Codex slice: no non-UI Phase 1 Ableton host-matrix item remains open. AU/VST3 automation record/playback and Ableton offline/realtime content comparison are covered by host proof; rendered route behavior is covered by standalone modulation-route render proof. Ableton currently covers route visibility/playback, not audio-diff modulation capture, and strict offline/realtime waveform-null proof is not claimed. Remaining Phase 1 work is Claude Code UI visual/control polish.
 
 Completed child plans:
 
@@ -50,6 +50,7 @@ Completed child plans:
 - `../completed/2026-06-07-build-offline-realtime-render-compare.md`
 - `../completed/2026-06-07-validate-ableton-automation-record-playback.md`
 - `../completed/2026-06-07-validate-ableton-bounce-realtime-compare.md`
+- `../completed/2026-06-07-build-ableton-strong-bounce-compare.md`
 - `../completed/2026-06-06-validate-ableton-au-transport-smoke.md`
 - `../completed/2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`
 - `../completed/2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md`
