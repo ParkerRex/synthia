@@ -26,6 +26,7 @@
 - `2026-06-06-build-preset-workflow-state-model.md`
 - `2026-06-06-build-preset-workflow-ui-controls.md`
 - `2026-06-06-build-preset-safe-save-metadata-ui.md`
+- `2026-06-06-build-preset-browser-invalid-errors.md`
 - `2026-06-06-validate-ableton-current-build-smoke.md`
 - `2026-06-06-validate-ableton-state-restore-smoke.md`
 - `2026-06-06-validate-ableton-transport-device-smoke.md`

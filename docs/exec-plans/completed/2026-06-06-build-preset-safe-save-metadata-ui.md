@@ -101,6 +101,6 @@ Manual UI proof:
 
 ## Follow-Up
 
-- Add invalid-preset visible error rows in the browser.
+- Invalid-preset visible error rows later landed in `2026-06-06-build-preset-browser-invalid-errors.md`.
 - Add richer bank-management workflows only when product scope requires them.
 - Consider moving preset workflow/save controls closer to the header in a later visual layout pass.

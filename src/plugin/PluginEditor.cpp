@@ -854,6 +854,7 @@ private:
 
         if (containsQuery(item.displayName) || containsQuery(item.author) || containsQuery(item.description)
             || containsQuery(item.bank) || containsQuery(item.category) || containsQuery(item.sourceLabel)
+            || containsQuery(item.validationMessage)
             || containsQuery(item.file.getFileNameWithoutExtension()))
             return true;
 
@@ -926,18 +927,19 @@ private:
         const auto active = isCurrentPreset(item);
 
         auto row = juce::Rectangle<int>(0, 0, width, height).reduced(1, 1);
-        g.setColour(active ? accent.withAlpha(0.18f)
-                           : (rowIsSelected ? strokeSoft.brighter(0.18f) : fieldBg));
+        g.setColour(!item.valid ? warn.withAlpha(rowIsSelected ? 0.22f : 0.12f)
+                                : (active ? accent.withAlpha(0.18f)
+                                          : (rowIsSelected ? strokeSoft.brighter(0.18f) : fieldBg)));
         g.fillRoundedRectangle(row.toFloat(), 4.0f);
 
         auto favoriteArea = row.removeFromLeft(favoriteHitWidth);
         const auto starBounds = favoriteArea.withSizeKeepingCentre(20, 18).toFloat();
-        g.setColour(item.favorite ? staged.withAlpha(0.22f) : strokeSoft.withAlpha(0.55f));
+        g.setColour(!item.valid ? warn.withAlpha(0.24f)
+                                : (item.favorite ? staged.withAlpha(0.22f) : strokeSoft.withAlpha(0.55f)));
         g.fillRoundedRectangle(starBounds, 5.0f);
-        // Filled star when favorited, hollow star otherwise so the toggle affordance always reads.
-        g.setColour(item.favorite ? staged : mutedText);
+        g.setColour(!item.valid ? warn : (item.favorite ? staged : mutedText));
         g.setFont(uiFont(13.0f, false));
-        g.drawText(juce::String::fromUTF8(item.favorite ? "\xe2\x98\x85" : "\xe2\x98\x86"),
+        g.drawText(!item.valid ? "!" : juce::String::fromUTF8(item.favorite ? "\xe2\x98\x85" : "\xe2\x98\x86"),
                    favoriteArea, juce::Justification::centred, false);
 
         row.removeFromLeft(4);
@@ -950,14 +952,15 @@ private:
             ? item.displayName
             : item.file.getFileNameWithoutExtension();
 
-        g.setColour(active ? text : juce::Colour::fromRGB(218, 224, 229));
+        g.setColour(!item.valid ? warn.brighter(0.18f)
+                                : (active ? text : juce::Colour::fromRGB(218, 224, 229)));
         g.setFont(uiFont(12.0f, active));
         g.drawFittedText(displayName, row, juce::Justification::centredLeft, 1, 0.68f);
 
-        auto meta = item.bank;
-        if (item.category.isNotEmpty())
+        auto meta = item.valid ? item.bank : item.validationMessage;
+        if (item.valid && item.category.isNotEmpty())
             meta << " / " << item.category;
-        if (!item.tags.isEmpty())
+        if (item.valid && !item.tags.isEmpty())
         {
             juce::StringArray visibleTags;
             for (int index = 0; index < juce::jmin(2, item.tags.size()); ++index)
@@ -965,13 +968,14 @@ private:
             meta << " / " << visibleTags.joinIntoString(", ");
         }
 
-        g.setColour(mutedText);
+        g.setColour(item.valid ? mutedText : warn);
         g.setFont(uiFont(10.5f));
         g.drawFittedText(meta, metaArea, juce::Justification::centredRight, 1, 0.58f);
 
-        g.setColour(item.factory ? live : (item.sourceLabel == "Legacy User" ? staged : accent));
+        g.setColour(!item.valid ? warn : (item.factory ? live : (item.sourceLabel == "Legacy User" ? staged : accent)));
         g.setFont(uiFont(10.0f, true));
-        g.drawFittedText(item.sourceLabel, sourceArea, juce::Justification::centredRight, 1, 0.62f);
+        g.drawFittedText(item.valid ? item.sourceLabel : "INVALID",
+                         sourceArea, juce::Justification::centredRight, 1, 0.62f);
     }
 
     void listBoxItemClicked(int row, const juce::MouseEvent& event) override
@@ -980,6 +984,13 @@ private:
             return;
 
         const auto itemIndex = filteredItemIndices[static_cast<std::size_t>(row)];
+        const auto& item = allItems[static_cast<std::size_t>(itemIndex)];
+        if (!item.valid)
+        {
+            owner.updateStatus("Invalid preset: " + item.validationMessage);
+            return;
+        }
+
         if (event.x < favoriteHitWidth)
             owner.togglePresetFavoriteAtIndex(itemIndex);
         else
@@ -992,11 +1003,24 @@ private:
             return;
 
         if (row >= 0 && row < getNumRows())
-            owner.loadPresetAtIndex(filteredItemIndices[static_cast<std::size_t>(row)]);
+        {
+            const auto itemIndex = filteredItemIndices[static_cast<std::size_t>(row)];
+            const auto& item = allItems[static_cast<std::size_t>(itemIndex)];
+            if (!item.valid)
+            {
+                owner.updateStatus("Invalid preset: " + item.validationMessage);
+                return;
+            }
+
+            owner.loadPresetAtIndex(itemIndex);
+        }
     }
 
     bool isCurrentPreset(const SynthAudioProcessor::PresetListItem& item) const
     {
+        if (!item.valid)
+            return false;
+
         if (currentPresetPath.isNotEmpty())
             return item.file.getFullPathName() == currentPresetPath;
 
@@ -2266,6 +2290,9 @@ juce::String nonEmptyPresetField(const juce::String& value, const juce::String& 
 
 juce::String presetMenuSection(const SynthAudioProcessor::PresetListItem& item)
 {
+    if (!item.valid)
+        return nonEmptyPresetField(item.sourceLabel, "Preset") + " / Invalid";
+
     return nonEmptyPresetField(item.sourceLabel, "Preset")
            + " / " + nonEmptyPresetField(item.bank, "Unbanked");
 }
@@ -2273,6 +2300,9 @@ juce::String presetMenuSection(const SynthAudioProcessor::PresetListItem& item)
 juce::String presetMenuLabel(const SynthAudioProcessor::PresetListItem& item)
 {
     auto name = nonEmptyPresetField(item.displayName, item.file.getFileNameWithoutExtension());
+    if (!item.valid)
+        return "INVALID / " + name + " - " + nonEmptyPresetField(item.validationMessage, "Preset validation failed");
+
     auto label = nonEmptyPresetField(item.sourceLabel, "Preset")
                  + " / " + nonEmptyPresetField(item.category, "Uncategorized")
                  + " - " + name;
@@ -2930,7 +2960,8 @@ void SynthAudioProcessorEditor::refreshPresetMenu()
     {
         for (int i = 0; i < static_cast<int>(presetItems.size()); ++i)
         {
-            if (presetItems[static_cast<std::size_t>(i)].file.getFullPathName() == currentFilePath)
+            const auto& item = presetItems[static_cast<std::size_t>(i)];
+            if (item.valid && item.file.getFullPathName() == currentFilePath)
             {
                 selectedPresetIndex = i;
                 break;
@@ -2942,7 +2973,8 @@ void SynthAudioProcessorEditor::refreshPresetMenu()
     {
         for (int i = 0; i < static_cast<int>(presetItems.size()); ++i)
         {
-            if (presetItems[static_cast<std::size_t>(i)].displayName == currentName)
+            const auto& item = presetItems[static_cast<std::size_t>(i)];
+            if (item.valid && item.displayName == currentName)
             {
                 selectedPresetIndex = i;
                 break;
@@ -2974,6 +3006,12 @@ void SynthAudioProcessorEditor::loadPresetAtIndex(int itemIndex)
 
     juce::String message;
     const auto& item = presetItems[static_cast<std::size_t>(index)];
+    if (!item.valid)
+    {
+        updateStatus("Invalid preset: " + item.validationMessage);
+        return;
+    }
+
     if (audioProcessor.loadPresetFile(item.file, message))
     {
         nameEditor.setText(audioProcessor.getCurrentPresetName(), juce::dontSendNotification);
@@ -2991,6 +3029,12 @@ void SynthAudioProcessorEditor::togglePresetFavoriteAtIndex(int itemIndex)
         return;
 
     const auto& item = presetItems[static_cast<std::size_t>(itemIndex)];
+    if (!item.valid)
+    {
+        updateStatus("Invalid preset: " + item.validationMessage);
+        return;
+    }
+
     if (item.favoriteKey.isEmpty())
     {
         updateStatus("Preset favorite unavailable");
@@ -3025,8 +3069,21 @@ void SynthAudioProcessorEditor::stepPreset(int direction)
     if (index < 0)
         index = direction > 0 ? -1 : 0;
 
-    index = (index + direction + static_cast<int>(presetItems.size()))
-            % static_cast<int>(presetItems.size());
+    auto attemptsRemaining = static_cast<int>(presetItems.size());
+    do
+    {
+        index = (index + direction + static_cast<int>(presetItems.size()))
+                % static_cast<int>(presetItems.size());
+        --attemptsRemaining;
+    }
+    while (attemptsRemaining > 0 && !presetItems[static_cast<std::size_t>(index)].valid);
+
+    if (!presetItems[static_cast<std::size_t>(index)].valid)
+    {
+        updateStatus("No valid presets found");
+        return;
+    }
+
     presetCombo.setSelectedItemIndex(index, juce::dontSendNotification);
     loadSelectedPreset();
 }
