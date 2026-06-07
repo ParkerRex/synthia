@@ -20,7 +20,7 @@ Purpose: define the lab roadmap for rebuilding Sylenth as a modern virtual analo
 
 ## Lab Mission And Product Phases
 
-- `[Inferred]` Phase 1 is an authorized recreation of the Sylenth experience as the primary product baseline: A/B virtual analog architecture, four oscillator slots, fast filters/envelopes/modulation, arpeggiator, effects, preset banks, CPU/voice feedback, MIDI control, Ableton-safe AU/VST3 behavior, and a UI that intentionally approaches the original Sylenth visual/workflow target.
+- `[Inferred]` Phase 1 is an approved recreation of the Sylenth experience as the primary product baseline: A/B virtual analog architecture, four oscillator slots, fast filters/envelopes/modulation, arpeggiator, effects, preset banks, CPU/voice feedback, MIDI control, Ableton-safe AU/VST3 behavior, and a UI that intentionally approaches the original Sylenth visual/workflow target.
 - `[Inferred]` Phase 1 should use `Sylenth1Manual.pdf`, `research/sylenth1-screenshots/SOURCE_INDEX.md`, and this feature matrix as the decision packet for roadmap and UI/UX work. The screenshot corpus is approved visual target material.
 - `[Inferred]` Phase 2 adds AI-assisted patch randomization, sound generation, chord movement, and arpeggio creation. The target is musically useful generated state, not opaque audio rendering.
 - `[Inferred]` Phase 3 adds conversational VST control: users can type requests such as `make the bass wubbier` or provide a reference sound and ask sylenth-ai to recreate the character through editable synth, modulation, arp, and FX settings.

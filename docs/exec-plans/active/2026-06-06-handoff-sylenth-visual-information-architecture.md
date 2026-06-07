@@ -67,7 +67,7 @@ What the Sylenth1 screenshots imply about hierarchy, density, grouping, and pane
 
 ## Decision Log
 
-Decision: Treat the screenshot corpus as an authorized visual parity target.
+Decision: Treat the screenshot corpus as an approved visual parity target.
 Rationale: The project direction is to recreate Sylenth first. Older notes about keeping the UI visually distinct or merely original caused Claude to preserve the wrong identity. Future UI polish should move toward the warm bronze Sylenth panel language and only stop where real backend/state bindings are missing.
 Date: 2026-06-07.
 

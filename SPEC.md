@@ -18,7 +18,7 @@ This specification separates product requirements from research confidence:
 - `Inferred` means the statement is a reasoned design conclusion from observed material.
 - `Unknown` means the statement is unresolved and MUST NOT be treated as confirmed behavior.
 
-The Phase 1 target is an authorized Sylenth recreation for modern hosts, grounded in `Sylenth1Manual.pdf`, `research/sylenth1-screenshots/`, and `docs/modern-sylenth-baseline.md`. Older Strobe/pluck research remains supporting background for the current engine, not the product destination.
+The Phase 1 target is an approved Sylenth recreation direction for modern hosts, grounded in `Sylenth1Manual.pdf`, `research/sylenth1-screenshots/`, and `docs/modern-sylenth-baseline.md`. Older Strobe/pluck research remains supporting background for the current engine, not the product destination.
 
 ## 1. Problem Statement
 
@@ -72,7 +72,7 @@ Success means:
 
 - Bit-identical binary emulation of any third-party plugin.
 - Requiring a licensed Sylenth install at runtime.
-- Shipping unauthorized non-Sylenth third-party factory presets, samples, marks, or product assets as sylenth-ai-owned content.
+- Shipping third-party factory presets, samples, marks, logos, screenshots, manual content, or product assets as sylenth-ai-owned content without explicit legal approval.
 - Turning the product into a generic wavetable workstation before the Phase 1 Sylenth rebuild is complete.
 - VST2 support in the first release.
 - AAX support in the first release.
@@ -874,7 +874,7 @@ Required views:
 
 UI rules:
 
-- The UI SHOULD recreate Sylenth's recognizable layout, dense rack structure, panel contrast, knob treatment, top strip, part workflow, and preset interaction as faithfully as possible from the approved manual and screenshot corpus.
+- The UI SHOULD recreate Sylenth's recognizable layout, dense rack structure, panel contrast, knob treatment, top strip, part workflow, and preset interaction as faithfully as possible from the approved manual and screenshot corpus, using original native controls and source-use-safe assets.
 - The UI MUST NOT copy unrelated non-Sylenth third-party trade dress such as the white SH-101-like historical plugin look, Roland SH-101 panel, or FXpansion Strobe UI.
 - Controls SHOULD use compact Sylenth-style production language: knobs/sliders for continuous values, menus for modes, toggles for binary options, tabs or panel selectors for views, and clear modulation badges.
 - Text MUST remain readable at all supported scales.
@@ -1142,9 +1142,9 @@ Current sources:
 
 - Implementation MUST be original.
 - Developers MUST NOT decompile, disassemble, patch, or inspect proprietary binaries for algorithmic extraction.
-- The Sylenth manual and screenshot corpus in this repo are approved Phase 1 rebuild references. Visual parity with Sylenth is an explicit product goal, not a constraint to avoid.
-- Developers MUST NOT copy unauthorized non-Sylenth third-party presets, UI assets, manuals beyond fair-use notes, screenshots, product names, logos, or trade dress.
-- Shipped UI and factory content MUST avoid unlicensed non-Sylenth marks including `FXpansion`, `Strobe`, `ROLI`, `Roland`, `SH-101`, `Deadmau5`, and song titles unless legal approval exists.
+- The Sylenth manual and screenshot corpus in this repo are approved Phase 1 rebuild references. Visual parity with Sylenth is an explicit product goal, not a constraint to avoid. Reference use does not permit copied presets, logos, screenshot backplates, raster UI assets, manual text, or bundled source material in shipped content unless explicit legal approval exists.
+- Developers MUST NOT copy third-party presets, UI assets, manuals beyond fair-use notes, screenshots, product names, logos, or trade dress into the implementation or shipped content unless explicit legal approval exists.
+- Shipped UI and factory content MUST avoid unlicensed marks including `FXpansion`, `Strobe`, `ROLI`, `Roland`, `SH-101`, `Deadmau5`, and song titles unless legal approval exists.
 - Internal research notes MAY cite sources and use third-party names for nominative reference.
 
 ### 12.2 Runtime Safety
