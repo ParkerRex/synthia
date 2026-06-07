@@ -52,8 +52,9 @@ The goal is not to add backend features. The goal is to make the current real fe
 - [x] 2026-06-07 EDT: PR #46 merged to `master` with `2416664 feat(editor): warm bronze Sylenth skin, blue LCD, and LED meter` and `9e64b73 docs: adopt Sylenth visual-parity direction`.
 - [x] 2026-06-07 EDT: Post-merge `master` validation passed: `git diff --check`, `cmake --build build --config Debug`, `ctest --test-dir build --output-on-failure` (9/9), and `./build/SylenthAIRender --suite core --output-dir build/reports/core` (14 reports).
 - [x] 2026-06-07 EDT: Top-strip / LCD / density / Browser fidelity pass on branch `ui-polish-sylenth-mainscreen` (UI-only, `PluginEditor.{h,cpp}`): added a dedicated `Browser` page and moved the preset workflow/metadata/browser/MIDI panels onto it so the Sound page holds the synthesis engine near one screen; rebuilt the blue LCD as a monospaced preset/program/diagnostics hub; unified the header+part strip and lit the active `PART` green; recessed knob value boxes. No DSP/parameters/schema/processor APIs and no fake controls; bronze palette preserved.
-- [x] 2026-06-07 EDT: Validated this pass: `git diff --check` clean, Debug build clean, CTest 9/9, `SylenthAIRender --suite core` 14 reports, plus an adversarial multi-agent review of the diff; captured `sylenth-onescreen-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`.
-- [ ] Parker/Claude review of remaining visual fidelity gaps against the screenshot corpus.
+- [x] 2026-06-07 EDT: Validated this pass: `git diff --check` clean, Debug build clean, CTest 9/9, `SylenthAIRender --suite core` 14 reports, plus an adversarial multi-agent review of the diff; captured `sylenth-onescreen-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`. Committed `e12d2be`.
+- [x] 2026-06-07 EDT: Sylenth skin fidelity pass (maintainer feedback that it still did not look like Sylenth): native-JUCE knob/faceplate/caption/top-strip/palette rework toward the hardware faceplate (dark pointer knobs without the amber arc, tightly-packed squared raised plates, engraved captions, dark charcoal top strip). Re-validated and screenshots refreshed.
+- [ ] Parker/Claude review of remaining visual fidelity gaps against the screenshot corpus (next lever: exact per-module sub-layout + wood backplate).
 
 ## Surprises & Discoveries
 
@@ -200,6 +201,20 @@ Residual gaps after this pass:
 - The output LED meter lives in the Sound-page MIXER (the Sylenth-faithful location), so it is not visible on the Modulation/Effects/Browser pages; the level is still updated every tick.
 - `amp.level_db` is surfaced by two real knobs visible together on the Sound page — the MIXER `MAIN` and the `Amp / Stereo` level. Both are genuine bindings to the same parameter shown in two contexts; left intact to preserve all real bindings rather than dropping a control.
 - Backend-dependent gaps are unchanged and intentionally not done: writable modulation, LFO2/editable movement graphs, per-layer filter/master parity, per-control MIDI context menus, and 256-slot bank management (safety model not ready).
+
+### Sylenth skin fidelity pass (2026-06-07, branch `ui-polish-sylenth-mainscreen`)
+
+Direct response to maintainer feedback that the surface still did not read like Sylenth. A native-JUCE skin pass (no bitmap backplates — that remains prohibited) to move from a card-style dashboard to the Sylenth hardware faceplate, drawing on the screenshot corpus (`official-lennardigital-main-ui.jpg`, `strongmocha-base-ui-large.jpg`, `kvraudio-sylenth1-v302-main-ui.png`).
+
+- **Knobs.** Removed the bright amber value arc — the most off-target element. Knobs are now dark charcoal caps in a chrome rim with a single white pointer and a faint radial tick ring, matching Sylenth's pointer-only metal knobs.
+- **Faceplate.** Panels are squared raised plates (corner radius 6→2.5) packed tightly (row/column gaps 10/12→5) so modules read as one carved face instead of floating rounded cards; raised top highlight + dark base shadow + thin dark seam between panels.
+- **Captions.** Module title bars are now darker engraved strips with centred caps; removed the coloured functional-zone tick (Sylenth has none — the zone hues stay wired behind a no-op for easy reinstatement).
+- **Top strip.** Repainted the performance strip as a dark charcoal band (was warm brown), matching Sylenth's dark polyphony/voices/part/preset bar against the warm panels below.
+- **Palette.** Warmed and lightened the panel tan toward the reference.
+
+Validated: `git diff --check` clean; Debug build clean; CTest 9/9; `SylenthAIRender --suite core` 14 reports. Screenshots refreshed in place at `build/reports/ui/sylenth-onescreen-{sound,modulation,effects,browser,compact}.png`.
+
+Still native-drawn rather than a pixel-perfect clone: exact per-module sub-layout (the oscillator PITCH sub-box, exact knob counts/positions per Sylenth module, wood-grain backplate texture) is deeper structural work and is the next fidelity lever; bitmap screenshot backplates remain out of scope.
 
 ## Context and Orientation
 

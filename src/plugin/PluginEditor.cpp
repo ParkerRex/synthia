@@ -13,7 +13,7 @@ namespace
 // Names are kept stable so the whole editor re-skins by repointing these values.
 const auto background   = juce::Colour::fromRGB(66, 55, 40);    // warm brushed-brown body
 const auto headerBg     = juce::Colour::fromRGB(50, 42, 30);    // darker rail (top/footer)
-const auto panelBg      = juce::Colour::fromRGB(118, 102, 77);  // light tan brushed metal
+const auto panelBg      = juce::Colour::fromRGB(129, 116, 93);  // light tan brushed metal
 const auto panelHeader  = juce::Colour::fromRGB(86, 73, 53);    // module caption bar
 const auto fieldBg      = juce::Colour::fromRGB(32, 25, 16);    // recessed readout / field
 const auto stroke       = juce::Colour::fromRGB(160, 138, 102); // bright brass bevel highlight
@@ -185,11 +185,9 @@ void styleTextEditor(juce::TextEditor& editor)
 void paintModuleHeaderTick(juce::Graphics& g, juce::Rectangle<int> headerArea,
                            juce::Colour colour, bool enabled = true)
 {
-    const auto tick = juce::Rectangle<float>(3.0f, 13.0f)
-                          .withCentre(headerArea.toFloat().getCentre())
-                          .withX(static_cast<float>(headerArea.getX()) + 6.0f);
-    g.setColour(enabled ? colour : colour.withAlpha(0.32f));
-    g.fillRoundedRectangle(tick, 1.5f);
+    // Sylenth module captions carry no coloured zone tick, so this is intentionally a no-op.
+    // Kept (and still called) so the functional-zone hues stay wired and easy to reinstate.
+    juce::ignoreUnused(g, headerArea, colour, enabled);
 }
 
 // Fills a module caption bar with a soft top-down gradient and a 1px base divider so each
@@ -199,14 +197,15 @@ void paintCaptionBar(juce::Graphics& g, juce::Rectangle<int> header, bool enable
 {
     const auto full = header;
     const auto base = enabled ? panelHeader : panelHeader.darker(0.14f);
-    g.setGradientFill(juce::ColourGradient(base.brighter(0.18f), 0.0f, static_cast<float>(full.getY()),
-                                           base.darker(0.10f), 0.0f, static_cast<float>(full.getBottom()), false));
-    g.fillRoundedRectangle(full.toFloat().reduced(0.5f), 6.0f);
-    g.fillRect(full.withTop(full.getBottom() - 8));
-    // Raised-metal caption: a brass highlight along the top edge and a dark shadow at the base.
-    g.setColour(stroke.withAlpha(0.6f));
+    // Engraved Sylenth title strip: a darker recessed band across the top of the module with
+    // a thin bright top line and a dark base shadow, squared to meet the plate cleanly.
+    g.setGradientFill(juce::ColourGradient(base.darker(0.02f), 0.0f, static_cast<float>(full.getY()),
+                                           base.darker(0.22f), 0.0f, static_cast<float>(full.getBottom()), false));
+    g.fillRoundedRectangle(full.toFloat().reduced(0.5f), 2.5f);
+    g.fillRect(full.withTop(full.getBottom() - 6));
+    g.setColour(stroke.withAlpha(0.28f));
     g.fillRect(full.getX() + 2, full.getY() + 1, full.getWidth() - 4, 1);
-    g.setColour(juce::Colours::black.withAlpha(0.32f));
+    g.setColour(juce::Colours::black.withAlpha(0.42f));
     g.fillRect(full.getX() + 1, full.getBottom() - 1, full.getWidth() - 2, 1);
 }
 
@@ -214,13 +213,18 @@ void paintCaptionBar(juce::Graphics& g, juce::Rectangle<int> header, bool enable
 // as raised metal plates rather than flat cards. Shared by every titled module.
 void paintPanelBody(juce::Graphics& g, juce::Rectangle<float> bounds)
 {
-    g.setGradientFill(juce::ColourGradient(panelBg.brighter(0.10f), 0.0f, bounds.getY(),
-                                           panelBg.darker(0.13f), 0.0f, bounds.getBottom(), false));
-    g.fillRoundedRectangle(bounds, 6.0f);
-    g.setColour(strokeSoft);
-    g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
-    g.setColour(stroke.withAlpha(0.35f));
-    g.drawLine(bounds.getX() + 4.0f, bounds.getY() + 1.0f, bounds.getRight() - 4.0f, bounds.getY() + 1.0f, 1.0f);
+    // A raised brushed-metal plate (squared corners, like a Sylenth module) rather than a
+    // floating rounded card: bright top edge, dark base shadow, thin dark outer seam so
+    // tightly-packed panels read as one carved faceplate.
+    g.setGradientFill(juce::ColourGradient(panelBg.brighter(0.13f), 0.0f, bounds.getY(),
+                                           panelBg.darker(0.16f), 0.0f, bounds.getBottom(), false));
+    g.fillRoundedRectangle(bounds, 2.5f);
+    g.setColour(juce::Colours::black.withAlpha(0.42f));
+    g.drawRoundedRectangle(bounds, 2.5f, 1.0f);
+    g.setColour(stroke.withAlpha(0.5f));
+    g.drawLine(bounds.getX() + 2.0f, bounds.getY() + 1.2f, bounds.getRight() - 2.0f, bounds.getY() + 1.2f, 1.0f);
+    g.setColour(juce::Colours::black.withAlpha(0.28f));
+    g.drawLine(bounds.getX() + 2.0f, bounds.getBottom() - 1.0f, bounds.getRight() - 2.0f, bounds.getBottom() - 1.0f, 1.0f);
 }
 } // namespace
 
@@ -261,13 +265,14 @@ public:
         const auto centreX = bounds.getCentreX();
         const auto centreY = bounds.getCentreY();
         const auto toAngle = startAngle + sliderPos * (endAngle - startAngle);
-        const auto lineWidth = juce::jmax(3.0f, radius * 0.16f);
-        const auto arcRadius = radius - lineWidth * 0.5f - 1.0f;
 
-        // Radial tick ring just outside the track: the signature hardware read of a
-        // Sylenth-style knob. End ticks render brighter so min/max land at a glance.
-        const auto tickInner = arcRadius + 2.0f;
-        const auto tickOuter = arcRadius + (radius > 16.0f ? 5.0f : 4.0f);
+        // Sylenth metal knob: a dark charcoal cap in a chrome rim, value shown by the white
+        // pointer alone — no lit colour arc (the hardware knob has none). A faint radial tick
+        // ring sits just outside the cap for the at-a-glance read.
+        const auto capRadius = radius - 1.0f;
+
+        const auto tickInner = capRadius + 1.5f;
+        const auto tickOuter = capRadius + (radius > 16.0f ? 4.5f : 3.0f);
         constexpr int tickCount = 11;
         for (int i = 0; i < tickCount; ++i)
         {
@@ -276,59 +281,46 @@ public:
             const auto extreme = (i == 0 || i == tickCount - 1);
             const auto sinA = std::sin(angle);
             const auto cosA = std::cos(angle);
-            g.setColour(juce::Colour::fromRGB(206, 188, 150).withAlpha(extreme ? 0.9f : 0.45f));
+            g.setColour(juce::Colour::fromRGB(206, 188, 150).withAlpha(extreme ? 0.5f : 0.18f));
             g.drawLine(centreX + tickInner * sinA, centreY - tickInner * cosA,
-                       centreX + tickOuter * sinA, centreY - tickOuter * cosA, extreme ? 1.5f : 1.1f);
+                       centreX + tickOuter * sinA, centreY - tickOuter * cosA, extreme ? 1.3f : 0.9f);
         }
 
-        juce::Path backTrack;
-        backTrack.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
-                                startAngle, endAngle, true);
-        g.setColour(juce::Colour::fromRGB(26, 20, 13));
-        g.strokePath(backTrack, juce::PathStrokeType(lineWidth, juce::PathStrokeType::curved,
-                                                     juce::PathStrokeType::rounded));
+        // Recessed socket shadow the cap sits in.
+        g.setColour(juce::Colours::black.withAlpha(0.5f));
+        g.drawEllipse(juce::Rectangle<float>(centreX - capRadius, centreY - capRadius,
+                                             capRadius * 2.0f, capRadius * 2.0f), 1.4f);
 
-        if (sliderPos > 0.0f)
-        {
-            juce::Path valueArc;
-            valueArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
-                                   startAngle, toAngle, true);
-            g.setColour(accent);
-            g.strokePath(valueArc, juce::PathStrokeType(lineWidth, juce::PathStrokeType::curved,
-                                                        juce::PathStrokeType::rounded));
-        }
-
-        // Knob cap: a chrome rim around a top-lit charcoal body with a soft specular
-        // highlight, modeled on the Sylenth metal knobs. A white indicator line marks value.
-        const auto rimRadius = arcRadius - lineWidth * 0.5f - 2.0f;
+        // Chrome rim around the cap.
+        const auto rimRadius = capRadius - 1.5f;
         const auto rimBox = juce::Rectangle<float>(centreX - rimRadius, centreY - rimRadius,
                                                    rimRadius * 2.0f, rimRadius * 2.0f);
-        juce::ColourGradient rimGrad(knobStroke.brighter(0.25f), centreX, centreY - rimRadius,
-                                     knobStroke.darker(0.45f), centreX, centreY + rimRadius, false);
+        juce::ColourGradient rimGrad(knobStroke.brighter(0.30f), centreX, centreY - rimRadius,
+                                     knobStroke.darker(0.55f), centreX, centreY + rimRadius, false);
         g.setGradientFill(rimGrad);
         g.fillEllipse(rimBox);
 
-        const auto bodyRadius = rimRadius - juce::jmax(1.6f, rimRadius * 0.12f);
+        // Charcoal body with a top-lit gradient and a specular sheen.
+        const auto bodyRadius = rimRadius - juce::jmax(1.8f, rimRadius * 0.16f);
         const auto bodyBox = juce::Rectangle<float>(centreX - bodyRadius, centreY - bodyRadius,
                                                     bodyRadius * 2.0f, bodyRadius * 2.0f);
-        juce::ColourGradient bodyGrad(knobFill.brighter(0.42f), centreX, centreY - bodyRadius,
-                                      knobFill.darker(0.30f), centreX, centreY + bodyRadius, false);
+        juce::ColourGradient bodyGrad(knobFill.brighter(0.45f), centreX, centreY - bodyRadius,
+                                      knobFill.darker(0.40f), centreX, centreY + bodyRadius, false);
         g.setGradientFill(bodyGrad);
         g.fillEllipse(bodyBox);
-        g.setColour(juce::Colours::black.withAlpha(0.35f));
+        g.setColour(juce::Colours::black.withAlpha(0.40f));
         g.drawEllipse(bodyBox, 1.0f);
-        // Specular sheen across the upper third of the cap.
-        g.setColour(juce::Colours::white.withAlpha(0.10f));
-        g.fillEllipse(bodyBox.reduced(bodyRadius * 0.22f).translated(0.0f, -bodyRadius * 0.42f));
+        g.setColour(juce::Colours::white.withAlpha(0.12f));
+        g.fillEllipse(bodyBox.reduced(bodyRadius * 0.22f).translated(0.0f, -bodyRadius * 0.44f));
 
-        // Pointer: a white indicator line with a cap dot, over the amber value arc.
+        // White indicator pointer with a cap dot.
         const juce::Point<float> tip(centreX + (bodyRadius - 2.0f) * std::sin(toAngle),
                                      centreY - (bodyRadius - 2.0f) * std::cos(toAngle));
-        const juce::Point<float> root(centreX + (bodyRadius * 0.28f) * std::sin(toAngle),
-                                      centreY - (bodyRadius * 0.28f) * std::cos(toAngle));
+        const juce::Point<float> root(centreX + (bodyRadius * 0.30f) * std::sin(toAngle),
+                                      centreY - (bodyRadius * 0.30f) * std::cos(toAngle));
         g.setColour(juce::Colour::fromRGB(245, 240, 228));
         g.drawLine({ root, tip }, juce::jmax(2.0f, radius * 0.13f));
-        g.fillEllipse(tip.x - 1.7f, tip.y - 1.7f, 3.4f, 3.4f);
+        g.fillEllipse(tip.x - 1.6f, tip.y - 1.6f, 3.2f, 3.2f);
     }
 
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
@@ -3271,8 +3263,9 @@ void SynthAudioProcessorEditor::paint(juce::Graphics& g)
     // two stacked toolbars (Sylenth's top strip is a single flush band).
     const auto stripBottom = headerHeight + layerBarHeight;
     auto strip = getLocalBounds().removeFromTop(stripBottom);
-    g.setGradientFill(juce::ColourGradient(headerBg.brighter(0.16f), 0.0f, 0.0f,
-                                           headerBg.darker(0.04f), 0.0f, static_cast<float>(stripBottom), false));
+    g.setGradientFill(juce::ColourGradient(juce::Colour::fromRGB(45, 40, 32), 0.0f, 0.0f,
+                                           juce::Colour::fromRGB(25, 22, 17), 0.0f,
+                                           static_cast<float>(stripBottom), false));
     g.fillRect(strip);
     // A soft inset seam marks the preset/part split without a hard toolbar edge.
     g.setColour(juce::Colours::black.withAlpha(0.16f));
@@ -3422,8 +3415,8 @@ int SynthAudioProcessorEditor::layoutRows(juce::Component& page,
                                           int width)
 {
     const auto outerPad = 4;
-    const auto rowGap = 10;
-    const auto columnGap = 12;
+    const auto rowGap = 5;
+    const auto columnGap = 5;
     const auto usableWidth = width - 2 * outerPad;
 
     int y = outerPad;
