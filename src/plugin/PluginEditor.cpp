@@ -9,23 +9,31 @@
 
 namespace
 {
-// ---- Palette ---------------------------------------------------------------
-const auto background   = juce::Colour::fromRGB(18, 20, 24);
-const auto headerBg     = juce::Colour::fromRGB(11, 13, 16);
-const auto panelBg      = juce::Colour::fromRGB(28, 32, 37);
-const auto panelHeader  = juce::Colour::fromRGB(33, 38, 44);
-const auto fieldBg      = juce::Colour::fromRGB(20, 23, 27);
-const auto stroke       = juce::Colour::fromRGB(52, 59, 66);
-const auto strokeSoft   = juce::Colour::fromRGB(38, 43, 49);
-const auto text         = juce::Colour::fromRGB(236, 239, 242);
-const auto mutedText    = juce::Colour::fromRGB(150, 159, 167);
-const auto accent       = juce::Colour::fromRGB(88, 196, 176);
-const auto live         = juce::Colour::fromRGB(108, 206, 138);
-const auto staged       = juce::Colour::fromRGB(220, 158, 86);
-const auto warn         = juce::Colour::fromRGB(228, 120, 96);
-const auto info         = juce::Colour::fromRGB(108, 158, 226);
-const auto knobFill     = juce::Colour::fromRGB(40, 45, 51);
-const auto knobStroke   = juce::Colour::fromRGB(62, 70, 78);
+// ---- Palette (warm bronze, modeled on the Sylenth1 hardware skin) -----------
+// Names are kept stable so the whole editor re-skins by repointing these values.
+const auto background   = juce::Colour::fromRGB(46, 38, 27);   // warm dark brown body
+const auto headerBg     = juce::Colour::fromRGB(33, 27, 18);   // darker brown top/footer rail
+const auto panelBg      = juce::Colour::fromRGB(84, 71, 52);   // brushed tan-brown metal
+const auto panelHeader  = juce::Colour::fromRGB(62, 52, 37);   // module caption bar
+const auto fieldBg      = juce::Colour::fromRGB(30, 23, 15);   // recessed readout / field
+const auto stroke       = juce::Colour::fromRGB(124, 104, 72); // brass bevel highlight
+const auto strokeSoft   = juce::Colour::fromRGB(74, 61, 43);   // soft brown edge / shadow
+const auto text         = juce::Colour::fromRGB(237, 227, 205); // cream label text
+const auto mutedText    = juce::Colour::fromRGB(181, 165, 135); // tan secondary text
+const auto accent       = juce::Colour::fromRGB(222, 166, 66);  // amber (value arcs / selection)
+const auto live         = juce::Colour::fromRGB(146, 194, 79);  // green LED (on / meter low)
+const auto staged       = juce::Colour::fromRGB(224, 146, 60);  // amber-orange (edited / meter mid)
+const auto warn         = juce::Colour::fromRGB(208, 90, 62);   // red (clip / danger)
+const auto info         = juce::Colour::fromRGB(110, 150, 196); // steel blue accents
+const auto knobFill     = juce::Colour::fromRGB(40, 36, 30);    // dark charcoal knob cap
+const auto knobStroke   = juce::Colour::fromRGB(156, 140, 110); // chrome / brass knob rim
+
+// Glossy blue LCD screen, as used for the Sylenth preset/arp display and recessed readouts.
+const auto lcdBg        = juce::Colour::fromRGB(22, 48, 64);
+const auto lcdBgEdge    = juce::Colour::fromRGB(11, 27, 38);
+const auto lcdText      = juce::Colour::fromRGB(140, 216, 230);
+const auto lcdDim       = juce::Colour::fromRGB(86, 150, 172);
+const auto lcdStroke    = juce::Colour::fromRGB(52, 104, 130);
 
 // Functional zone hues drive each module's header identity tick so the grid reads as a
 // rack of grouped modules rather than a uniform form. Restrained on purpose: source,
@@ -34,7 +42,7 @@ const auto zoneSource   = live;   // oscillators / tone
 const auto zoneShape    = accent; // filter / envelopes / LFO
 const auto zonePerform  = info;   // voice / amp / ramp / macros
 const auto zoneMod      = accent; // modulation routes
-const auto zoneUtility  = juce::Colour::fromRGB(96, 104, 112); // browser / MIDI
+const auto zoneUtility  = juce::Colour::fromRGB(138, 122, 92); // browser / MIDI
 
 constexpr float rotaryStart = juce::MathConstants<float>::pi * 1.25f;
 constexpr float rotaryEnd   = juce::MathConstants<float>::pi * 2.75f;
@@ -135,7 +143,7 @@ void styleFlatButton(juce::Button& button, juce::Colour fill, juce::Colour textC
     button.setColour(juce::TextButton::buttonColourId, fill);
     button.setColour(juce::TextButton::buttonOnColourId, accent.darker(0.1f));
     button.setColour(juce::TextButton::textColourOffId, textColour);
-    button.setColour(juce::TextButton::textColourOnId, juce::Colour::fromRGB(12, 14, 16));
+    button.setColour(juce::TextButton::textColourOnId, juce::Colour::fromRGB(28, 21, 12));
 }
 
 void styleChipCaption(juce::Label& label)
@@ -183,12 +191,28 @@ void paintCaptionBar(juce::Graphics& g, juce::Rectangle<int> header, bool enable
 {
     const auto full = header;
     const auto base = enabled ? panelHeader : panelHeader.darker(0.14f);
-    g.setGradientFill(juce::ColourGradient(base.brighter(0.08f), 0.0f, static_cast<float>(full.getY()),
-                                           base.darker(0.07f), 0.0f, static_cast<float>(full.getBottom()), false));
+    g.setGradientFill(juce::ColourGradient(base.brighter(0.18f), 0.0f, static_cast<float>(full.getY()),
+                                           base.darker(0.10f), 0.0f, static_cast<float>(full.getBottom()), false));
     g.fillRoundedRectangle(full.toFloat().reduced(0.5f), 6.0f);
     g.fillRect(full.withTop(full.getBottom() - 8));
-    g.setColour(stroke.withAlpha(0.5f));
+    // Raised-metal caption: a brass highlight along the top edge and a dark shadow at the base.
+    g.setColour(stroke.withAlpha(0.6f));
+    g.fillRect(full.getX() + 2, full.getY() + 1, full.getWidth() - 4, 1);
+    g.setColour(juce::Colours::black.withAlpha(0.32f));
     g.fillRect(full.getX() + 1, full.getBottom() - 1, full.getWidth() - 2, 1);
+}
+
+// Brushed-metal module body: a vertical gradient with a soft brass border, so panels read
+// as raised metal plates rather than flat cards. Shared by every titled module.
+void paintPanelBody(juce::Graphics& g, juce::Rectangle<float> bounds)
+{
+    g.setGradientFill(juce::ColourGradient(panelBg.brighter(0.10f), 0.0f, bounds.getY(),
+                                           panelBg.darker(0.13f), 0.0f, bounds.getBottom(), false));
+    g.fillRoundedRectangle(bounds, 6.0f);
+    g.setColour(strokeSoft);
+    g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+    g.setColour(stroke.withAlpha(0.35f));
+    g.drawLine(bounds.getX() + 4.0f, bounds.getY() + 1.0f, bounds.getRight() - 4.0f, bounds.getY() + 1.0f, 1.0f);
 }
 } // namespace
 
@@ -209,10 +233,10 @@ public:
         setColour(juce::ComboBox::textColourId, text);
         setColour(juce::ComboBox::arrowColourId, accent);
 
-        setColour(juce::PopupMenu::backgroundColourId, juce::Colour::fromRGB(24, 28, 32));
+        setColour(juce::PopupMenu::backgroundColourId, juce::Colour::fromRGB(48, 40, 29));
         setColour(juce::PopupMenu::textColourId, text);
         setColour(juce::PopupMenu::highlightedBackgroundColourId, accent.darker(0.2f));
-        setColour(juce::PopupMenu::highlightedTextColourId, juce::Colour::fromRGB(12, 14, 16));
+        setColour(juce::PopupMenu::highlightedTextColourId, juce::Colour::fromRGB(28, 21, 12));
 
         setColour(juce::TextEditor::backgroundColourId, fieldBg);
         setColour(juce::TextEditor::outlineColourId, stroke);
@@ -244,7 +268,7 @@ public:
             const auto extreme = (i == 0 || i == tickCount - 1);
             const auto sinA = std::sin(angle);
             const auto cosA = std::cos(angle);
-            g.setColour(juce::Colour::fromRGB(74, 82, 90).withAlpha(extreme ? 0.95f : 0.55f));
+            g.setColour(juce::Colour::fromRGB(206, 188, 150).withAlpha(extreme ? 0.9f : 0.45f));
             g.drawLine(centreX + tickInner * sinA, centreY - tickInner * cosA,
                        centreX + tickOuter * sinA, centreY - tickOuter * cosA, extreme ? 1.5f : 1.1f);
         }
@@ -252,7 +276,7 @@ public:
         juce::Path backTrack;
         backTrack.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
                                 startAngle, endAngle, true);
-        g.setColour(juce::Colour::fromRGB(46, 52, 59));
+        g.setColour(juce::Colour::fromRGB(26, 20, 13));
         g.strokePath(backTrack, juce::PathStrokeType(lineWidth, juce::PathStrokeType::curved,
                                                      juce::PathStrokeType::rounded));
 
@@ -266,29 +290,37 @@ public:
                                                         juce::PathStrokeType::rounded));
         }
 
-        // Knob body: a soft top-lit radial gradient over a stroked rim reads as a moulded
-        // cap rather than a flat disc, closer to the Sylenth instrument chrome.
-        const auto bodyRadius = arcRadius - lineWidth * 0.5f - 3.0f;
+        // Knob cap: a chrome rim around a top-lit charcoal body with a soft specular
+        // highlight, modeled on the Sylenth metal knobs. A white indicator line marks value.
+        const auto rimRadius = arcRadius - lineWidth * 0.5f - 2.0f;
+        const auto rimBox = juce::Rectangle<float>(centreX - rimRadius, centreY - rimRadius,
+                                                   rimRadius * 2.0f, rimRadius * 2.0f);
+        juce::ColourGradient rimGrad(knobStroke.brighter(0.25f), centreX, centreY - rimRadius,
+                                     knobStroke.darker(0.45f), centreX, centreY + rimRadius, false);
+        g.setGradientFill(rimGrad);
+        g.fillEllipse(rimBox);
+
+        const auto bodyRadius = rimRadius - juce::jmax(1.6f, rimRadius * 0.12f);
         const auto bodyBox = juce::Rectangle<float>(centreX - bodyRadius, centreY - bodyRadius,
                                                     bodyRadius * 2.0f, bodyRadius * 2.0f);
-        juce::ColourGradient bodyGrad(knobFill.brighter(0.22f), centreX, centreY - bodyRadius,
-                                      knobFill.darker(0.28f), centreX, centreY + bodyRadius, false);
+        juce::ColourGradient bodyGrad(knobFill.brighter(0.42f), centreX, centreY - bodyRadius,
+                                      knobFill.darker(0.30f), centreX, centreY + bodyRadius, false);
         g.setGradientFill(bodyGrad);
         g.fillEllipse(bodyBox);
-        g.setColour(knobStroke);
+        g.setColour(juce::Colours::black.withAlpha(0.35f));
         g.drawEllipse(bodyBox, 1.0f);
-        g.setColour(juce::Colours::black.withAlpha(0.18f));
-        g.drawEllipse(bodyBox.reduced(1.0f), 1.0f);
+        // Specular sheen across the upper third of the cap.
+        g.setColour(juce::Colours::white.withAlpha(0.10f));
+        g.fillEllipse(bodyBox.reduced(bodyRadius * 0.22f).translated(0.0f, -bodyRadius * 0.42f));
 
-        // Pointer: a bright cap over an accent base so the indicator reads at any size.
+        // Pointer: a white indicator line with a cap dot, over the amber value arc.
         const juce::Point<float> tip(centreX + (bodyRadius - 2.0f) * std::sin(toAngle),
                                      centreY - (bodyRadius - 2.0f) * std::cos(toAngle));
-        const juce::Point<float> root(centreX + (bodyRadius * 0.30f) * std::sin(toAngle),
-                                      centreY - (bodyRadius * 0.30f) * std::cos(toAngle));
-        g.setColour(accent.brighter(0.2f));
-        g.drawLine({ root, tip }, juce::jmax(2.0f, radius * 0.12f));
-        g.setColour(text);
-        g.fillEllipse(tip.x - 1.6f, tip.y - 1.6f, 3.2f, 3.2f);
+        const juce::Point<float> root(centreX + (bodyRadius * 0.28f) * std::sin(toAngle),
+                                      centreY - (bodyRadius * 0.28f) * std::cos(toAngle));
+        g.setColour(juce::Colour::fromRGB(245, 240, 228));
+        g.drawLine({ root, tip }, juce::jmax(2.0f, radius * 0.13f));
+        g.fillEllipse(tip.x - 1.7f, tip.y - 1.7f, 3.4f, 3.4f);
     }
 
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
@@ -296,18 +328,27 @@ public:
     {
         auto bounds = button.getLocalBounds().toFloat();
         const auto on = button.getToggleState();
-        const auto trackWidth = juce::jmin(40.0f, bounds.getWidth());
-        auto track = juce::Rectangle<float>(trackWidth, 20.0f).withCentre(bounds.getCentre());
+        const auto boxWidth = juce::jmin(bounds.getWidth(), 46.0f);
+        const auto boxHeight = juce::jmin(bounds.getHeight(), 22.0f);
+        auto box = juce::Rectangle<float>(boxWidth, boxHeight).withCentre(bounds.getCentre());
 
-        g.setColour(on ? accent.withAlpha(0.85f) : juce::Colour::fromRGB(36, 41, 47));
-        g.fillRoundedRectangle(track, 10.0f);
-        g.setColour(on ? accent : (shouldDrawButtonAsHighlighted ? mutedText : stroke));
-        g.drawRoundedRectangle(track, 10.0f, 1.0f);
+        // Sylenth-style lit LED button: a recessed socket that glows amber when engaged.
+        g.setColour(fieldBg);
+        g.fillRoundedRectangle(box, 4.0f);
 
-        const auto knobDiameter = 14.0f;
-        const auto knobX = on ? track.getRight() - knobDiameter - 3.0f : track.getX() + 3.0f;
-        g.setColour(on ? juce::Colours::white : mutedText);
-        g.fillEllipse(knobX, track.getCentreY() - knobDiameter * 0.5f, knobDiameter, knobDiameter);
+        if (on)
+        {
+            juce::ColourGradient glow(staged.brighter(0.30f), box.getX(), box.getY(),
+                                      staged.darker(0.24f), box.getX(), box.getBottom(), false);
+            g.setGradientFill(glow);
+            g.fillRoundedRectangle(box.reduced(1.6f), 3.0f);
+            g.setColour(juce::Colours::white.withAlpha(0.20f));
+            g.fillRoundedRectangle(box.reduced(1.6f).withTrimmedBottom(boxHeight * 0.5f), 3.0f);
+        }
+
+        g.setColour(on ? accent.brighter(0.1f)
+                       : (shouldDrawButtonAsHighlighted ? mutedText : stroke.withAlpha(0.8f)));
+        g.drawRoundedRectangle(box.reduced(0.5f), 4.0f, 1.2f);
     }
 
     void drawComboBox(juce::Graphics& g, int width, int height, bool,
@@ -481,30 +522,112 @@ public:
         g.setColour(strokeSoft);
         g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
-        auto track = bounds.reduced(3.0f);
-        auto clipZone = track.removeFromRight(8.0f);
-        track.removeFromRight(3.0f);
-
+        auto area = bounds.reduced(3.0f);
         const auto db = peak > 0.0001f ? juce::Decibels::gainToDecibels(peak) : -100.0f;
         const auto norm = juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 66.0f);
 
-        auto filled = track.withWidth(track.getWidth() * norm);
-        juce::Colour barColour = db > 0.0f ? warn : (db > -6.0f ? staged : live);
-        g.setColour(barColour.withAlpha(0.92f));
-        g.fillRoundedRectangle(filled, 2.0f);
-
-        g.setColour(clipHold > 0 ? warn : juce::Colour::fromRGB(40, 45, 51));
-        g.fillRoundedRectangle(clipZone, 2.0f);
-
-        g.setColour(peak > 0.0001f ? text : mutedText);
-        g.setFont(uiFont(10.5f));
-        const auto label = peak > 0.0001f ? juce::String(db, 1) + " dB" : "-inf";
-        g.drawText(label, track.toNearestInt(), juce::Justification::centredLeft, false);
+        // Vertical LED ladder, like the Sylenth mixer output meter: green low, amber mid,
+        // red top, lit from the bottom up to the current peak. The top LED latches on clip.
+        constexpr int segments = 14;
+        constexpr float segGap = 2.0f;
+        const auto segHeight = (area.getHeight() - (segments - 1) * segGap) / static_cast<float>(segments);
+        for (int i = 0; i < segments; ++i)
+        {
+            const auto fraction = static_cast<float>(i + 1) / static_cast<float>(segments);
+            const auto fi = static_cast<float>(i);
+            const auto seg = juce::Rectangle<float>(area.getX(),
+                                                    area.getBottom() - (fi + 1.0f) * segHeight - fi * segGap,
+                                                    area.getWidth(), segHeight);
+            const auto colour = fraction > 0.88f ? warn : (fraction > 0.6f ? staged : live);
+            const auto lit = norm >= static_cast<float>(i) / static_cast<float>(segments)
+                             || (i == segments - 1 && clipHold > 0);
+            g.setColour(lit ? colour.withAlpha(0.95f) : colour.withAlpha(0.10f));
+            g.fillRoundedRectangle(seg, 1.5f);
+        }
     }
 
 private:
     float peak = 0.0f;
     int clipHold = 0;
+};
+
+// ============================================================================
+// LcdDisplay: a glossy blue Sylenth-style screen showing the live preset.
+//
+// Read-only display of real state: the current preset name plus its source /
+// bank / category, and the dirty flag. No new control or stored state.
+// ============================================================================
+class SynthAudioProcessorEditor::LcdDisplay final : public LayoutSection
+{
+public:
+    int preferredHeight(int) const override { return 86; }
+
+    void setPreset(const juce::String& name, const juce::String& detail)
+    {
+        if (name == presetName && detail == presetDetail)
+            return;
+        presetName = name;
+        presetDetail = detail;
+        repaint();
+    }
+
+    void setDirty(bool isDirty)
+    {
+        if (isDirty == dirty)
+            return;
+        dirty = isDirty;
+        repaint();
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        // Bronze bezel around a recessed glossy blue screen.
+        auto bezel = getLocalBounds().toFloat().reduced(0.5f);
+        g.setGradientFill(juce::ColourGradient(panelBg.brighter(0.12f), 0.0f, bezel.getY(),
+                                               panelBg.darker(0.20f), 0.0f, bezel.getBottom(), false));
+        g.fillRoundedRectangle(bezel, 8.0f);
+        g.setColour(strokeSoft);
+        g.drawRoundedRectangle(bezel, 8.0f, 1.0f);
+
+        auto screen = bezel.reduced(7.0f);
+        g.setGradientFill(juce::ColourGradient(lcdBg.brighter(0.16f), 0.0f, screen.getY(),
+                                               lcdBgEdge, 0.0f, screen.getBottom(), false));
+        g.fillRoundedRectangle(screen, 5.0f);
+        g.setColour(juce::Colours::white.withAlpha(0.06f));
+        g.fillRoundedRectangle(screen.withHeight(screen.getHeight() * 0.42f).reduced(2.0f, 1.5f), 4.0f);
+        g.setColour(lcdStroke);
+        g.drawRoundedRectangle(screen, 5.0f, 1.2f);
+
+        auto content = screen.reduced(16.0f, 9.0f).toNearestInt();
+
+        auto topLine = content.removeFromTop(14);
+        g.setColour(lcdDim);
+        g.setFont(uiFont(10.0f, true));
+        g.drawText("PRESET", topLine.removeFromLeft(140), juce::Justification::centredLeft, false);
+
+        auto pill = topLine.removeFromRight(78).withSizeKeepingCentre(72, 14);
+        g.setColour((dirty ? staged : live).withAlpha(0.22f));
+        g.fillRoundedRectangle(pill.toFloat(), 7.0f);
+        g.setColour(dirty ? staged : live);
+        g.setFont(uiFont(9.5f, true));
+        g.drawText(dirty ? "EDITED" : "CLEAN", pill, juce::Justification::centred, false);
+
+        content.removeFromTop(2);
+        auto nameArea = content.removeFromTop(28);
+        g.setColour(lcdText);
+        g.setFont(uiFont(23.0f, true));
+        g.drawFittedText(presetName.isNotEmpty() ? presetName : "Init", nameArea,
+                         juce::Justification::centredLeft, 1, 0.55f);
+
+        g.setColour(lcdDim);
+        g.setFont(uiFont(12.0f));
+        g.drawFittedText(presetDetail, content, juce::Justification::centredLeft, 1, 0.7f);
+    }
+
+private:
+    juce::String presetName { "Init" };
+    juce::String presetDetail { "Unsaved session" };
+    bool dirty = false;
 };
 
 // ============================================================================
@@ -576,10 +699,7 @@ public:
         const auto on = isModuleEnabled();
 
         const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-        g.setColour(panelBg);
-        g.fillRoundedRectangle(bounds, 6.0f);
-        g.setColour(strokeSoft);
-        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+        paintPanelBody(g, bounds);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
         paintCaptionBar(g, headerArea, !hasState || on);
@@ -596,7 +716,7 @@ public:
             auto dotArea = titleArea.removeFromLeft(14);
             const auto dot = juce::Rectangle<float>(0.0f, 0.0f, 7.0f, 7.0f)
                                  .withCentre(dotArea.toFloat().getCentre());
-            g.setColour(on ? live : juce::Colour::fromRGB(74, 82, 90));
+            g.setColour(on ? live : juce::Colour::fromRGB(98, 86, 64));
             g.fillEllipse(dot);
         }
 
@@ -746,10 +866,7 @@ public:
     void paint(juce::Graphics& g) override
     {
         const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-        g.setColour(panelBg);
-        g.fillRoundedRectangle(bounds, 6.0f);
-        g.setColour(strokeSoft);
-        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+        paintPanelBody(g, bounds);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
         paintCaptionBar(g, headerArea);
@@ -853,7 +970,7 @@ private:
     void paintContour(juce::Graphics& g, juce::Rectangle<int> area) const
     {
         const auto frame = area.toFloat().reduced(0.5f);
-        g.setColour(juce::Colour::fromRGB(16, 19, 22));
+        g.setColour(juce::Colour::fromRGB(26, 20, 13));
         g.fillRoundedRectangle(frame, 4.0f);
         g.setColour(strokeSoft.withAlpha(0.8f));
         g.drawRoundedRectangle(frame, 4.0f, 1.0f);
@@ -975,10 +1092,7 @@ public:
     void paint(juce::Graphics& g) override
     {
         const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-        g.setColour(panelBg);
-        g.fillRoundedRectangle(bounds, 6.0f);
-        g.setColour(strokeSoft);
-        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+        paintPanelBody(g, bounds);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
         paintCaptionBar(g, headerArea);
@@ -1052,7 +1166,7 @@ private:
             const auto active = button.getToggleState();
             styleFlatButton(button,
                             active ? accent.darker(0.18f) : fieldBg,
-                            active ? juce::Colour::fromRGB(12, 14, 16) : mutedText);
+                            active ? juce::Colour::fromRGB(28, 21, 12) : mutedText);
         };
 
         refreshButton(factoryButton);
@@ -1214,7 +1328,7 @@ private:
             : item.file.getFileNameWithoutExtension();
 
         g.setColour(!item.valid ? warn.brighter(0.18f)
-                                : (active ? text : juce::Colour::fromRGB(218, 224, 229)));
+                                : (active ? text : juce::Colour::fromRGB(216, 206, 186)));
         g.setFont(uiFont(12.0f, active));
         g.drawFittedText(displayName, row, juce::Justification::centredLeft, 1, 0.68f);
 
@@ -1350,10 +1464,7 @@ public:
     void paint(juce::Graphics& g) override
     {
         const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-        g.setColour(panelBg);
-        g.fillRoundedRectangle(bounds, 6.0f);
-        g.setColour(strokeSoft);
-        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+        paintPanelBody(g, bounds);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
         paintCaptionBar(g, headerArea);
@@ -1404,7 +1515,7 @@ private:
     void configureCommandButton(juce::TextButton& button, const juce::String& label, std::function<void()> handler)
     {
         button.setButtonText(label);
-        styleFlatButton(button, juce::Colour::fromRGB(42, 48, 54), text);
+        styleFlatButton(button, juce::Colour::fromRGB(58, 48, 34), text);
         button.onClick = std::move(handler);
         addAndMakeVisible(button);
     }
@@ -1491,10 +1602,7 @@ public:
     void paint(juce::Graphics& g) override
     {
         const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-        g.setColour(panelBg);
-        g.fillRoundedRectangle(bounds, 6.0f);
-        g.setColour(strokeSoft);
-        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+        paintPanelBody(g, bounds);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
         paintCaptionBar(g, headerArea);
@@ -1611,7 +1719,7 @@ private:
     {
         button.setButtonText(label);
         styleFlatButton(button, label == "Overwrite" ? warn.darker(0.2f) : accent.darker(0.18f),
-                        label == "Overwrite" ? text : juce::Colour::fromRGB(12, 14, 16));
+                        label == "Overwrite" ? text : juce::Colour::fromRGB(28, 21, 12));
         button.onClick = std::move(handler);
         addAndMakeVisible(button);
     }
@@ -1648,9 +1756,9 @@ public:
         }
         addAndMakeVisible(parameterBox);
 
-        styleFlatButton(learnButton, accent.darker(0.18f), juce::Colour::fromRGB(12, 14, 16));
-        styleFlatButton(forgetButton, juce::Colour::fromRGB(42, 48, 54), text);
-        styleFlatButton(cancelButton, juce::Colour::fromRGB(42, 48, 54), mutedText);
+        styleFlatButton(learnButton, accent.darker(0.18f), juce::Colour::fromRGB(28, 21, 12));
+        styleFlatButton(forgetButton, juce::Colour::fromRGB(58, 48, 34), text);
+        styleFlatButton(cancelButton, juce::Colour::fromRGB(58, 48, 34), mutedText);
         addAndMakeVisible(learnButton);
         addAndMakeVisible(forgetButton);
         addAndMakeVisible(cancelButton);
@@ -1715,10 +1823,7 @@ public:
     void paint(juce::Graphics& g) override
     {
         const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-        g.setColour(panelBg);
-        g.fillRoundedRectangle(bounds, 6.0f);
-        g.setColour(strokeSoft);
-        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+        paintPanelBody(g, bounds);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
         paintCaptionBar(g, headerArea);
@@ -1825,10 +1930,7 @@ public:
     void paint(juce::Graphics& g) override
     {
         const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-        g.setColour(panelBg);
-        g.fillRoundedRectangle(bounds, 6.0f);
-        g.setColour(strokeSoft);
-        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+        paintPanelBody(g, bounds);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
         paintCaptionBar(g, headerArea);
@@ -2151,10 +2253,7 @@ public:
     void paint(juce::Graphics& g) override
     {
         const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-        g.setColour(panelBg);
-        g.fillRoundedRectangle(bounds, 6.0f);
-        g.setColour(strokeSoft);
-        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
+        paintPanelBody(g, bounds);
 
         auto headerArea = getLocalBounds().removeFromTop(headerHeight);
         paintCaptionBar(g, headerArea);
@@ -2237,9 +2336,9 @@ private:
             const auto spec = *found;
             control.slider.setSliderStyle(juce::Slider::LinearBar);
             control.slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 48, 14);
-            control.slider.setColour(juce::Slider::backgroundColourId, fieldBg);
-            control.slider.setColour(juce::Slider::trackColourId, accent.withAlpha(0.72f));
-            control.slider.setColour(juce::Slider::textBoxTextColourId, text);
+            control.slider.setColour(juce::Slider::backgroundColourId, lcdBgEdge);
+            control.slider.setColour(juce::Slider::trackColourId, lcdText.withAlpha(0.62f));
+            control.slider.setColour(juce::Slider::textBoxTextColourId, lcdText);
             control.slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
             control.slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
             control.slider.setTooltip(tooltip);
@@ -2405,7 +2504,7 @@ private:
         const auto xStart = bounds.getX() + std::max(0, (bounds.getWidth() - gridWidth) / 2);
         auto y = bounds.getY();
 
-        g.setColour(mutedText);
+        g.setColour(lcdText);
         g.setFont(uiFont(10.5f, true));
         g.drawText("STEP", xStart, y, rowLabelWidth, headerRowHeight, juce::Justification::centredLeft, false);
         for (int step = 0; step < synth::arpStepCount; ++step)
@@ -2436,7 +2535,7 @@ private:
         const auto xStart = bounds.getX() + std::max(0, (bounds.getWidth() - gridWidth) / 2);
         auto y = bounds.getY();
 
-        g.setColour(mutedText);
+        g.setColour(lcdText);
         g.setFont(uiFont(10.5f, true));
         g.drawText("CHORD", xStart, y, rowLabelWidth, headerRowHeight, juce::Justification::centredLeft, false);
         for (int voice = 0; voice < synth::chordVoiceCount; ++voice)
@@ -2455,17 +2554,21 @@ private:
 
     void paintRowLabel(juce::Graphics& g, int x, int y, const juce::String& label) const
     {
-        g.setColour(mutedText);
+        g.setColour(lcdDim);
         g.setFont(uiFont(10.0f, true));
         g.drawText(label, x, y, rowLabelWidth - 6, sliderRowHeight, juce::Justification::centredLeft, false);
     }
 
     void paintGridFrame(juce::Graphics& g, juce::Rectangle<int> bounds) const
     {
+        // Blue LCD screen, like the Sylenth arp/step display: recessed glossy glass.
         const auto frame = bounds.toFloat().reduced(0.5f);
-        g.setColour(juce::Colour::fromRGB(23, 27, 31));
+        g.setGradientFill(juce::ColourGradient(lcdBg.brighter(0.10f), 0.0f, frame.getY(),
+                                               lcdBgEdge, 0.0f, frame.getBottom(), false));
         g.fillRoundedRectangle(frame, 4.0f);
-        g.setColour(strokeSoft.withAlpha(0.72f));
+        g.setColour(juce::Colours::white.withAlpha(0.05f));
+        g.fillRoundedRectangle(frame.withHeight(frame.getHeight() * 0.4f).reduced(2.0f, 1.5f), 3.0f);
+        g.setColour(lcdStroke);
         g.drawRoundedRectangle(frame, 4.0f, 1.0f);
     }
 
@@ -2619,11 +2722,11 @@ void SynthAudioProcessorEditor::buildHeader()
     engineTag.setFont(uiFont(10.0f, true));
     addAndMakeVisible(engineTag);
 
-    styleFlatButton(prevPresetButton, juce::Colour::fromRGB(38, 43, 49));
-    styleFlatButton(nextPresetButton, juce::Colour::fromRGB(38, 43, 49));
+    styleFlatButton(prevPresetButton, juce::Colour::fromRGB(58, 48, 34));
+    styleFlatButton(nextPresetButton, juce::Colour::fromRGB(58, 48, 34));
     styleFlatButton(loadButton, accent.darker(0.32f));
-    styleFlatButton(saveButton, juce::Colour::fromRGB(58, 84, 108));
-    styleFlatButton(duplicateButton, juce::Colour::fromRGB(58, 84, 108));
+    styleFlatButton(saveButton, juce::Colour::fromRGB(112, 88, 50));
+    styleFlatButton(duplicateButton, juce::Colour::fromRGB(112, 88, 50));
     styleFlatButton(panicButton, warn.darker(0.1f));
     dirtyStatePill.setJustificationType(juce::Justification::centred);
     dirtyStatePill.setFont(uiFont(10.5f, true));
@@ -2686,7 +2789,7 @@ void SynthAudioProcessorEditor::buildLayerBar()
     addAndMakeVisible(layerCaption);
 
     auto styleLayerButton = [this](juce::TextButton& button) {
-        styleFlatButton(button, juce::Colour::fromRGB(38, 43, 49));
+        styleFlatButton(button, juce::Colour::fromRGB(58, 48, 34));
         button.setClickingTogglesState(false);
         addAndMakeVisible(button);
     };
@@ -2738,6 +2841,10 @@ SynthAudioProcessorEditor::Panel* SynthAudioProcessorEditor::addPanel(
 void SynthAudioProcessorEditor::buildPages()
 {
     // ---- SOUND: the live core sound-design surface ------------------------
+    // Blue LCD preset screen leads the page like the Sylenth centre display.
+    lcdDisplay = std::make_unique<LcdDisplay>();
+    soundPage.addAndMakeVisible(*lcdDisplay);
+
     presetWorkflowPanel = std::make_unique<PresetWorkflowPanel>(*this);
     soundPage.addAndMakeVisible(*presetWorkflowPanel);
     presetMetadataPanel = std::make_unique<PresetMetadataPanel>(*this);
@@ -2862,7 +2969,7 @@ void SynthAudioProcessorEditor::setSelectedLayer(int layerIndex)
     const auto stripPrefix = "Layer " + layerLetter + " ";
 
     auto activeColour = accent;
-    auto inactiveColour = juce::Colour::fromRGB(38, 43, 49);
+    auto inactiveColour = juce::Colour::fromRGB(58, 48, 34);
     styleFlatButton(layerAButton, selectedLayer == 0 ? activeColour : inactiveColour);
     styleFlatButton(layerBButton, selectedLayer == 1 ? activeColour : inactiveColour);
 
@@ -2928,8 +3035,8 @@ void SynthAudioProcessorEditor::setPage(Page page)
         modulationOverviewPanel->refresh();
 
     auto styleTab = [](juce::TextButton& tab, bool active) {
-        styleFlatButton(tab, active ? accent.darker(0.18f) : juce::Colour::fromRGB(30, 34, 39),
-                        active ? juce::Colour::fromRGB(12, 14, 16) : mutedText);
+        styleFlatButton(tab, active ? accent.darker(0.18f) : juce::Colour::fromRGB(50, 41, 29),
+                        active ? juce::Colour::fromRGB(28, 21, 12) : mutedText);
     };
     styleTab(soundTab, page == Page::Sound);
     styleTab(modTab, page == Page::Mod);
@@ -2940,17 +3047,33 @@ void SynthAudioProcessorEditor::setPage(Page page)
 
 void SynthAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(background);
+    // Warm brushed-metal console body with a soft vertical gradient.
+    g.setGradientFill(juce::ColourGradient(background.brighter(0.10f), 0.0f, 0.0f,
+                                           background.darker(0.14f), 0.0f, static_cast<float>(getHeight()), false));
+    g.fillRect(getLocalBounds());
+
+    // Darker side rails frame the console like the Sylenth wooden cheeks.
+    constexpr int rail = 9;
+    g.setColour(headerBg.darker(0.25f));
+    g.fillRect(0, 0, rail, getHeight());
+    g.fillRect(getWidth() - rail, 0, rail, getHeight());
+    g.setColour(stroke.withAlpha(0.35f));
+    g.drawVerticalLine(rail, 0.0f, static_cast<float>(getHeight()));
+    g.drawVerticalLine(getWidth() - rail - 1, 0.0f, static_cast<float>(getHeight()));
 
     auto header = getLocalBounds().removeFromTop(headerHeight);
-    g.setColour(headerBg);
+    g.setGradientFill(juce::ColourGradient(headerBg.brighter(0.10f), 0.0f, 0.0f,
+                                           headerBg.darker(0.05f), 0.0f, static_cast<float>(headerHeight), false));
     g.fillRect(header);
 
     auto layerBar = getLocalBounds().withTop(headerHeight).removeFromTop(layerBarHeight);
-    g.setColour(juce::Colour::fromRGB(22, 25, 29));
+    g.setGradientFill(juce::ColourGradient(juce::Colour::fromRGB(48, 40, 28), 0.0f, static_cast<float>(headerHeight),
+                                           juce::Colour::fromRGB(36, 30, 21), 0.0f,
+                                           static_cast<float>(headerHeight + layerBarHeight), false));
     g.fillRect(layerBar);
-    g.setColour(strokeSoft);
+    g.setColour(stroke.withAlpha(0.6f));
     g.drawHorizontalLine(headerHeight, 0.0f, static_cast<float>(getWidth()));
+    g.setColour(strokeSoft);
     g.drawHorizontalLine(headerHeight + layerBarHeight, 0.0f, static_cast<float>(getWidth()));
 
     // Selected-part accent: underline the active Layer button so the chosen part reads at a
@@ -3006,11 +3129,9 @@ void SynthAudioProcessorEditor::layoutHeader(juce::Rectangle<int> area)
             .withY(area.getY() + (area.getHeight() - height) / 2);
     };
 
-    // Right cluster: panic, meter, chips.
+    // Right cluster: panic and readout chips (the output meter now lives in the layer bar).
     panicButton.setBounds(centreInHeight(area.removeFromRight(74), 30));
-    area.removeFromRight(10);
-    meter->setBounds(centreInHeight(area.removeFromRight(170), 26));
-    area.removeFromRight(12);
+    area.removeFromRight(14);
 
     auto costChip = area.removeFromRight(60);
     costCaption.setBounds(costChip.removeFromTop(costChip.getHeight() / 2));
@@ -3079,6 +3200,12 @@ void SynthAudioProcessorEditor::layoutLayerBar(juce::Rectangle<int> area)
     layerStatusPill.setBounds(verticalCentre(area.removeFromLeft(184), 22));
     area.removeFromLeft(8);
 
+    // Output LED meter ladder lives at the far right of the layer bar (Sylenth mixer side),
+    // so it stays visible on every tab.
+    auto meterColumn = area.removeFromRight(18);
+    meter->setBounds(meterColumn.withSizeKeepingCentre(16, area.getHeight()));
+    area.removeFromRight(14);
+
     layerControlsHost.setBounds(area);
     for (int i = 0; i < static_cast<int>(layerControls.size()); ++i)
         layerControls[static_cast<std::size_t>(i)]->setBounds(i * (72 + 6), 0, 72, layerControlsHost.getHeight());
@@ -3130,7 +3257,7 @@ void SynthAudioProcessorEditor::layoutActivePage()
     if (currentPage == Page::Sound)
     {
         if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr
-            || ampEnvPanel == nullptr || modEnvPanel == nullptr
+            || ampEnvPanel == nullptr || modEnvPanel == nullptr || lcdDisplay == nullptr
             || sequencerPanel == nullptr || presetWorkflowPanel == nullptr || presetMetadataPanel == nullptr
             || presetBrowserPanel == nullptr || midiControllerPanel == nullptr)
             return;
@@ -3140,6 +3267,7 @@ void SynthAudioProcessorEditor::layoutActivePage()
         // modules. The preset browser and MIDI utility panels move to the bottom so the
         // core patching surface fills the first screen with minimal scrolling.
         std::vector<std::vector<RowItem>> rows = {
+            { { lcdDisplay.get(), 1.0f } },
             { { slotPanels[0].get(), 0.40f }, { ampEnvPanel.get(), 0.20f }, { slotPanels[1].get(), 0.40f } },
             { { coreOscPanel, 1.0f } },
             { { filterPanel, 0.40f }, { modEnvPanel.get(), 0.20f }, { lfoPanel, 0.40f } },
@@ -3205,6 +3333,7 @@ void SynthAudioProcessorEditor::refreshPresetMenu()
         presetCombo.setTextWhenNothingSelected("Preset browser: no presets scanned");
         if (presetBrowserPanel != nullptr)
             presetBrowserPanel->setItems(presetItems, currentFilePath, currentName);
+        updateLcdPreset();
         return;
     }
 
@@ -3242,6 +3371,35 @@ void SynthAudioProcessorEditor::refreshPresetMenu()
 
     if (presetBrowserPanel != nullptr)
         presetBrowserPanel->setItems(presetItems, currentFilePath, currentName);
+    updateLcdPreset();
+}
+
+void SynthAudioProcessorEditor::updateLcdPreset()
+{
+    if (lcdDisplay == nullptr)
+        return;
+
+    const auto path = audioProcessor.getCurrentPresetFilePath();
+    juce::String detail;
+    if (path.isNotEmpty())
+    {
+        for (const auto& item : presetItems)
+        {
+            if (item.valid && item.file.getFullPathName() == path)
+            {
+                juce::StringArray parts;
+                if (item.sourceLabel.isNotEmpty()) parts.add(item.sourceLabel);
+                if (item.bank.isNotEmpty())        parts.add(item.bank);
+                if (item.category.isNotEmpty())    parts.add(item.category);
+                detail = parts.joinIntoString("   /   ");
+                break;
+            }
+        }
+    }
+    if (detail.isEmpty())
+        detail = "Unsaved session";
+
+    lcdDisplay->setPreset(audioProcessor.getCurrentPresetName(), detail);
 }
 
 void SynthAudioProcessorEditor::loadSelectedPreset()
@@ -3477,6 +3635,9 @@ void SynthAudioProcessorEditor::refreshPresetWorkflow()
 
     if (presetWorkflowPanel != nullptr)
         presetWorkflowPanel->refresh(snapshot);
+
+    if (lcdDisplay != nullptr)
+        lcdDisplay->setDirty(snapshot.dirty);
 }
 
 const SynthAudioProcessor::PresetListItem* SynthAudioProcessorEditor::findCurrentPresetItem()

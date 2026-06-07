@@ -43,6 +43,7 @@ private:
     class ParameterControl;
     class Panel;
     class EnvelopePanel;
+    class LcdDisplay;
     class PresetWorkflowPanel;
     class PresetMetadataPanel;
     class SequencerPanel;
@@ -88,6 +89,7 @@ private:
     void captureCompareSlot(int slotIndex);
     void recallCompareSlot(int slotIndex);
     void refreshPresetWorkflow();
+    void updateLcdPreset();
     const SynthAudioProcessor::PresetListItem* findCurrentPresetItem();
     void syncPresetMetadataPanel();
     void savePresetWithMetadata(synth::PresetWriteMode mode);
@@ -146,6 +148,7 @@ private:
     juce::Component fxPage;
     std::vector<std::unique_ptr<Panel>> soundPanels;
     std::array<std::unique_ptr<Panel>, synth::oscillatorSlotsPerLayer> slotPanels;
+    std::unique_ptr<LcdDisplay> lcdDisplay;
     std::unique_ptr<PresetWorkflowPanel> presetWorkflowPanel;
     std::unique_ptr<PresetMetadataPanel> presetMetadataPanel;
     std::unique_ptr<PresetBrowserPanel> presetBrowserPanel;
