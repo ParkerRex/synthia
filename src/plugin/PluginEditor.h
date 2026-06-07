@@ -36,6 +36,8 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    void mouseDown(const juce::MouseEvent& event) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
 
 private:
     class SynthLookAndFeel;
@@ -98,6 +100,7 @@ private:
     void syncPresetMetadataPanel();
     void savePresetWithMetadata(synth::PresetWriteMode mode);
 
+    void showSliderReadout(const juce::MouseEvent& event);
     void updateStatus(const juce::String& message);
     void updateDiagnostics();
     void timerCallback() override;
