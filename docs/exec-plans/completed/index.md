@@ -48,3 +48,4 @@
 - `2026-06-07-validate-ableton-vst3-preset-modulation-proof.md`
 - `2026-06-07-validate-ableton-preset-load-playback-proof.md`
 - `2026-06-07-validate-ableton-au-preset-playback-proof.md`
+- `2026-06-07-reconcile-rendered-modulation-proof-boundary.md`

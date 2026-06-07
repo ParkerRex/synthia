@@ -12,7 +12,7 @@ Close the remaining AU playback-after-preset-load proof using the hosted AU inst
 - Use `Factory / Arps - Arp Motion 01 [arp, chord]` loaded in the hosted AU.
 - Route a temporary CoreMIDI source into the AU through `All Ins` with Monitor set to `In`.
 - Capture active hosted voice/output evidence.
-- Do not claim host automation, offline-vs-realtime comparison, or rendered modulation-behavior comparison.
+- Do not claim host automation, offline-vs-realtime comparison, or Ableton audio-diff modulation comparison.
 
 ## Validation
 
@@ -32,5 +32,5 @@ Evidence under `build/reports/ableton/`:
 ## Residual Gaps
 
 - AU/VST3 automation record/playback remains open.
-- Rendered modulation-behavior comparison beyond route visibility remains open.
 - Offline bounce versus realtime comparison remains open.
+- Ableton audio-diff modulation comparison remains unclaimed; standalone route-render proof covers rendered route behavior.

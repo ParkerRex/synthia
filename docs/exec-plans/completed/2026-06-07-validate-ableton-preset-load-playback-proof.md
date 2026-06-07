@@ -12,7 +12,7 @@ Narrow the remaining Ableton preset proof gap by validating current hosted prese
 - Use hosted AU on track 1 and hosted VST3 on track 2.
 - Load or reuse `Factory / Arps - Arp Motion 01 [arp, chord]`.
 - Capture hosted editor evidence only; keep screenshots under ignored `build/` paths.
-- Do not claim host automation, offline-vs-realtime comparison, or rendered modulation-behavior comparison.
+- Do not claim host automation, offline-vs-realtime comparison, or Ableton audio-diff modulation comparison.
 
 ## Validation
 
@@ -39,5 +39,5 @@ Evidence under `build/reports/ableton/`:
 
 - AU playback after preset load was later closed by `2026-06-07-validate-ableton-au-preset-playback-proof.md`.
 - AU/VST3 automation record/playback remains open.
-- Rendered modulation-behavior comparison beyond route visibility remains open.
 - Offline bounce versus realtime comparison remains open.
+- Ableton audio-diff modulation comparison remains unclaimed; standalone route-render proof covers rendered route behavior.
