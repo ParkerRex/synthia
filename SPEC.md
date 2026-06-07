@@ -874,8 +874,8 @@ Required views:
 
 UI rules:
 
-- The UI SHOULD recreate Sylenth's recognizable layout, dense rack structure, panel contrast, knob treatment, top strip, part workflow, and preset interaction as faithfully as possible from the approved manual and screenshot corpus, using original native controls and source-use-safe assets.
-- The UI MUST NOT copy unrelated non-Sylenth third-party trade dress such as the white SH-101-like historical plugin look, Roland SH-101 panel, or FXpansion Strobe UI.
+- The UI SHOULD use the approved manual and screenshot corpus to recreate Sylenth's workflow, density, functional hierarchy, panel rhythm, control relationships, and preset interaction as faithfully as possible with the current real model-backed controls.
+- The UI MUST use original native controls and source-use-safe assets. It MUST NOT copy protected third-party trade dress, logos, raster assets, screenshot backplates, product marks, or other source material unless explicit legal approval exists; unrelated references such as the white SH-101-like historical plugin look, Roland SH-101 panel, and FXpansion Strobe UI are also out of scope.
 - Controls SHOULD use compact Sylenth-style production language: knobs/sliders for continuous values, menus for modes, toggles for binary options, tabs or panel selectors for views, and clear modulation badges.
 - Text MUST remain readable at all supported scales.
 - Every control MUST have a host parameter or documented local-only state.
