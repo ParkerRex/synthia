@@ -11,7 +11,7 @@ Active Claude handoff slice: `2026-06-06-handoff-sylenth-visual-information-arch
 
 UI handoff rule: the modern shell handoff is completed, and the roadmap truth audit says A/B layer plus four-slot rendering is real enough for a broad visual information architecture pass. Preset browser, invalid-preset browser error rows, preset workflow controls, metadata-aware safe-save controls, arp/step/chord, FX rack, patch cost, modulation inspection, and single-slot modulation route writing have model-backed surfaces; the main visible surfaces have screenshot evidence, while invalid-row bottom-browser proof remains manual until JUCE viewport automation is reliable. Per-route bypass/remove, richer bank management, and expanded modulation destinations still need later schema/workflow work.
 
-Product-order Codex slice: complete the remaining Ableton Phase 1 host matrix against AU/VST3 with automation record/playback and bounce-versus-realtime comparison. Rendered route behavior is already covered by standalone modulation-route render proof; Ableton currently covers route visibility/playback, not audio-diff modulation capture.
+Product-order Codex slice: complete the remaining Ableton Phase 1 host matrix with bounce-versus-realtime comparison. AU/VST3 automation record/playback is now covered by Ableton proof; rendered route behavior is already covered by standalone modulation-route render proof. Ableton currently covers route visibility/playback, not audio-diff modulation capture.
 
 Completed child plans:
 
@@ -48,6 +48,7 @@ Completed child plans:
 - `../completed/2026-06-07-reconcile-rendered-modulation-proof-boundary.md`
 - `../completed/2026-06-07-build-automation-parameter-exposure-contract.md`
 - `../completed/2026-06-07-build-offline-realtime-render-compare.md`
+- `../completed/2026-06-07-validate-ableton-automation-record-playback.md`
 - `../completed/2026-06-06-validate-ableton-au-transport-smoke.md`
 - `../completed/2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`
 - `../completed/2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md`

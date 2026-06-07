@@ -75,7 +75,7 @@ The current DSP validation proves:
 - modulation route model catalogs and derived route rows are covered by `SylenthAIContractTest`, including source/scaler IDs, destination IDs, active route filtering, and legacy `transmod.N.depth` cutoff contribution.
 - `SylenthAIRender --modulation-route-render-test` compiles a route write through `ModulationRouteModel`, applies it to `transmod.3.*`, proves the rendered audio changes, then applies a clear-slot edit and proves the render returns to baseline within deterministic tolerances.
 - preset browser metadata validation, saved user preset browser metadata, factory/user/legacy source summaries, sidecar favorite add/remove behavior, search/category/tag/favorite filtering, and browser catalog facets are covered by `SylenthAIContractTest`.
-- APVTS automation-readiness is covered by `SylenthAIContractTest`: every registry parameter must be exposed by APVTS, remain host-automatable when marked automatable, match its declared float/bool/choice type, and accept host-notifying default writes. Ableton automation record/playback remains a separate host proof.
+- APVTS automation-readiness is covered by `SylenthAIContractTest`: every registry parameter must be exposed by APVTS, remain host-automatable when marked automatable, match its declared float/bool/choice type, and accept host-notifying default writes. Ableton AU/VST3 automation record/playback is covered by the 2026-06-07 host proof in `docs/host-validation/ableton-smoke.md`.
 - MIDI controller-map persistence is covered by `SylenthAIContractTest`; remaining host proof must show learned CCs updating APVTS parameters in AU and VST3.
 - FX bypass stays null-equivalent to dry rendering when globally bypassed, disabled expanded-rack modules are dry-equivalent, phaser/EQ/compressor/distortion-mode processing is finite and measurably audible when enabled, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active time-based FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
 - `SylenthAIRender --offline-realtime-compare-test` renders `FX Space 01` in realtime Normal quality and offline High quality, verifies both renders are finite and non-clipping, and records a bounded meaningful audio difference caused by the quality-mode switch. Ableton bounce-versus-realtime remains a separate host proof.
@@ -158,6 +158,8 @@ Required Ableton checks:
 - transport stop and all-notes-off,
 - UI open/close while playing.
 - MIDI Learn and Forget from the global controller panel, plus mapped CC playback against at least one continuous and one stepped parameter.
+
+Current Ableton proof includes AU/VST3 `Layer A Level` automation record/playback. Ableton offline bounce versus realtime render remains open.
 
 Recommended additional hosts:
 

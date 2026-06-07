@@ -94,8 +94,9 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-07 EDT: Executed preset load/playback proof: loaded `Arp Motion 01` in the hosted AU editor, launched the hosted VST3 validation clip after the same preset load, verified active VST3 voices/output/MIDI count, and captured VST3 route visibility during playback.
 - [x] 2026-06-07 EDT: Executed AU preset playback proof: routed a temporary CoreMIDI source into the hosted AU after `Arp Motion 01` load and verified active voices, output level, MIDI count, and Live meters.
 - [x] 2026-06-07 EDT: Reconciled rendered modulation proof scope: standalone `SylenthAIRender --modulation-route-render-test` covers route write/render/clear behavior, while Ableton proof covers route visibility plus playback and does not claim audio-diff modulation capture.
-- [x] 2026-06-07 EDT: Added APVTS automation exposure contract coverage for every registry parameter, including host-automatable status, parameter type matching, and host-notifying default writes; Ableton automation record/playback remains open.
+- [x] 2026-06-07 EDT: Added APVTS automation exposure contract coverage for every registry parameter, including host-automatable status, parameter type matching, and host-notifying default writes.
 - [x] 2026-06-07 EDT: Added standalone offline/realtime quality comparison with `SylenthAIRender --offline-realtime-compare-test`; Ableton bounce-versus-realtime comparison remains open.
+- [x] 2026-06-07 EDT: Executed AU/VST3 automation record/playback proof: recorded `Layer A Level` envelopes in Ableton on hosted AU and VST3 tracks, parsed the copied Live set XML, and proved playback value movement for both formats.
 - [x] 2026-06-06 EDT: Executed Phase 1 patch recreation suite with five additional lab-authored Factory presets, renderer support for preset-loaded arp/chord state, standalone WAV/JSON proof, and CTest coverage.
 - [x] 2026-06-06 EDT: Executed modulation write adapter slice with route-write compilation to existing `transmod.N.*` APVTS fields, processor write/clear APIs, and contract tests for writes, invalid inputs, clamping, and slot clearing.
 - [x] 2026-06-06 EDT: Executed patch cost and voice math model slice with a shared estimator, processor diagnostic exposure, header active/max voice display, and contract tests for default, high-cost, zero-level, solo/mute, mono/unison/poly, filter, and FX cases.
@@ -166,6 +167,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-07-validate-ableton-vst3-preset-modulation-proof.md`
 - `docs/exec-plans/completed/2026-06-07-validate-ableton-preset-load-playback-proof.md`
 - `docs/exec-plans/completed/2026-06-07-validate-ableton-au-preset-playback-proof.md`
+- `docs/exec-plans/completed/2026-06-07-validate-ableton-automation-record-playback.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
@@ -175,7 +177,7 @@ Product-order next Codex slice: complete the remaining Phase 1 Ableton host matr
 
 Preset browser, visible invalid-preset browser errors, arp/step/chord, FX rack, modulation inspection/write adapter with audio render proof, model-backed patch cost, backend preset commands, preset workflow state model plus visible dirty/init/randomize/reset/A-B and metadata-aware safe-save controls, layer/slot rendering, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; per-route bypass/remove, per-control MIDI context menus, expanded modulation destinations, and per-layer filter/envelope/master parity remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 automation record/playback and Ableton bounce-versus-realtime comparison. Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, AU/VST3 all-notes-off/all-sound-off/hosted Panic proof, AU seeded controller value proof, AU in-editor MIDI Learn proof, AU global-panel MIDI Forget proof, AU/VST3 sample-rate/buffer proof, hosted AU/VST3 preset editor-state proof, hosted AU/VST3 playback after preset load, standalone modulation route render proof, standalone offline/realtime quality comparison, and standalone patch recreation are already recorded. Ableton audio-diff modulation capture remains unclaimed and is not part of the remaining required matrix unless release criteria change.
+The remaining non-UI product proof is Ableton bounce-versus-realtime comparison. Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, AU/VST3 all-notes-off/all-sound-off/hosted Panic proof, AU seeded controller value proof, AU in-editor MIDI Learn proof, AU global-panel MIDI Forget proof, AU/VST3 sample-rate/buffer proof, hosted AU/VST3 preset editor-state proof, hosted AU/VST3 playback after preset load, AU/VST3 automation record/playback, standalone modulation route render proof, standalone offline/realtime quality comparison, and standalone patch recreation are already recorded. Ableton audio-diff modulation capture remains unclaimed and is not part of the remaining required matrix unless release criteria change.
 
 ## Risks and Watchpoints
 
@@ -195,7 +197,7 @@ Pending implementation.
 Program-level acceptance requires:
 
 - Phase 1 A/B layers, four oscillator slots, arp/step workflow, FX rack, preset browser, MIDI/controller workflow, UI shell, and modulation UX are implemented and validated.
-- AU and VST3 load in Ableton, automate, save/reopen, restore state, prove learned controller mapping for both formats, exercise current presets/modulation, export offline bounce artifacts, compare offline bounce against realtime render, handle sample-rate/buffer-size changes, pass all-notes-off/panic checks, and survive hosted UI close/reopen while playing with the Phase 1 build. Current proof has already covered AU/VST3 load, restore, controller mapping, hosted UI lifecycle, VST3 offline bounce artifact creation, AU/VST3 all-notes-off/all-sound-off/hosted Panic, AU/VST3 sample-rate/buffer changes, hosted AU/VST3 preset editor-state inspection, and hosted AU/VST3 playback after preset load.
+- AU and VST3 load in Ableton, automate, save/reopen, restore state, prove learned controller mapping for both formats, exercise current presets/modulation, export offline bounce artifacts, compare offline bounce against realtime render, handle sample-rate/buffer-size changes, pass all-notes-off/panic checks, and survive hosted UI close/reopen while playing with the Phase 1 build. Current proof has already covered AU/VST3 load, restore, automation, controller mapping, hosted UI lifecycle, VST3 offline bounce artifact creation, AU/VST3 all-notes-off/all-sound-off/hosted Panic, AU/VST3 sample-rate/buffer changes, hosted AU/VST3 preset editor-state inspection, and hosted AU/VST3 playback after preset load.
 - Claude Code UI handoff plans are completed or explicitly closed with screenshots/manual QA notes.
 - Phase 2 AI generation can create finite, valid, editable preset/arp/modulation state.
 - Phase 3 conversational/reference workflows can produce reversible edits with clear reports.
