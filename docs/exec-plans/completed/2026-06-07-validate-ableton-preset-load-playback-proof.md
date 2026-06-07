@@ -37,7 +37,7 @@ Evidence under `build/reports/ableton/`:
 
 ## Residual Gaps
 
-- AU playback after preset load remains open.
+- AU playback after preset load was later closed by `2026-06-07-validate-ableton-au-preset-playback-proof.md`.
 - AU/VST3 automation record/playback remains open.
 - Rendered modulation-behavior comparison beyond route visibility remains open.
 - Offline bounce versus realtime comparison remains open.
