@@ -50,6 +50,59 @@ bool parameterValueMatches(const juce::AudioProcessorValueTreeState& parameters,
 
 bool setPhysicalParameter(juce::AudioProcessorValueTreeState& parameters, const char* id, float value);
 
+bool checkAutomationParameterExposure()
+{
+    StateRoundTripProcessor processor;
+    auto exposedCount = 0;
+    auto automatableCount = 0;
+
+    for (const auto& spec : synth::getParameterSpecs())
+    {
+        auto* parameter = processor.parameters.getParameter(spec.id);
+        if (parameter == nullptr)
+        {
+            std::cerr << "APVTS omitted registry parameter: " << spec.id << "\n";
+            return false;
+        }
+
+        ++exposedCount;
+        if (spec.automatable)
+        {
+            ++automatableCount;
+            if (!parameter->isAutomatable())
+            {
+                std::cerr << "Parameter is not host-automatable: " << spec.id << "\n";
+                return false;
+            }
+        }
+
+        if ((spec.kind == synth::ParameterKind::Float && dynamic_cast<juce::AudioParameterFloat*>(parameter) == nullptr)
+            || (spec.kind == synth::ParameterKind::Bool && dynamic_cast<juce::AudioParameterBool*>(parameter) == nullptr)
+            || (spec.kind == synth::ParameterKind::Choice && dynamic_cast<juce::AudioParameterChoice*>(parameter) == nullptr))
+        {
+            std::cerr << "APVTS parameter type mismatch: " << spec.id << "\n";
+            return false;
+        }
+
+        if (!setPhysicalParameter(processor.parameters, spec.id.c_str(), spec.defaultValue)
+            || !parameterValueMatches(processor.parameters, spec.id.c_str(),
+                                      synth::clampPhysicalParameterValue(spec, spec.defaultValue), 0.001f))
+        {
+            std::cerr << "Host-notifying default write failed for parameter: " << spec.id << "\n";
+            return false;
+        }
+    }
+
+    if (exposedCount != static_cast<int>(synth::getParameterSpecs().size()) || automatableCount < 200)
+    {
+        std::cerr << "Unexpected automation exposure count: exposed " << exposedCount
+                  << ", automatable " << automatableCount << "\n";
+        return false;
+    }
+
+    return true;
+}
+
 bool checkStateRoundTrip()
 {
     StateRoundTripProcessor source;
@@ -1249,6 +1302,9 @@ int main()
         std::cerr << "APVTS state round-trip failed.\n";
         return 1;
     }
+
+    if (!checkAutomationParameterExposure())
+        return 1;
 
     if (!checkModulationRouteModel())
         return 1;

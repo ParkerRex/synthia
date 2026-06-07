@@ -46,6 +46,7 @@ Completed child plans:
 - `../completed/2026-06-07-validate-ableton-preset-load-playback-proof.md`
 - `../completed/2026-06-07-validate-ableton-au-preset-playback-proof.md`
 - `../completed/2026-06-07-reconcile-rendered-modulation-proof-boundary.md`
+- `../completed/2026-06-07-build-automation-parameter-exposure-contract.md`
 - `../completed/2026-06-06-validate-ableton-au-transport-smoke.md`
 - `../completed/2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`
 - `../completed/2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md`
