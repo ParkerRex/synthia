@@ -55,7 +55,8 @@ The goal is not to add backend features. The goal is to make the current real fe
 - [x] 2026-06-07 EDT: Validated this pass: `git diff --check` clean, Debug build clean, CTest 9/9, `SylenthAIRender --suite core` 14 reports, plus an adversarial multi-agent review of the diff; captured `sylenth-onescreen-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`. Committed `e12d2be`.
 - [x] 2026-06-07 EDT: Sylenth skin fidelity pass (maintainer feedback that it still did not look like Sylenth): native-JUCE knob/faceplate/caption/top-strip/palette rework toward the hardware faceplate (dark pointer knobs without the amber arc, tightly-packed squared raised plates, engraved captions, dark charcoal top strip). Re-validated and screenshots refreshed.
 - [x] 2026-06-07 EDT: Per-module oscillator faithfulness (maintainer direction to get it as close as possible): bespoke `OscillatorPanel` with Sylenth's PITCH sub-box + knob row + INV/WAVE/VOICES/RETRIG row, all real `layer.N.osc.M.*` bindings (13/13 verified). Knobs capped to hardware size; top row tightened. CTest 9/9, `SylenthAIRender --suite core` 14 reports; screenshots refreshed.
-- [ ] Parker/Claude review of remaining visual fidelity gaps (next levers: bespoke FILTER/MOD ENV/LFO module layouts, L/R meter ladder, wood backplate).
+- [x] 2026-06-07 EDT: Bespoke `FilterPanel` (continuing "make the UI better"): Sylenth FILTER module — a TYPE selector over a CUTOFF/RESONANCE/DRIVE/KEYTRACK knob row with a QUALITY (oversampling) selector and a caption enable LED — binding the same real `filter.*` parameters. CTest 9/9, `SylenthAIRender --suite core` 14 reports; screenshots refreshed.
+- [ ] Parker/Claude review of remaining visual fidelity gaps (next levers: touched-parameter LCD readout, bespoke MOD ENV/LFO module layouts, L/R meter ladder, wood backplate).
 
 ## Surprises & Discoveries
 

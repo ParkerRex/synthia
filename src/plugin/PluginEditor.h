@@ -43,6 +43,7 @@ private:
     class ParameterControl;
     class Panel;
     class OscillatorPanel;
+    class FilterPanel;
     class EnvelopePanel;
     class LcdDisplay;
     class MixerPanel;
@@ -167,7 +168,7 @@ private:
     // Named handles into the panel stores so page layout reads clearly.
     Panel* voicePanel = nullptr;
     Panel* coreOscPanel = nullptr;
-    Panel* filterPanel = nullptr;
+    std::unique_ptr<FilterPanel> filterPanel;
     std::unique_ptr<EnvelopePanel> ampEnvPanel;
     std::unique_ptr<EnvelopePanel> modEnvPanel;
     Panel* lfoPanel = nullptr;

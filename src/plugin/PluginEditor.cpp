@@ -1188,6 +1188,145 @@ private:
 };
 
 // ============================================================================
+// FilterPanel: the Sylenth FILTER module — a TYPE selector over a CUTOFF /
+// RESONANCE / DRIVE / KEYTRACK knob row with a quality (oversampling) selector.
+// Bound to the real filter.* parameters; the enable LED rides the caption.
+// ============================================================================
+class SynthAudioProcessorEditor::FilterPanel final : public LayoutSection
+{
+public:
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    using ComboBoxAttachment = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
+    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
+
+    explicit FilterPanel(juce::AudioProcessorValueTreeState& state)
+    {
+        enabledParam = state.getRawParameterValue("filter.enabled");
+        if (enabledParam != nullptr)
+        {
+            lastEnabled = isModuleEnabled();
+            enableToggle.setClickingTogglesState(true);
+            buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, "filter.enabled", enableToggle));
+            addAndMakeVisible(enableToggle);
+        }
+        setupCombo(typeBox,    state, "filter.mode");
+        setupCombo(qualityBox, state, "filter.oversampling");
+        setupKnob(cutoff,    state, "filter.cutoff_semitones");
+        setupKnob(resonance, state, "filter.resonance");
+        setupKnob(drive,     state, "filter.drive");
+        setupKnob(keytrack,  state, "filter.keytrack");
+    }
+
+    int preferredHeight(int) const override { return 158; }
+
+    bool hasEnabledState() const noexcept { return enabledParam != nullptr; }
+    bool isModuleEnabled() const noexcept { return enabledParam == nullptr || enabledParam->load() >= 0.5f; }
+    void syncEnabledState()
+    {
+        if (enabledParam == nullptr)
+            return;
+        const auto on = isModuleEnabled();
+        if (on != lastEnabled) { lastEnabled = on; repaint(); }
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        const auto on = isModuleEnabled();
+        paintPanelBody(g, getLocalBounds().toFloat().reduced(0.5f));
+        auto header = getLocalBounds().removeFromTop(captionH);
+        paintCaptionBar(g, header, on);
+        g.setColour(on ? text : mutedText);
+        g.setFont(uiFont(12.0f, true));
+        g.drawText("FILTER", header.reduced(16, 0), juce::Justification::centred, true);
+
+        g.setColour(mutedText);
+        g.setFont(uiFont(9.5f, true));
+        for (const auto& l : labels)
+            g.drawText(l.second, l.first, juce::Justification::centred, false);
+    }
+
+    void resized() override
+    {
+        labels.clear();
+        auto area = getLocalBounds();
+        auto header = area.removeFromTop(captionH);
+        if (enabledParam != nullptr)
+            enableToggle.setBounds(header.removeFromRight(36).withSizeKeepingCentre(24, 15));
+
+        area = area.reduced(10, 0);
+        area.removeFromTop(6);
+        area.removeFromBottom(8);
+
+        // TYPE selector across the top.
+        {
+            auto row = area.removeFromTop(30);
+            labels.push_back({ row.removeFromLeft(42), "TYPE" });
+            typeBox.setBounds(row.reduced(2, 2));
+        }
+        area.removeFromTop(4);
+
+        // Quality (oversampling) selector across the bottom.
+        {
+            auto row = area.removeFromBottom(28);
+            labels.push_back({ row.removeFromLeft(58), "QUALITY" });
+            qualityBox.setBounds(row.reduced(2, 1));
+        }
+
+        // CUTOFF / RESONANCE / DRIVE / KEYTRACK knob row fills the middle.
+        auto knobRow = area;
+        const auto kw = knobRow.getWidth() / 4;
+        auto placeKnob = [&](juce::Slider& s, const juce::String& name, bool last) {
+            auto c = last ? knobRow : knobRow.removeFromLeft(kw);
+            labels.push_back({ c.removeFromBottom(12), name });
+            const auto d = juce::jmin(50, juce::jmin(c.getWidth() - 6, c.getHeight()));
+            s.setBounds(c.withSizeKeepingCentre(d, d));
+        };
+        placeKnob(cutoff,    "CUTOFF",   false);
+        placeKnob(resonance, "RESO",     false);
+        placeKnob(drive,     "DRIVE",    false);
+        placeKnob(keytrack,  "KEYTRACK", true);
+    }
+
+private:
+    void setupKnob(juce::Slider& s, juce::AudioProcessorValueTreeState& state, const std::string& id)
+    {
+        if (synth::findParameterSpec(id) == nullptr)
+            return;
+        s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+        s.setRotaryParameters(rotaryStart, rotaryEnd, true);
+        s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, id, s));
+        addAndMakeVisible(s);
+    }
+
+    void setupCombo(juce::ComboBox& c, juce::AudioProcessorValueTreeState& state, const std::string& id)
+    {
+        const auto* spec = synth::findParameterSpec(id);
+        if (spec == nullptr)
+            return;
+        for (int i = 0; i < static_cast<int>(spec->choices.size()); ++i)
+            c.addItem(juce::String(spec->choices[static_cast<std::size_t>(i)]), i + 1);
+        comboAttachments.push_back(std::make_unique<ComboBoxAttachment>(state, id, c));
+        addAndMakeVisible(c);
+    }
+
+    static constexpr int captionH = 26;
+
+    std::atomic<float>* enabledParam = nullptr;
+    bool lastEnabled = true;
+
+    juce::Slider cutoff, resonance, drive, keytrack;
+    juce::ComboBox typeBox, qualityBox;
+    juce::ToggleButton enableToggle;
+
+    std::vector<std::unique_ptr<SliderAttachment>> sliderAttachments;
+    std::vector<std::unique_ptr<ComboBoxAttachment>> comboAttachments;
+    std::vector<std::unique_ptr<ButtonAttachment>> buttonAttachments;
+
+    std::vector<std::pair<juce::Rectangle<int>, juce::String>> labels;
+};
+
+// ============================================================================
 // EnvelopePanel: ADSR as vertical faders with a derived contour preview.
 //
 // This is a Sylenth-style envelope module: the four real APVTS parameters
@@ -3255,10 +3394,10 @@ void SynthAudioProcessorEditor::buildPages()
         "osc.sync_amount", "osc.phase_reset"
     }, "LIVE", zoneSource);
 
-    filterPanel = addPanel(soundPage, soundPanels, "Filter", {
-        "filter.enabled", "filter.mode", "filter.cutoff_semitones", "filter.resonance",
-        "filter.drive", "filter.keytrack", "filter.oversampling"
-    }, {}, zoneShape);
+    // Bespoke Sylenth FILTER module (TYPE selector + cutoff/reso/drive/keytrack knobs +
+    // quality), binding the same real filter.* parameters as before.
+    filterPanel = std::make_unique<FilterPanel>(audioProcessor.getValueTreeState());
+    soundPage.addAndMakeVisible(*filterPanel);
 
     // Amp/Mod envelopes render as Sylenth-style vertical ADSR faders with a derived
     // contour. Same APVTS parameters as before, presented as a hardware envelope module.
@@ -3653,7 +3792,7 @@ void SynthAudioProcessorEditor::layoutActivePage()
     {
         if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr
             || ampEnvPanel == nullptr || modEnvPanel == nullptr || lcdDisplay == nullptr
-            || mixerPanel == nullptr || sequencerPanel == nullptr)
+            || mixerPanel == nullptr || sequencerPanel == nullptr || filterPanel == nullptr)
             return;
         // The Sound page is the synthesis engine, mirroring the Sylenth main panel:
         // oscillators around the amp envelope on top, the signature Filter | centre LCD |
@@ -3662,7 +3801,7 @@ void SynthAudioProcessorEditor::layoutActivePage()
         // now lives on the Browser page, so this page stays close to one screen.
         std::vector<std::vector<RowItem>> rows = {
             { { slotPanels[0].get(), 0.40f }, { ampEnvPanel.get(), 0.20f }, { slotPanels[1].get(), 0.40f } },
-            { { filterPanel, 0.30f }, { lcdDisplay.get(), 0.40f }, { mixerPanel.get(), 0.30f } },
+            { { filterPanel.get(), 0.30f }, { lcdDisplay.get(), 0.40f }, { mixerPanel.get(), 0.30f } },
             { { modEnvPanel.get(), 0.24f }, { lfoPanel, 0.30f }, { voicePanel, 0.22f }, { ampPanel, 0.24f } },
             { { coreOscPanel, 1.0f } },
             { { rampPanel, 0.5f }, { macroPanel, 0.5f } },
@@ -4209,5 +4348,7 @@ void SynthAudioProcessorEditor::timerCallback()
         for (auto& panel : slotPanels)
             if (panel != nullptr)
                 panel->syncEnabledState();
+        if (filterPanel != nullptr)
+            filterPanel->syncEnabledState();
     }
 }
