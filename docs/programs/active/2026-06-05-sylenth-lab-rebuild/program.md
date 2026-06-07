@@ -110,6 +110,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed preset safe-save metadata UI slice with Display Name, Author, Bank, Category, Tags, Notes, explicit Save New no-clobber mode, explicit Overwrite mode, and normal/compact standalone screenshot proof.
 - [x] Model-ready UI handoff and first local polish passes exist for preset browser, arp/step/chord, FX rack, and read-only modulation inspection.
 - [x] 2026-06-06 EDT: Created a Claude Code visual information architecture handoff to make the model-backed shell look materially closer to the Sylenth screenshot corpus without adding fake controls.
+- [x] 2026-06-07 EDT: Merged PR #46 with the warm bronze Sylenth visual pass plus authorized visual-parity docs, then revalidated merged `master` with `git diff --check`, Debug build, CTest 9/9, and `SylenthAIRender --suite core` (14 reports).
 - [ ] Complete or explicitly close deeper UI visual/control polish follow-ups.
 - [x] Complete a stronger Ableton offline/realtime comparison that can reject mismatched audio.
 - [ ] Execute Phase 2 AI sound and arpeggio generation.
@@ -177,9 +178,9 @@ Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
 ## Next Slice
 
-Product-order next Codex slice: no non-UI Phase 1 Ableton host-matrix item remains open. Stop for Claude Code UI visual/control polish unless release criteria add stricter waveform-null proof.
+Product-order next Codex slice: no non-UI Phase 1 Ableton host-matrix item remains open. Continue bounded Claude Code UI visual/control polish unless release criteria add stricter waveform-null proof.
 
-Preset browser, visible invalid-preset browser errors, arp/step/chord, FX rack, modulation inspection/write adapter with audio render proof, model-backed patch cost, backend preset commands, preset workflow state model plus visible dirty/init/randomize/reset/A-B and metadata-aware safe-save controls, layer/slot rendering, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; per-route bypass/remove, per-control MIDI context menus, expanded modulation destinations, and per-layer filter/envelope/master parity remain later slices.
+Preset browser, visible invalid-preset browser errors, arp/step/chord, FX rack, modulation inspection/write adapter with audio render proof, model-backed patch cost, backend preset commands, preset workflow state model plus visible dirty/init/randomize/reset/A-B and metadata-aware safe-save controls, layer/slot rendering, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces. The bronze pass moved the app toward Sylenth's warm visual language, but top-strip/LCD fidelity, one-screen Sound-page density, browser/preset integration, and modulation/effects screenshot rhythm remain open; per-route bypass/remove, per-control MIDI context menus, expanded modulation destinations, and per-layer filter/envelope/master parity remain later slices.
 
 Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, AU/VST3 all-notes-off/all-sound-off/hosted Panic proof, AU seeded controller value proof, AU in-editor MIDI Learn proof, AU global-panel MIDI Forget proof, AU/VST3 sample-rate/buffer proof, hosted AU/VST3 preset editor-state proof, hosted AU/VST3 playback after preset load, AU/VST3 automation record/playback, Ableton offline/realtime content comparison with negative controls, standalone modulation route render proof, standalone offline/realtime quality comparison, and standalone patch recreation are already recorded. Ableton audio-diff modulation capture and strict offline/realtime waveform-null proof remain unclaimed unless release criteria change.
 

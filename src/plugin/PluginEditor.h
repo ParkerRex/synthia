@@ -44,6 +44,7 @@ private:
     class Panel;
     class EnvelopePanel;
     class LcdDisplay;
+    class MixerPanel;
     class PresetWorkflowPanel;
     class PresetMetadataPanel;
     class SequencerPanel;
@@ -56,7 +57,8 @@ private:
     {
         Sound,
         Mod,
-        Fx
+        Fx,
+        Browser
     };
 
     struct RowItem
@@ -142,13 +144,16 @@ private:
     juce::TextButton soundTab { "Sound" };
     juce::TextButton modTab { "Modulation" };
     juce::TextButton fxTab { "Effects" };
+    juce::TextButton browserTab { "Browser" };
     juce::Viewport pageViewport;
     juce::Component soundPage;
     juce::Component modPage;
     juce::Component fxPage;
+    juce::Component browserPage;
     std::vector<std::unique_ptr<Panel>> soundPanels;
     std::array<std::unique_ptr<Panel>, synth::oscillatorSlotsPerLayer> slotPanels;
     std::unique_ptr<LcdDisplay> lcdDisplay;
+    std::unique_ptr<MixerPanel> mixerPanel;
     std::unique_ptr<PresetWorkflowPanel> presetWorkflowPanel;
     std::unique_ptr<PresetMetadataPanel> presetMetadataPanel;
     std::unique_ptr<PresetBrowserPanel> presetBrowserPanel;

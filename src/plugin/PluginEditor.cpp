@@ -9,31 +9,31 @@
 
 namespace
 {
-// ---- Palette (warm bronze, modeled on the Sylenth1 hardware skin) -----------
+// ---- Palette (warm tan brushed metal, modeled on the Sylenth1 hardware skin) ----
 // Names are kept stable so the whole editor re-skins by repointing these values.
-const auto background   = juce::Colour::fromRGB(46, 38, 27);   // warm dark brown body
-const auto headerBg     = juce::Colour::fromRGB(33, 27, 18);   // darker brown top/footer rail
-const auto panelBg      = juce::Colour::fromRGB(84, 71, 52);   // brushed tan-brown metal
-const auto panelHeader  = juce::Colour::fromRGB(62, 52, 37);   // module caption bar
-const auto fieldBg      = juce::Colour::fromRGB(30, 23, 15);   // recessed readout / field
-const auto stroke       = juce::Colour::fromRGB(124, 104, 72); // brass bevel highlight
-const auto strokeSoft   = juce::Colour::fromRGB(74, 61, 43);   // soft brown edge / shadow
-const auto text         = juce::Colour::fromRGB(237, 227, 205); // cream label text
-const auto mutedText    = juce::Colour::fromRGB(181, 165, 135); // tan secondary text
-const auto accent       = juce::Colour::fromRGB(222, 166, 66);  // amber (value arcs / selection)
-const auto live         = juce::Colour::fromRGB(146, 194, 79);  // green LED (on / meter low)
-const auto staged       = juce::Colour::fromRGB(224, 146, 60);  // amber-orange (edited / meter mid)
-const auto warn         = juce::Colour::fromRGB(208, 90, 62);   // red (clip / danger)
-const auto info         = juce::Colour::fromRGB(110, 150, 196); // steel blue accents
-const auto knobFill     = juce::Colour::fromRGB(40, 36, 30);    // dark charcoal knob cap
-const auto knobStroke   = juce::Colour::fromRGB(156, 140, 110); // chrome / brass knob rim
+const auto background   = juce::Colour::fromRGB(66, 55, 40);    // warm brushed-brown body
+const auto headerBg     = juce::Colour::fromRGB(50, 42, 30);    // darker rail (top/footer)
+const auto panelBg      = juce::Colour::fromRGB(118, 102, 77);  // light tan brushed metal
+const auto panelHeader  = juce::Colour::fromRGB(86, 73, 53);    // module caption bar
+const auto fieldBg      = juce::Colour::fromRGB(32, 25, 16);    // recessed readout / field
+const auto stroke       = juce::Colour::fromRGB(160, 138, 102); // bright brass bevel highlight
+const auto strokeSoft   = juce::Colour::fromRGB(92, 77, 56);    // soft brown edge / shadow
+const auto text         = juce::Colour::fromRGB(245, 237, 217); // cream label text
+const auto mutedText    = juce::Colour::fromRGB(202, 186, 154); // tan secondary text
+const auto accent       = juce::Colour::fromRGB(230, 176, 74);  // amber (value arcs / selection)
+const auto live         = juce::Colour::fromRGB(150, 198, 84);  // green LED (on / meter low)
+const auto staged       = juce::Colour::fromRGB(228, 150, 62);  // amber-orange (edited / meter mid)
+const auto warn         = juce::Colour::fromRGB(212, 92, 64);   // red (clip / danger)
+const auto info         = juce::Colour::fromRGB(112, 152, 198); // steel blue accents
+const auto knobFill     = juce::Colour::fromRGB(44, 40, 34);    // dark charcoal knob cap
+const auto knobStroke   = juce::Colour::fromRGB(180, 162, 128); // chrome / brass knob rim
 
 // Glossy blue LCD screen, as used for the Sylenth preset/arp display and recessed readouts.
-const auto lcdBg        = juce::Colour::fromRGB(22, 48, 64);
-const auto lcdBgEdge    = juce::Colour::fromRGB(11, 27, 38);
-const auto lcdText      = juce::Colour::fromRGB(140, 216, 230);
-const auto lcdDim       = juce::Colour::fromRGB(86, 150, 172);
-const auto lcdStroke    = juce::Colour::fromRGB(52, 104, 130);
+const auto lcdBg        = juce::Colour::fromRGB(26, 62, 84);
+const auto lcdBgEdge    = juce::Colour::fromRGB(12, 34, 50);
+const auto lcdText      = juce::Colour::fromRGB(152, 224, 236);
+const auto lcdDim       = juce::Colour::fromRGB(98, 168, 190);
+const auto lcdStroke    = juce::Colour::fromRGB(60, 122, 150);
 
 // Functional zone hues drive each module's header identity tick so the grid reads as a
 // rack of grouped modules rather than a uniform form. Restrained on purpose: source,
@@ -48,14 +48,22 @@ constexpr float rotaryStart = juce::MathConstants<float>::pi * 1.25f;
 constexpr float rotaryEnd   = juce::MathConstants<float>::pi * 2.75f;
 
 // Fixed shell chrome heights (editor body math reads these by name).
-constexpr int headerHeight   = 66;
-constexpr int layerBarHeight  = 86;
-constexpr int tabBarHeight    = 40;
+constexpr int headerHeight   = 60;
+constexpr int layerBarHeight  = 80;
+constexpr int tabBarHeight    = 36;
 constexpr int footerHeight    = 26;
 
 juce::Font uiFont(float size = 13.0f, bool bold = false)
 {
     return juce::Font(juce::FontOptions(size, bold ? juce::Font::bold : juce::Font::plain));
+}
+
+// Monospaced face for LCD-style readouts so preset/program/diagnostic text reads like a
+// backlit hardware screen (Sylenth's blue display) rather than a desktop label.
+juce::Font lcdFont(float size = 13.0f, bool bold = false)
+{
+    return juce::Font(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), size,
+                                        bold ? juce::Font::bold : juce::Font::plain));
 }
 
 juce::String formatValue(const synth::ParameterSpec& spec, double value)
@@ -233,7 +241,7 @@ public:
         setColour(juce::ComboBox::textColourId, text);
         setColour(juce::ComboBox::arrowColourId, accent);
 
-        setColour(juce::PopupMenu::backgroundColourId, juce::Colour::fromRGB(48, 40, 29));
+        setColour(juce::PopupMenu::backgroundColourId, juce::Colour::fromRGB(74, 62, 45));
         setColour(juce::PopupMenu::textColourId, text);
         setColour(juce::PopupMenu::highlightedBackgroundColourId, accent.darker(0.2f));
         setColour(juce::PopupMenu::highlightedTextColourId, juce::Colour::fromRGB(28, 21, 12));
@@ -457,8 +465,12 @@ public:
         {
             slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
             slider.setRotaryParameters(rotaryStart, rotaryEnd, true);
-            slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 14);
+            // Small recessed value readout under the knob, the way Sylenth tucks a dark value
+            // box beneath each control rather than a wide editor field.
+            slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 15);
             slider.setColour(juce::Slider::textBoxTextColourId, text);
+            slider.setColour(juce::Slider::textBoxBackgroundColourId, fieldBg.withAlpha(0.55f));
+            slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
             slider.setNumDecimalPlacesToDisplay(2); // fallback so text never renders in scientific form
 
             // The attachment must exist first: SliderParameterAttachment overwrites the
@@ -560,7 +572,7 @@ private:
 class SynthAudioProcessorEditor::LcdDisplay final : public LayoutSection
 {
 public:
-    int preferredHeight(int) const override { return 86; }
+    int preferredHeight(int) const override { return 188; }
 
     void setPreset(const juce::String& name, const juce::String& detail)
     {
@@ -568,6 +580,24 @@ public:
             return;
         presetName = name;
         presetDetail = detail;
+        repaint();
+    }
+
+    // Program-slot readout (e.g. "012 / 128") derived from the real preset list position.
+    void setProgram(const juce::String& text)
+    {
+        if (text == programText)
+            return;
+        programText = text;
+        repaint();
+    }
+
+    // Live voice/CPU/transport line, fed straight from the diagnostics snapshot.
+    void setDiagnostics(const juce::String& text)
+    {
+        if (text == diagnostics)
+            return;
+        diagnostics = text;
         repaint();
     }
 
@@ -581,53 +611,213 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        // Bronze bezel around a recessed glossy blue screen.
+        // Tan-metal bezel around a recessed glossy blue screen — the Sylenth centre display
+        // and the surface's primary readout hub (preset name, program slot, live state).
         auto bezel = getLocalBounds().toFloat().reduced(0.5f);
-        g.setGradientFill(juce::ColourGradient(panelBg.brighter(0.12f), 0.0f, bezel.getY(),
-                                               panelBg.darker(0.20f), 0.0f, bezel.getBottom(), false));
+        g.setGradientFill(juce::ColourGradient(panelBg.brighter(0.10f), 0.0f, bezel.getY(),
+                                               panelBg.darker(0.22f), 0.0f, bezel.getBottom(), false));
         g.fillRoundedRectangle(bezel, 8.0f);
-        g.setColour(strokeSoft);
+        g.setColour(juce::Colours::black.withAlpha(0.4f));
+        g.drawRoundedRectangle(bezel.reduced(3.0f), 6.0f, 1.0f); // inner shadow groove
+        g.setColour(stroke);
         g.drawRoundedRectangle(bezel, 8.0f, 1.0f);
 
-        auto screen = bezel.reduced(7.0f);
-        g.setGradientFill(juce::ColourGradient(lcdBg.brighter(0.16f), 0.0f, screen.getY(),
+        auto screen = bezel.reduced(8.0f);
+        g.setGradientFill(juce::ColourGradient(lcdBg.brighter(0.20f), 0.0f, screen.getY(),
                                                lcdBgEdge, 0.0f, screen.getBottom(), false));
         g.fillRoundedRectangle(screen, 5.0f);
-        g.setColour(juce::Colours::white.withAlpha(0.06f));
-        g.fillRoundedRectangle(screen.withHeight(screen.getHeight() * 0.42f).reduced(2.0f, 1.5f), 4.0f);
+        g.setColour(juce::Colours::white.withAlpha(0.07f));
+        g.fillRoundedRectangle(screen.withHeight(screen.getHeight() * 0.4f).reduced(3.0f, 2.0f), 4.0f);
+        // Faint scanlines sell the backlit-LCD read; purely decorative, no state.
+        g.setColour(juce::Colours::black.withAlpha(0.05f));
+        for (float y = screen.getY() + 4.0f; y < screen.getBottom() - 2.0f; y += 3.0f)
+            g.drawHorizontalLine(juce::roundToInt(y), screen.getX() + 2.0f, screen.getRight() - 2.0f);
         g.setColour(lcdStroke);
-        g.drawRoundedRectangle(screen, 5.0f, 1.2f);
+        g.drawRoundedRectangle(screen, 5.0f, 1.4f);
 
-        auto content = screen.reduced(16.0f, 9.0f).toNearestInt();
+        auto content = screen.reduced(18.0f, 12.0f).toNearestInt();
 
-        auto topLine = content.removeFromTop(14);
-        g.setColour(lcdDim);
-        g.setFont(uiFont(10.0f, true));
-        g.drawText("PRESET", topLine.removeFromLeft(140), juce::Justification::centredLeft, false);
-
-        auto pill = topLine.removeFromRight(78).withSizeKeepingCentre(72, 14);
-        g.setColour((dirty ? staged : live).withAlpha(0.22f));
+        // Header row: PROGRAM label + slot index left, dirty pill right.
+        auto header = content.removeFromTop(16);
+        auto pill = header.removeFromRight(78).withSizeKeepingCentre(74, 15);
+        g.setColour((dirty ? staged : live).withAlpha(0.24f));
         g.fillRoundedRectangle(pill.toFloat(), 7.0f);
         g.setColour(dirty ? staged : live);
-        g.setFont(uiFont(9.5f, true));
+        g.setFont(lcdFont(9.5f, true));
         g.drawText(dirty ? "EDITED" : "CLEAN", pill, juce::Justification::centred, false);
 
-        content.removeFromTop(2);
-        auto nameArea = content.removeFromTop(28);
-        g.setColour(lcdText);
-        g.setFont(uiFont(23.0f, true));
-        g.drawFittedText(presetName.isNotEmpty() ? presetName : "Init", nameArea,
-                         juce::Justification::centredLeft, 1, 0.55f);
-
         g.setColour(lcdDim);
-        g.setFont(uiFont(12.0f));
-        g.drawFittedText(presetDetail, content, juce::Justification::centredLeft, 1, 0.7f);
+        g.setFont(lcdFont(10.0f, true));
+        g.drawText("PROGRAM", header.removeFromLeft(74), juce::Justification::centredLeft, false);
+        if (programText.isNotEmpty())
+        {
+            g.setColour(lcdText);
+            g.setFont(lcdFont(11.0f, true));
+            g.drawText(programText, header, juce::Justification::centredLeft, false);
+        }
+
+        // Bottom readout strip: live voice/CPU/transport state from the diagnostics snapshot.
+        auto readout = content.removeFromBottom(16);
+        g.setColour(lcdStroke.withAlpha(0.55f));
+        g.drawHorizontalLine(readout.getY() - 4, static_cast<float>(content.getX()),
+                             static_cast<float>(content.getRight()));
+        g.setColour(lcdDim);
+        g.setFont(lcdFont(10.5f, true));
+        g.drawText(diagnostics, readout, juce::Justification::centredLeft, false);
+
+        // Name + detail block fills the space between the header and the readout strip.
+        auto block = content.reduced(0, 4);
+        auto nameArea = block.removeFromTop(juce::jmin(42, juce::jmax(24, block.getHeight() - 22)));
+        g.setColour(lcdText);
+        g.setFont(lcdFont(26.0f, true));
+        g.drawFittedText(presetName.isNotEmpty() ? presetName : "Init", nameArea,
+                         juce::Justification::centredLeft, 1, 0.5f);
+
+        block.removeFromTop(4);
+        g.setColour(lcdDim);
+        g.setFont(lcdFont(12.0f));
+        g.drawFittedText(presetDetail, block, juce::Justification::centredLeft, 1, 0.7f);
     }
 
 private:
     juce::String presetName { "Init" };
     juce::String presetDetail { "Unsaved session" };
+    juce::String programText;
+    juce::String diagnostics { "VOICES 0/0   LOAD 0%" };
     bool dirty = false;
+};
+
+// ============================================================================
+// MixerPanel: the Sylenth MIXER — Mix A / Mix B / Main Vol over the real
+// layer/amp level parameters, plus the shared output LED meter ladder.
+// ============================================================================
+class SynthAudioProcessorEditor::MixerPanel final : public LayoutSection
+{
+public:
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+
+    MixerPanel(juce::AudioProcessorValueTreeState& state, Meter& outputMeter)
+        : meter(outputMeter)
+    {
+        addKnob(state, "layer.1.level_db", "MIX A");
+        addKnob(state, "layer.2.level_db", "MIX B");
+        addKnob(state, "amp.level_db", "MAIN");
+        addAndMakeVisible(meter);
+    }
+
+    int preferredHeight(int) const override { return 156; }
+
+    void paint(juce::Graphics& g) override
+    {
+        const auto bounds = getLocalBounds().toFloat().reduced(0.5f);
+        paintPanelBody(g, bounds);
+
+        auto headerArea = getLocalBounds().removeFromTop(headerHeight);
+        paintCaptionBar(g, headerArea);
+        paintModuleHeaderTick(g, getLocalBounds().removeFromTop(headerHeight), zonePerform);
+        g.setColour(text);
+        g.setFont(uiFont(12.0f, true));
+        g.drawText("MIXER", getLocalBounds().removeFromTop(headerHeight).reduced(16, 0),
+                   juce::Justification::centred, true);
+
+        const auto areas = computeAreas();
+        const auto cols = knobColumns(areas.knobs);
+        g.setFont(uiFont(10.0f, true));
+        g.setColour(mutedText);
+        for (std::size_t i = 0; i < knobs.size(); ++i)
+            if (knobs[i].ok)
+                g.drawText(knobs[i].label, cols[i].withY(areas.labels.getY()).withHeight(areas.labels.getHeight()),
+                           juce::Justification::centred, false);
+        g.drawText("OUT", areas.meterLabel, juce::Justification::centred, false);
+    }
+
+    void resized() override
+    {
+        const auto areas = computeAreas();
+        const auto cols = knobColumns(areas.knobs);
+        for (std::size_t i = 0; i < knobs.size(); ++i)
+            if (knobs[i].ok)
+                knobs[i].slider.setBounds(cols[i]);
+        meter.setBounds(areas.meter.withSizeKeepingCentre(14, areas.meter.getHeight()));
+    }
+
+private:
+    static constexpr int headerHeight = 26;
+    static constexpr int padX = 12;
+    static constexpr int padTop = 6;
+    static constexpr int padBottom = 8;
+    static constexpr int knobGap = 6;
+    static constexpr int knobCount = 3;
+
+    struct Knob
+    {
+        juce::Slider slider;
+        std::unique_ptr<SliderAttachment> attachment;
+        juce::String label;
+        bool ok = false;
+    };
+
+    struct Areas
+    {
+        juce::Rectangle<int> labels, knobs, meter, meterLabel;
+    };
+
+    Areas computeAreas() const
+    {
+        auto content = getLocalBounds();
+        content.removeFromTop(headerHeight);
+        content = content.reduced(padX, 0);
+        content.removeFromTop(padTop);
+        content.removeFromBottom(padBottom);
+
+        Areas a;
+        auto meterCol = content.removeFromRight(24);
+        content.removeFromRight(10);
+        a.meterLabel = meterCol.removeFromTop(13);
+        a.meter = meterCol;
+        a.labels = content.removeFromTop(14);
+        a.knobs = content;
+        return a;
+    }
+
+    std::array<juce::Rectangle<int>, knobCount> knobColumns(juce::Rectangle<int> area) const
+    {
+        const auto columnWidth = (area.getWidth() - (knobCount - 1) * knobGap) / knobCount;
+        std::array<juce::Rectangle<int>, knobCount> cols;
+        for (int i = 0; i < knobCount; ++i)
+            cols[static_cast<std::size_t>(i)] =
+                juce::Rectangle<int>(area.getX() + i * (columnWidth + knobGap), area.getY(),
+                                     columnWidth, area.getHeight());
+        return cols;
+    }
+
+    void addKnob(juce::AudioProcessorValueTreeState& state, const std::string& id, const juce::String& label)
+    {
+        auto& knob = knobs[static_cast<std::size_t>(nextKnob++)];
+        const auto* found = synth::findParameterSpec(id);
+        if (found == nullptr)
+            return;
+
+        const auto spec = *found;
+        knob.label = label;
+        knob.ok = true;
+        knob.slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+        knob.slider.setRotaryParameters(rotaryStart, rotaryEnd, true);
+        // Match the recessed value-box treatment used by every other knob (ParameterControl).
+        knob.slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 15);
+        knob.slider.setColour(juce::Slider::textBoxTextColourId, text);
+        knob.slider.setColour(juce::Slider::textBoxBackgroundColourId, fieldBg.withAlpha(0.55f));
+        knob.slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+        knob.attachment = std::make_unique<SliderAttachment>(state, id, knob.slider);
+        knob.slider.textFromValueFunction = [spec](double value) { return formatValue(spec, value); };
+        knob.slider.valueFromTextFunction = [spec](const juce::String& t) { return parseValueText(spec, t); };
+        knob.slider.updateText();
+        addAndMakeVisible(knob.slider);
+    }
+
+    Meter& meter;
+    std::array<Knob, knobCount> knobs;
+    int nextKnob = 0;
 };
 
 // ============================================================================
@@ -716,7 +906,7 @@ public:
             auto dotArea = titleArea.removeFromLeft(14);
             const auto dot = juce::Rectangle<float>(0.0f, 0.0f, 7.0f, 7.0f)
                                  .withCentre(dotArea.toFloat().getCentre());
-            g.setColour(on ? live : juce::Colour::fromRGB(98, 86, 64));
+            g.setColour(on ? live : juce::Colour::fromRGB(120, 106, 80));
             g.fillEllipse(dot);
         }
 
@@ -730,7 +920,7 @@ public:
 
         g.setColour(hasState && !on ? mutedText : text);
         g.setFont(uiFont(12.0f, true));
-        g.drawText(title.toUpperCase(), titleArea, juce::Justification::centredLeft, true);
+        g.drawText(title.toUpperCase(), titleArea, juce::Justification::centred, true);
 
         if (badge.isNotEmpty())
         {
@@ -787,8 +977,8 @@ private:
     }
 
     static constexpr int headerHeight = 26;
-    static constexpr int unitWidth = 62;
-    static constexpr int cellHeight = 64;
+    static constexpr int unitWidth = 66;
+    static constexpr int cellHeight = 70;
     static constexpr int gap = 7;
     static constexpr int rowGap = 4;
     static constexpr int padX = 11;
@@ -877,7 +1067,7 @@ public:
         titleArea.removeFromRight(8);
         g.setColour(text);
         g.setFont(uiFont(12.0f, true));
-        g.drawText(title.toUpperCase(), titleArea, juce::Justification::centredLeft, true);
+        g.drawText(title.toUpperCase(), titleArea, juce::Justification::centred, true);
 
         g.setColour(zone.withAlpha(0.18f));
         g.fillRoundedRectangle(badgeArea.toFloat(), 8.0f);
@@ -1515,7 +1705,7 @@ private:
     void configureCommandButton(juce::TextButton& button, const juce::String& label, std::function<void()> handler)
     {
         button.setButtonText(label);
-        styleFlatButton(button, juce::Colour::fromRGB(58, 48, 34), text);
+        styleFlatButton(button, juce::Colour::fromRGB(82, 69, 50), text);
         button.onClick = std::move(handler);
         addAndMakeVisible(button);
     }
@@ -1757,8 +1947,8 @@ public:
         addAndMakeVisible(parameterBox);
 
         styleFlatButton(learnButton, accent.darker(0.18f), juce::Colour::fromRGB(28, 21, 12));
-        styleFlatButton(forgetButton, juce::Colour::fromRGB(58, 48, 34), text);
-        styleFlatButton(cancelButton, juce::Colour::fromRGB(58, 48, 34), mutedText);
+        styleFlatButton(forgetButton, juce::Colour::fromRGB(82, 69, 50), text);
+        styleFlatButton(cancelButton, juce::Colour::fromRGB(82, 69, 50), mutedText);
         addAndMakeVisible(learnButton);
         addAndMakeVisible(forgetButton);
         addAndMakeVisible(cancelButton);
@@ -2722,8 +2912,8 @@ void SynthAudioProcessorEditor::buildHeader()
     engineTag.setFont(uiFont(10.0f, true));
     addAndMakeVisible(engineTag);
 
-    styleFlatButton(prevPresetButton, juce::Colour::fromRGB(58, 48, 34));
-    styleFlatButton(nextPresetButton, juce::Colour::fromRGB(58, 48, 34));
+    styleFlatButton(prevPresetButton, juce::Colour::fromRGB(82, 69, 50));
+    styleFlatButton(nextPresetButton, juce::Colour::fromRGB(82, 69, 50));
     styleFlatButton(loadButton, accent.darker(0.32f));
     styleFlatButton(saveButton, juce::Colour::fromRGB(112, 88, 50));
     styleFlatButton(duplicateButton, juce::Colour::fromRGB(112, 88, 50));
@@ -2782,14 +2972,14 @@ void SynthAudioProcessorEditor::buildHeader()
 
 void SynthAudioProcessorEditor::buildLayerBar()
 {
-    layerCaption.setText("LAYER", juce::dontSendNotification);
+    layerCaption.setText("PART", juce::dontSendNotification);
     layerCaption.setColour(juce::Label::textColourId, mutedText);
     layerCaption.setFont(uiFont(11.0f, true));
     layerCaption.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(layerCaption);
 
     auto styleLayerButton = [this](juce::TextButton& button) {
-        styleFlatButton(button, juce::Colour::fromRGB(58, 48, 34));
+        styleFlatButton(button, juce::Colour::fromRGB(82, 69, 50));
         button.setClickingTogglesState(false);
         addAndMakeVisible(button);
     };
@@ -2807,12 +2997,15 @@ void SynthAudioProcessorEditor::buildLayerBar()
     soundTab.setClickingTogglesState(false);
     modTab.setClickingTogglesState(false);
     fxTab.setClickingTogglesState(false);
+    browserTab.setClickingTogglesState(false);
     soundTab.onClick = [this] { setPage(Page::Sound); };
     modTab.onClick = [this] { setPage(Page::Mod); };
     fxTab.onClick = [this] { setPage(Page::Fx); };
+    browserTab.onClick = [this] { setPage(Page::Browser); };
     addAndMakeVisible(soundTab);
     addAndMakeVisible(modTab);
     addAndMakeVisible(fxTab);
+    addAndMakeVisible(browserTab);
 
     pageViewport.setScrollBarsShown(true, false);
     pageViewport.setViewedComponent(&soundPage, false);
@@ -2841,18 +3034,23 @@ SynthAudioProcessorEditor::Panel* SynthAudioProcessorEditor::addPanel(
 void SynthAudioProcessorEditor::buildPages()
 {
     // ---- SOUND: the live core sound-design surface ------------------------
-    // Blue LCD preset screen leads the page like the Sylenth centre display.
+    // Blue LCD preset screen + MIXER flank the filter, like the Sylenth centre row.
     lcdDisplay = std::make_unique<LcdDisplay>();
     soundPage.addAndMakeVisible(*lcdDisplay);
+    mixerPanel = std::make_unique<MixerPanel>(audioProcessor.getValueTreeState(), *meter);
+    soundPage.addAndMakeVisible(*mixerPanel);
 
+    // Preset/program workflow lives on its own Browser page so the Sound page can hold the
+    // synthesis engine at default size with minimal scrolling, and the preset surface reads
+    // as one integrated program workflow rather than form panels stacked under the synth.
     presetWorkflowPanel = std::make_unique<PresetWorkflowPanel>(*this);
-    soundPage.addAndMakeVisible(*presetWorkflowPanel);
+    browserPage.addAndMakeVisible(*presetWorkflowPanel);
     presetMetadataPanel = std::make_unique<PresetMetadataPanel>(*this);
-    soundPage.addAndMakeVisible(*presetMetadataPanel);
+    browserPage.addAndMakeVisible(*presetMetadataPanel);
     presetBrowserPanel = std::make_unique<PresetBrowserPanel>(*this);
-    soundPage.addAndMakeVisible(*presetBrowserPanel);
+    browserPage.addAndMakeVisible(*presetBrowserPanel);
     midiControllerPanel = std::make_unique<MidiControllerPanel>(*this);
-    soundPage.addAndMakeVisible(*midiControllerPanel);
+    browserPage.addAndMakeVisible(*midiControllerPanel);
 
     // Legacy flat osc.* is the audible tone source that Osc A1's slot gates and mixes.
     // The honest title makes that A1 relationship clear instead of a second "Oscillator".
@@ -2968,10 +3166,14 @@ void SynthAudioProcessorEditor::setSelectedLayer(int layerIndex)
     const auto layerPrefix = "layer." + juce::String(layerNumber) + ".";
     const auto stripPrefix = "Layer " + layerLetter + " ";
 
-    auto activeColour = accent;
-    auto inactiveColour = juce::Colour::fromRGB(58, 48, 34);
-    styleFlatButton(layerAButton, selectedLayer == 0 ? activeColour : inactiveColour);
-    styleFlatButton(layerBButton, selectedLayer == 1 ? activeColour : inactiveColour);
+    // Green-lit active part capsule, like Sylenth's Part Select; dark text for contrast.
+    const auto activeColour = live.darker(0.05f);
+    const auto activeText = juce::Colour::fromRGB(22, 30, 14);
+    const auto inactiveColour = juce::Colour::fromRGB(82, 69, 50);
+    styleFlatButton(layerAButton, selectedLayer == 0 ? activeColour : inactiveColour,
+                    selectedLayer == 0 ? activeText : text);
+    styleFlatButton(layerBButton, selectedLayer == 1 ? activeColour : inactiveColour,
+                    selectedLayer == 1 ? activeText : text);
 
     // Render-boundary truth: layer mix and four slot outputs are audible, while A1
     // still uses the legacy flat osc.* controls as its compatibility source.
@@ -3029,18 +3231,21 @@ void SynthAudioProcessorEditor::setPage(Page page)
         viewed = &modPage;
     else if (page == Page::Fx)
         viewed = &fxPage;
+    else if (page == Page::Browser)
+        viewed = &browserPage;
     pageViewport.setViewedComponent(viewed, false);
 
     if (page == Page::Mod && modulationOverviewPanel != nullptr)
         modulationOverviewPanel->refresh();
 
     auto styleTab = [](juce::TextButton& tab, bool active) {
-        styleFlatButton(tab, active ? accent.darker(0.18f) : juce::Colour::fromRGB(50, 41, 29),
+        styleFlatButton(tab, active ? accent.darker(0.18f) : juce::Colour::fromRGB(72, 61, 44),
                         active ? juce::Colour::fromRGB(28, 21, 12) : mutedText);
     };
     styleTab(soundTab, page == Page::Sound);
     styleTab(modTab, page == Page::Mod);
     styleTab(fxTab, page == Page::Fx);
+    styleTab(browserTab, page == Page::Browser);
 
     layoutActivePage();
 }
@@ -3061,27 +3266,31 @@ void SynthAudioProcessorEditor::paint(juce::Graphics& g)
     g.drawVerticalLine(rail, 0.0f, static_cast<float>(getHeight()));
     g.drawVerticalLine(getWidth() - rail - 1, 0.0f, static_cast<float>(getHeight()));
 
-    auto header = getLocalBounds().removeFromTop(headerHeight);
-    g.setGradientFill(juce::ColourGradient(headerBg.brighter(0.10f), 0.0f, 0.0f,
-                                           headerBg.darker(0.05f), 0.0f, static_cast<float>(headerHeight), false));
-    g.fillRect(header);
+    // Integrated performance strip: the preset header and the part/layer row share one
+    // brushed-metal gradient so the top reads as part of the instrument surface rather than
+    // two stacked toolbars (Sylenth's top strip is a single flush band).
+    const auto stripBottom = headerHeight + layerBarHeight;
+    auto strip = getLocalBounds().removeFromTop(stripBottom);
+    g.setGradientFill(juce::ColourGradient(headerBg.brighter(0.16f), 0.0f, 0.0f,
+                                           headerBg.darker(0.04f), 0.0f, static_cast<float>(stripBottom), false));
+    g.fillRect(strip);
+    // A soft inset seam marks the preset/part split without a hard toolbar edge.
+    g.setColour(juce::Colours::black.withAlpha(0.16f));
+    g.drawHorizontalLine(headerHeight, static_cast<float>(rail), static_cast<float>(getWidth() - rail));
+    g.setColour(stroke.withAlpha(0.12f));
+    g.drawHorizontalLine(headerHeight + 1, static_cast<float>(rail), static_cast<float>(getWidth() - rail));
+    // Brass base divider grounds the strip against the console body.
+    g.setColour(stroke.withAlpha(0.5f));
+    g.drawHorizontalLine(stripBottom, 0.0f, static_cast<float>(getWidth()));
+    g.setColour(juce::Colours::black.withAlpha(0.22f));
+    g.drawHorizontalLine(stripBottom + 1, 0.0f, static_cast<float>(getWidth()));
 
-    auto layerBar = getLocalBounds().withTop(headerHeight).removeFromTop(layerBarHeight);
-    g.setGradientFill(juce::ColourGradient(juce::Colour::fromRGB(48, 40, 28), 0.0f, static_cast<float>(headerHeight),
-                                           juce::Colour::fromRGB(36, 30, 21), 0.0f,
-                                           static_cast<float>(headerHeight + layerBarHeight), false));
-    g.fillRect(layerBar);
-    g.setColour(stroke.withAlpha(0.6f));
-    g.drawHorizontalLine(headerHeight, 0.0f, static_cast<float>(getWidth()));
-    g.setColour(strokeSoft);
-    g.drawHorizontalLine(headerHeight + layerBarHeight, 0.0f, static_cast<float>(getWidth()));
-
-    // Selected-part accent: underline the active Layer button so the chosen part reads at a
-    // glance, the way Sylenth's Part Select highlights the live part.
+    // Selected-part accent: a green underline on the active Part button, the way Sylenth's
+    // Part Select lights the live part.
     const auto& activeLayerButton = selectedLayer == 0 ? layerAButton : layerBButton;
     if (!activeLayerButton.getBounds().isEmpty())
     {
-        g.setColour(accent);
+        g.setColour(live);
         g.fillRect(juce::Rectangle<int>(activeLayerButton.getX(), activeLayerButton.getBottom() + 3,
                                         activeLayerButton.getWidth(), 2));
     }
@@ -3104,12 +3313,14 @@ void SynthAudioProcessorEditor::resized()
     statusLabel.setBounds(footer);
 
     auto tabs = area.removeFromTop(tabBarHeight).reduced(16, 6);
-    const auto tabWidth = 116;
+    const auto tabWidth = 112;
     soundTab.setBounds(tabs.removeFromLeft(tabWidth));
     tabs.removeFromLeft(6);
     modTab.setBounds(tabs.removeFromLeft(tabWidth));
     tabs.removeFromLeft(6);
     fxTab.setBounds(tabs.removeFromLeft(tabWidth));
+    tabs.removeFromLeft(6);
+    browserTab.setBounds(tabs.removeFromLeft(tabWidth));
 
     pageViewport.setBounds(area.reduced(12, 8));
     layoutActivePage();
@@ -3200,12 +3411,7 @@ void SynthAudioProcessorEditor::layoutLayerBar(juce::Rectangle<int> area)
     layerStatusPill.setBounds(verticalCentre(area.removeFromLeft(184), 22));
     area.removeFromLeft(8);
 
-    // Output LED meter ladder lives at the far right of the layer bar (Sylenth mixer side),
-    // so it stays visible on every tab.
-    auto meterColumn = area.removeFromRight(18);
-    meter->setBounds(meterColumn.withSizeKeepingCentre(16, area.getHeight()));
-    area.removeFromRight(14);
-
+    // The output LED meter now lives in the Sound-page MIXER (Sylenth mixer side).
     layerControlsHost.setBounds(area);
     for (int i = 0; i < static_cast<int>(layerControls.size()); ++i)
         layerControls[static_cast<std::size_t>(i)]->setBounds(i * (72 + 6), 0, 72, layerControlsHost.getHeight());
@@ -3216,7 +3422,7 @@ int SynthAudioProcessorEditor::layoutRows(juce::Component& page,
                                           int width)
 {
     const auto outerPad = 4;
-    const auto rowGap = 12;
+    const auto rowGap = 10;
     const auto columnGap = 12;
     const auto usableWidth = width - 2 * outerPad;
 
@@ -3258,27 +3464,37 @@ void SynthAudioProcessorEditor::layoutActivePage()
     {
         if (slotPanels[0] == nullptr || slotPanels[1] == nullptr || coreOscPanel == nullptr
             || ampEnvPanel == nullptr || modEnvPanel == nullptr || lcdDisplay == nullptr
-            || sequencerPanel == nullptr || presetWorkflowPanel == nullptr || presetMetadataPanel == nullptr
-            || presetBrowserPanel == nullptr || midiControllerPanel == nullptr)
+            || mixerPanel == nullptr || sequencerPanel == nullptr)
             return;
-        // Synthesis is the hero, ordered like the Sylenth grid: the top row pairs the two
-        // oscillator slots around the amp envelope (Osc A1 | Amp Env | Osc A2), the legacy
-        // A1 tone source spans below, then Filter | Mod Env | LFO and the performance
-        // modules. The preset browser and MIDI utility panels move to the bottom so the
-        // core patching surface fills the first screen with minimal scrolling.
+        // The Sound page is the synthesis engine, mirroring the Sylenth main panel:
+        // oscillators around the amp envelope on top, the signature Filter | centre LCD |
+        // Mixer row, then the mod-env/LFO/performance shaping row, the legacy A1 tone
+        // source, performance modules, and the arp/step/chord grid. Preset/MIDI workflow
+        // now lives on the Browser page, so this page stays close to one screen.
         std::vector<std::vector<RowItem>> rows = {
-            { { lcdDisplay.get(), 1.0f } },
             { { slotPanels[0].get(), 0.40f }, { ampEnvPanel.get(), 0.20f }, { slotPanels[1].get(), 0.40f } },
+            { { filterPanel, 0.30f }, { lcdDisplay.get(), 0.40f }, { mixerPanel.get(), 0.30f } },
+            { { modEnvPanel.get(), 0.24f }, { lfoPanel, 0.30f }, { voicePanel, 0.22f }, { ampPanel, 0.24f } },
             { { coreOscPanel, 1.0f } },
-            { { filterPanel, 0.40f }, { modEnvPanel.get(), 0.20f }, { lfoPanel, 0.40f } },
-            { { voicePanel, 0.26f }, { ampPanel, 0.24f }, { rampPanel, 0.24f }, { macroPanel, 0.26f } },
+            { { rampPanel, 0.5f }, { macroPanel, 0.5f } },
             { { sequencerPanel.get(), 1.0f } },
-            { { presetWorkflowPanel.get(), 1.0f } },
-            { { presetMetadataPanel.get(), 1.0f } },
-            { { presetBrowserPanel.get(), 1.0f } },
-            { { midiControllerPanel.get(), 1.0f } },
         };
         layoutRows(soundPage, rows, viewWidth);
+    }
+    else if (currentPage == Page::Browser)
+    {
+        if (presetWorkflowPanel == nullptr || presetMetadataPanel == nullptr
+            || presetBrowserPanel == nullptr || midiControllerPanel == nullptr)
+            return;
+        // One integrated program workflow: the quick-action/compare strip on top, the
+        // program list as the dominant element, then the save-metadata and MIDI utilities
+        // paired below — a preset workspace rather than forms stacked under the synth.
+        std::vector<std::vector<RowItem>> rows = {
+            { { presetWorkflowPanel.get(), 1.0f } },
+            { { presetBrowserPanel.get(), 1.0f } },
+            { { presetMetadataPanel.get(), 0.6f }, { midiControllerPanel.get(), 0.4f } },
+        };
+        layoutRows(browserPage, rows, viewWidth);
     }
     else if (currentPage == Page::Mod)
     {
@@ -3381,25 +3597,34 @@ void SynthAudioProcessorEditor::updateLcdPreset()
 
     const auto path = audioProcessor.getCurrentPresetFilePath();
     juce::String detail;
-    if (path.isNotEmpty())
+    int programCount = 0;
+    int programIndex = 0;
+    for (const auto& item : presetItems)
     {
-        for (const auto& item : presetItems)
+        if (!item.valid)
+            continue;
+        ++programCount;
+        if (path.isNotEmpty() && item.file.getFullPathName() == path)
         {
-            if (item.valid && item.file.getFullPathName() == path)
-            {
-                juce::StringArray parts;
-                if (item.sourceLabel.isNotEmpty()) parts.add(item.sourceLabel);
-                if (item.bank.isNotEmpty())        parts.add(item.bank);
-                if (item.category.isNotEmpty())    parts.add(item.category);
-                detail = parts.joinIntoString("   /   ");
-                break;
-            }
+            programIndex = programCount;
+            juce::StringArray parts;
+            if (item.sourceLabel.isNotEmpty()) parts.add(item.sourceLabel);
+            if (item.bank.isNotEmpty())        parts.add(item.bank);
+            if (item.category.isNotEmpty())    parts.add(item.category);
+            detail = parts.joinIntoString("   /   ");
         }
     }
     if (detail.isEmpty())
         detail = "Unsaved session";
 
+    // Program slot reads from the real preset-list position (e.g. "012 / 128").
+    juce::String program;
+    if (programCount > 0)
+        program = (programIndex > 0 ? juce::String(programIndex).paddedLeft('0', 3) : juce::String("---"))
+                  + " / " + juce::String(programCount);
+
     lcdDisplay->setPreset(audioProcessor.getCurrentPresetName(), detail);
+    lcdDisplay->setProgram(program);
 }
 
 void SynthAudioProcessorEditor::loadSelectedPreset()
@@ -3755,6 +3980,18 @@ void SynthAudioProcessorEditor::updateDiagnostics()
     const auto clip = snapshot.peak >= 0.98f || snapshot.invalidSamples > lastInvalidSamples;
     lastInvalidSamples = snapshot.invalidSamples;
     meter->setLevel(snapshot.peak, clip);
+
+    // Mirror the most performance-relevant live state into the LCD hub (all real snapshot data).
+    if (lcdDisplay != nullptr)
+    {
+        const auto srShort = snapshot.sampleRate > 0.0
+            ? juce::String(snapshot.sampleRate / 1000.0, 1) + "k"
+            : juce::String("--");
+        lcdDisplay->setDiagnostics("VOICES " + juce::String(snapshot.activeVoices) + "/"
+                                   + juce::String(snapshot.patchCost.maxActiveVoices)
+                                   + "   LOAD " + (percent <= 100 ? juce::String(percent) + "%" : juce::String(">100%"))
+                                   + "   SR " + srShort);
+    }
 }
 
 void SynthAudioProcessorEditor::timerCallback()

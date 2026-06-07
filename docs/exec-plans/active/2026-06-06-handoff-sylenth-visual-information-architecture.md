@@ -13,7 +13,9 @@ post_build_recap: |
   Tone naming. No DSP, parameters, schema, processor APIs, copied source assets, screenshot backplates, or fake
   controls were added. Validated with git diff --check, Debug build, CTest 9/9, and SylenthAIRender --suite core
   with 14 reports plus Sound/Modulation/Effects/Browser/compact screenshots under build/reports/ui/.
-  Parker review of the visual patch is the only open step.
+  PR #46 merged the bronze pass and the authorized visual-parity docs. The surface is closer to Sylenth,
+  but additional Claude visual passes are expected for top-strip/LCD fidelity, one-screen density, browser
+  integration, and deeper screenshot-to-screenshot polish.
 read_when:
   - Preparing the next Claude Code UI pass after the roadmap truth audit.
   - Making the editor look and scan more like the supplied Sylenth screenshots.
@@ -21,7 +23,7 @@ read_when:
 program_id: sylenth-lab-rebuild
 planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
 handoff_target: Claude Code
-handoff_status: bronze_visual_pass_implemented_pending_parker_review
+handoff_status: bronze_visual_pass_merged_more_fidelity_passes_expected
 ---
 
 # Handoff Sylenth Visual Information Architecture
@@ -47,7 +49,11 @@ The goal is not to add backend features. The goal is to make the current real fe
 - [x] 2026-06-07 EDT: Validated `git diff --check` (clean), Debug build (clean), CTest (9/9), and `SylenthAIRender --suite core` (14 reports); captured `sylenth-fidelity-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`.
 - [x] 2026-06-07 EDT: Warm bronze Sylenth re-skin on branch `ui-polish-sylenth-bronze` (merged to master, per maintainer direction to adopt the approved Sylenth visual target): bronze metal palette + side rails, chrome/charcoal knobs with cream tick rings and white pointers, amber-lit LED toggles, beveled module caption bars, recessed value readouts, a blue LCD preset display (real preset name/source/bank/category + dirty), blue-LCD arp/step/chord grids, and a vertical LED output meter in the layer bar. Still UI-only in `PluginEditor.{h,cpp}`; no DSP/parameters/schema/processor APIs and no fake controls.
 - [x] 2026-06-07 EDT: Validated the bronze pass: `git diff --check` clean, Debug build clean (no warnings), CTest 9/9, `SylenthAIRender --suite core` 14 reports; captured `sylenth-bronze-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`.
-- [ ] Parker review of the patch for real bindings, layout fidelity, and no fake feature controls.
+- [x] 2026-06-07 EDT: PR #46 merged to `master` with `2416664 feat(editor): warm bronze Sylenth skin, blue LCD, and LED meter` and `9e64b73 docs: adopt Sylenth visual-parity direction`.
+- [x] 2026-06-07 EDT: Post-merge `master` validation passed: `git diff --check`, `cmake --build build --config Debug`, `ctest --test-dir build --output-on-failure` (9/9), and `./build/SylenthAIRender --suite core --output-dir build/reports/core` (14 reports).
+- [x] 2026-06-07 EDT: Top-strip / LCD / density / Browser fidelity pass on branch `ui-polish-sylenth-mainscreen` (UI-only, `PluginEditor.{h,cpp}`): added a dedicated `Browser` page and moved the preset workflow/metadata/browser/MIDI panels onto it so the Sound page holds the synthesis engine near one screen; rebuilt the blue LCD as a monospaced preset/program/diagnostics hub; unified the header+part strip and lit the active `PART` green; recessed knob value boxes. No DSP/parameters/schema/processor APIs and no fake controls; bronze palette preserved.
+- [x] 2026-06-07 EDT: Validated this pass: `git diff --check` clean, Debug build clean, CTest 9/9, `SylenthAIRender --suite core` 14 reports, plus an adversarial multi-agent review of the diff; captured `sylenth-onescreen-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`.
+- [ ] Parker/Claude review of remaining visual fidelity gaps against the screenshot corpus.
 
 ## Surprises & Discoveries
 
@@ -131,6 +137,69 @@ UI-only pass to make the surface read like a hardware Sylenth instrument rather 
 Validation: `git diff --check` clean; Debug build clean; CTest 9/9; `SylenthAIRender --suite core` wrote 14 reports. Screenshots: `build/reports/ui/sylenth-fidelity-{sound,modulation,effects,browser,compact}.png` (default 1320×940 and compact 1080×760).
 
 Residual UI gaps unchanged and still backend/scope-bound: writable modulation (drag/drop, halos, matrix, hover, per-route bypass/remove); LFO2 and editable LFO movement graph; filter response graph with modulation overlays (the envelope contour here is read-only, not drag-editable); per-control MIDI context menus; per-layer Filter A/B and master-stage parity; richer scanned-preset detail; reliable JUCE viewport scroll automation (browser shot used a CGEvent wheel helper over the page gutter).
+
+### Bronze merged visual QA (2026-06-07, post-merge `master`)
+
+Post-merge validation passed on `master`:
+
+- `git diff --check`: clean.
+- `cmake --build build --config Debug`: passed.
+- `ctest --test-dir build --output-on-failure`: 9/9 passed.
+- `./build/SylenthAIRender --suite core --output-dir build/reports/core`: wrote 14 reports.
+
+Screenshot set reviewed:
+
+- `build/reports/ui/sylenth-bronze-sound.png`
+- `build/reports/ui/sylenth-bronze-modulation.png`
+- `build/reports/ui/sylenth-bronze-effects.png`
+- `build/reports/ui/sylenth-bronze-browser.png`
+- `build/reports/ui/sylenth-bronze-compact.png`
+
+What improved:
+
+- Warm bronze/brown panel language, amber state lights, cream labels, and darker recessed fields now move the app away from the old dark/teal identity.
+- The blue LCD preset strip gives the Sound page a Sylenth-like center/readout direction while staying bound to real preset/dirty metadata.
+- Knobs, value readouts, caption bars, and power LEDs now read more like a hardware-style synth surface.
+- Effects and modulation pages are coherent with the new skin and retain real enable/read-only route state.
+
+Remaining visual fidelity gaps for the next Claude pass:
+
+- Header/top strip still reads more like an app toolbar than Sylenth's integrated polyphony/voices/part/preset/MIDI-learn performance strip.
+- The Sound page still scrolls at default and compact sizes; Sylenth's primary synth surface is much closer to all-visible.
+- The LCD/preset area is not yet the central interaction hub for preset/program/panel context the way Sylenth uses it.
+- The browser, preset workflow, save panel, and MIDI control are still bottom-page panels rather than integrated popover/center-panel workflows.
+- Modulation and FX pages are visually skinned but still arranged like model panels; a later pass can push them closer to the reference routing/effects panel rhythm without adding fake controls.
+
+### Top-strip / LCD / density / Browser pass (2026-06-07, branch `ui-polish-sylenth-mainscreen`)
+
+UI-only follow-up in `src/plugin/PluginEditor.{h,cpp}` building on the merged bronze pass. No DSP, parameter IDs, schema, processor APIs, or fake controls were added; the bronze palette is preserved. This pass directly targets the four gaps the bronze QA flagged (top strip, one-screen density, LCD hub, browser integration).
+
+What changed:
+
+- **Browser is now its own page.** Added a fourth `Page::Browser` tab and moved the preset workflow, metadata/safe-save, preset browser, and MIDI-control panels off the bottom of the Sound page onto a dedicated Browser page, laid out as one integrated program workflow: a quick-action/compare strip on top, the program list as the dominant element, and the save-metadata + MIDI utilities paired below. Every real preset control is preserved and still bound — Init/Random/Reset, A/B compare store/load, Save New / Overwrite no-clobber, favorites, search/filter, and global MIDI Learn/Forget.
+- **One-screen Sound density.** With the preset panels moved out, the Sound page is the synthesis engine only — `Osc A1 | Amp Env | Osc A2`, `Filter | LCD | Mixer`, `Mod Env | LFO | Voice | Amp`, `Osc A1 Tone`, `Ramp | Macros`, `Arp / Step / Chord` — so the core engine reads on one screen at default size with far less scrolling. Tightened panel cell metrics (unit width 70→66, cell height 74→70) and the inter-panel row gap (12→10).
+- **LCD as the central readout hub.** Enlarged the blue LCD (preferredHeight 150→188 to fill the centre row) and rebuilt it as a monospaced backlit screen: preset name, a real `PROGRAM nnn / total` slot index derived from the preset-list position, source/bank/category detail, the dirty pill, and a live `VOICES / LOAD / SR` line fed straight from the diagnostics snapshot. Faint scanlines for the backlit read; no invented values or fake controls.
+- **Integrated top strip.** Unified the header and part/layer bar into one continuous brushed-metal performance strip (a soft inset seam instead of a hard toolbar divider), trimmed chrome heights (header 66→60, layer bar 86→80, tabs 40→36), and relabelled the layer selector as `PART` with a green-lit active part and a green Part-Select underline.
+- **Module rhythm.** Recessed value boxes beneath the rotary knobs (dark field tint, no outline) for the Sylenth tucked-value look.
+
+Validation: `git diff --check` clean; `cmake --build build --config Debug` clean; `ctest --test-dir build --output-on-failure` 9/9; `./build/SylenthAIRender --suite core --output-dir build/reports/core` wrote 14 reports. The diff was also put through an adversarial multi-agent review (bindings, scope, correctness, layout): no P0/P1, no binding/scope violations, page dispatch and LCD real-state confirmed. Three P2s surfaced — the one introduced by this pass (the MIXER knobs missed the new recessed value-box styling) was fixed; the other two reflect intended/pre-existing behaviour and are recorded under residual gaps.
+
+Screenshots (standalone, default 1320×940 and compact 1080×760):
+
+- `build/reports/ui/sylenth-onescreen-sound.png`
+- `build/reports/ui/sylenth-onescreen-modulation.png`
+- `build/reports/ui/sylenth-onescreen-effects.png`
+- `build/reports/ui/sylenth-onescreen-browser.png`
+- `build/reports/ui/sylenth-onescreen-compact.png`
+
+Residual gaps after this pass:
+
+- The Sound page still scrolls below the synthesis engine to reach `Ramp | Macros` and the arp/step/chord grid at default height; the oscillator-slot panels render as three knob rows, taller than Sylenth's two-row oscillator block. Full all-visible parity would need a denser oscillator cell or a more compact arp grid.
+- The standalone wrapper's `Options` menu bar and the `SYLENTH-AI` wordmark still sit above the strip (host-provided chrome and brand identity, not the instrument surface).
+- The Browser is an in-window page, not a popover overlay over the synth, and the list is the real scanned preset set rather than a fixed 256-slot bank grid.
+- The output LED meter lives in the Sound-page MIXER (the Sylenth-faithful location), so it is not visible on the Modulation/Effects/Browser pages; the level is still updated every tick.
+- `amp.level_db` is surfaced by two real knobs visible together on the Sound page — the MIXER `MAIN` and the `Amp / Stereo` level. Both are genuine bindings to the same parameter shown in two contexts; left intact to preserve all real bindings rather than dropping a control.
+- Backend-dependent gaps are unchanged and intentionally not done: writable modulation, LFO2/editable movement graphs, per-layer filter/master parity, per-control MIDI context menus, and 256-slot bank management (safety model not ready).
 
 ## Context and Orientation
 

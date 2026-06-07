@@ -12,7 +12,7 @@ read_when:
 program_id: sylenth-lab-rebuild
 planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
 handoff_target: Claude Code
-handoff_status: model_backed_surfaces_live_deeper_polish_open
+handoff_status: bronze_visual_pass_merged_deeper_polish_open
 ---
 
 # Handoff Modulation Preset Arp UI Polish
@@ -63,6 +63,8 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [x] 2026-06-06 EDT: Ran manual control smoke in the standalone: clicked `A Store`, confirmed status changed to `Captured compare A`, and confirmed `A Load` became actionable.
 - [x] 2026-06-06 EDT: Added a Sound-page `PRESET SAVE` panel with metadata fields and explicit `Save New` / `Overwrite` actions over the real `PresetWriteOptions` create-new/overwrite model.
 - [x] 2026-06-06 EDT: Captured standalone screenshot evidence at `build/reports/ui/preset-safe-save-metadata-ui-workflow.png` and `build/reports/ui/preset-safe-save-metadata-ui-compact.png`.
+- [x] 2026-06-07 EDT: PR #46 merged the bronze Sylenth visual pass and authorized visual-parity docs. Post-merge `master` validation passed (`git diff --check`, Debug build, CTest 9/9, and `SylenthAIRender --suite core` with 14 reports).
+- [ ] Additional Claude passes are still expected for preset browser integration, arp/step/chord density, modulation/effects screenshot rhythm, and compact one-screen polish.
 
 ## Surprises & Discoveries
 
@@ -95,7 +97,7 @@ Residual gaps after this pass:
 - The preset workflow panel lives below the arp/step/chord row, so it requires scroll at compact/default heights.
 - The preset metadata/save panel sits below the workflow row, so it also requires scroll at compact/default heights.
 
-The next Claude Code pass can target preset-browser visual hierarchy, arp/step/chord density, and FX rack visual polish only.
+The next Claude Code pass can target preset-browser visual hierarchy, arp/step/chord density, modulation/effects screenshot rhythm, and compact one-screen polish while preserving real bindings.
 
 ## Context and Orientation
 
