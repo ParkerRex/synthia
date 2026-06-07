@@ -28,9 +28,10 @@ Purpose: define the lab roadmap for rebuilding Sylenth as a modern virtual analo
 ## UI Recreation Directive
 
 - `[Inferred]` This document supersedes older notes that describe the UI as merely distinct, loosely inspired, or visually separate from Sylenth.
-- `[Inferred]` For Phase 1 UI work, the correct target is faithful Sylenth recreation wherever the current real model-backed controls allow it: warm bronze/brown panel language, LCD/preset center rhythm, dense captioned modules, Sylenth-like rotary treatment, A/B part organization, oscillator/filter/envelope/modulation/FX grouping, and compact bottom performance affordances.
+- `[Inferred]` For Phase 1 UI work, the correct target is source-use-safe, exact-reference Sylenth recreation wherever the current real model-backed controls allow it. The canonical visual reference set is `Sylenth1Manual.pdf` plus every image listed in `research/sylenth1-screenshots/SOURCE_INDEX.md`; use those exact refs for workflow, density, native panel rhythm, LCD/preset center behavior, A/B part organization, oscillator/filter/envelope/modulation/FX grouping, compact bottom performance affordances, and screenshot-to-screenshot QA.
+- `[Inferred]` Use original native controls and owned assets. Explicit legal approval is required before copying protected third-party trade dress, product marks, logos, raster assets, screenshot backplates, manual text, presets, or other bundled source material.
 - `[Inferred]` Do not add fake controls just to match a screenshot. If a Sylenth control has no current backend/state binding, either map it to the closest real control honestly or record it as a backend dependency.
-- `[Inferred]` Do not preserve the old non-Sylenth app identity for brand distinctness. The approved screenshot corpus is the visual target for Claude Code and local UI polish.
+- `[Inferred]` Do not preserve the old non-Sylenth app identity for brand distinctness. The approved screenshot corpus is the visual target for Claude Code and local UI polish within the source-use-safe implementation boundary.
 
 ## Summary Of Current Repo Baseline
 

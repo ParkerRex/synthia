@@ -874,7 +874,7 @@ Required views:
 
 UI rules:
 
-- The UI SHOULD use the approved manual and screenshot corpus to recreate Sylenth's workflow, density, functional hierarchy, panel rhythm, control relationships, and preset interaction as faithfully as possible with the current real model-backed controls.
+- The UI SHOULD use the exact approved reference set, `Sylenth1Manual.pdf` plus every image listed in `research/sylenth1-screenshots/SOURCE_INDEX.md`, to recreate Sylenth's workflow, density, functional hierarchy, panel rhythm, control relationships, and preset interaction as faithfully as possible with the current real model-backed controls.
 - The UI MUST use original native controls and source-use-safe assets. It MUST NOT copy protected third-party trade dress, logos, raster assets, screenshot backplates, product marks, or other source material unless explicit legal approval exists; unrelated references such as the white SH-101-like historical plugin look, Roland SH-101 panel, and FXpansion Strobe UI are also out of scope.
 - Controls SHOULD use compact Sylenth-style production language: knobs/sliders for continuous values, menus for modes, toggles for binary options, tabs or panel selectors for views, and clear modulation badges.
 - Text MUST remain readable at all supported scales.
@@ -1619,9 +1619,9 @@ Metrics:
 - Whether the first public release should include onboard delay/reverb or keep FX disabled/internal until the dry core is validated.
 - Whether an audio-input/effect version is desired.
 - Whether to use GPL/commercial JUCE terms or another framework path.
-- Which exact reference audio clips and screenshots are approved for internal measurement.
+- Which exact reference audio clips, if any, are approved for internal audio measurement beyond the approved Sylenth manual and screenshot corpus.
 - Whether older Strobe research remains useful once the Phase 1 Sylenth rebuild is underway.
-- Exact UI visual direction, beyond the source-use and release constraints.
+- Exact release-safe branding, mark treatment, and source-use approvals for the Sylenth-faithful UI.
 - Whether factory preset names may use indirect nods or must be completely generic.
 
 ## Appendix A. Factory Pluck Profile
