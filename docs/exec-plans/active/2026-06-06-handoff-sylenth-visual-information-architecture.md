@@ -54,7 +54,8 @@ The goal is not to add backend features. The goal is to make the current real fe
 - [x] 2026-06-07 EDT: Top-strip / LCD / density / Browser fidelity pass on branch `ui-polish-sylenth-mainscreen` (UI-only, `PluginEditor.{h,cpp}`): added a dedicated `Browser` page and moved the preset workflow/metadata/browser/MIDI panels onto it so the Sound page holds the synthesis engine near one screen; rebuilt the blue LCD as a monospaced preset/program/diagnostics hub; unified the header+part strip and lit the active `PART` green; recessed knob value boxes. No DSP/parameters/schema/processor APIs and no fake controls; bronze palette preserved.
 - [x] 2026-06-07 EDT: Validated this pass: `git diff --check` clean, Debug build clean, CTest 9/9, `SylenthAIRender --suite core` 14 reports, plus an adversarial multi-agent review of the diff; captured `sylenth-onescreen-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`. Committed `e12d2be`.
 - [x] 2026-06-07 EDT: Sylenth skin fidelity pass (maintainer feedback that it still did not look like Sylenth): native-JUCE knob/faceplate/caption/top-strip/palette rework toward the hardware faceplate (dark pointer knobs without the amber arc, tightly-packed squared raised plates, engraved captions, dark charcoal top strip). Re-validated and screenshots refreshed.
-- [ ] Parker/Claude review of remaining visual fidelity gaps against the screenshot corpus (next lever: exact per-module sub-layout + wood backplate).
+- [x] 2026-06-07 EDT: Per-module oscillator faithfulness (maintainer direction to get it as close as possible): bespoke `OscillatorPanel` with Sylenth's PITCH sub-box + knob row + INV/WAVE/VOICES/RETRIG row, all real `layer.N.osc.M.*` bindings (13/13 verified). Knobs capped to hardware size; top row tightened. CTest 9/9, `SylenthAIRender --suite core` 14 reports; screenshots refreshed.
+- [ ] Parker/Claude review of remaining visual fidelity gaps (next levers: bespoke FILTER/MOD ENV/LFO module layouts, L/R meter ladder, wood backplate).
 
 ## Surprises & Discoveries
 
@@ -214,7 +215,9 @@ Direct response to maintainer feedback that the surface still did not read like 
 
 Validated: `git diff --check` clean; Debug build clean; CTest 9/9; `SylenthAIRender --suite core` 14 reports. Screenshots refreshed in place at `build/reports/ui/sylenth-onescreen-{sound,modulation,effects,browser,compact}.png`.
 
-Still native-drawn rather than a pixel-perfect clone: exact per-module sub-layout (the oscillator PITCH sub-box, exact knob counts/positions per Sylenth module, wood-grain backplate texture) is deeper structural work and is the next fidelity lever; bitmap screenshot backplates remain out of scope.
+Then, per maintainer direction to get it as close as possible, a bespoke `OscillatorPanel` rebuilt both oscillator slots in Sylenth's exact module grammar — a PITCH sub-box (OCTAVE / NOTE inc-dec boxes + a FINE knob), a VOLUME / PHASE / DETUNE / STEREO / PAN knob row, and an INV / WAVE / VOICES / RETRIG row — all bound to the real `layer.N.osc.M.*` parameters (no controls added or dropped; 13/13 bindings verified by review). Knobs are capped to hardware size, OCT/NOTE/VOICES read as compact numeric inc-dec boxes, and the top row was tightened (oscillator + amp/mod envelope heights reduced).
+
+Remaining per-module fidelity levers: the FILTER, MOD ENV, LFO and performance modules still use the generic control grid rather than bespoke Sylenth layouts; the warm wood-grain backplate is approximated by flat brown; the mixer shows a single peak meter rather than an L/R ladder with a dB scale. Bitmap screenshot backplates remain out of scope.
 
 ## Context and Orientation
 

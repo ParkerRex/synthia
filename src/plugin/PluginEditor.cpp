@@ -576,20 +576,20 @@ public:
     }
 
     // Program-slot readout (e.g. "012 / 128") derived from the real preset list position.
-    void setProgram(const juce::String& text)
+    void setProgram(const juce::String& value)
     {
-        if (text == programText)
+        if (value == programText)
             return;
-        programText = text;
+        programText = value;
         repaint();
     }
 
     // Live voice/CPU/transport line, fed straight from the diagnostics snapshot.
-    void setDiagnostics(const juce::String& text)
+    void setDiagnostics(const juce::String& value)
     {
-        if (text == diagnostics)
+        if (value == diagnostics)
             return;
-        diagnostics = text;
+        diagnostics = value;
         repaint();
     }
 
@@ -986,6 +986,208 @@ private:
 };
 
 // ============================================================================
+// OscillatorPanel: a faithful Sylenth OSCILLATOR module. A PITCH sub-box
+// (OCTAVE / NOTE inc-dec boxes + a FINE knob) sits left of a VOLUME PHASE
+// DETUNE STEREO PAN knob row over an INV / WAVE / VOICES / RETRIG control row,
+// mirroring the hardware module. Every control binds to a real
+// layer.N.osc.M.* parameter; nothing here is decorative.
+// ============================================================================
+class SynthAudioProcessorEditor::OscillatorPanel final : public LayoutSection
+{
+public:
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    using ComboBoxAttachment = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
+    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
+
+    OscillatorPanel(juce::AudioProcessorValueTreeState& state,
+                    const juce::String& prefix, juce::String panelTitle,
+                    const juce::String& enabledId)
+        : title(std::move(panelTitle))
+    {
+        if (enabledId.isNotEmpty())
+        {
+            enabledParam = state.getRawParameterValue(enabledId);
+            lastEnabled = isModuleEnabled();
+            enableToggle.setClickingTogglesState(true);
+            buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, enabledId, enableToggle));
+            addAndMakeVisible(enableToggle);
+        }
+
+        setupIncDec(octave,    state, (prefix + "octave").toStdString());
+        setupIncDec(note,      state, (prefix + "note").toStdString());
+        setupIncDec(voicesCtl, state, (prefix + "voices").toStdString());
+        setupKnob(fine,   state, (prefix + "fine_cents").toStdString());
+        setupKnob(volume, state, (prefix + "level").toStdString());
+        setupKnob(phase,  state, (prefix + "phase_degrees").toStdString());
+        setupKnob(detune, state, (prefix + "detune").toStdString());
+        setupKnob(stereo, state, (prefix + "stereo").toStdString());
+        setupKnob(pan,    state, (prefix + "pan").toStdString());
+        setupCombo(wave,  state, (prefix + "waveform").toStdString());
+        setupToggle(invert, state, (prefix + "invert").toStdString());
+        setupToggle(retrig, state, (prefix + "retrigger").toStdString());
+    }
+
+    int preferredHeight(int) const override { return 158; }
+
+    bool hasEnabledState() const noexcept { return enabledParam != nullptr; }
+    bool isModuleEnabled() const noexcept { return enabledParam == nullptr || enabledParam->load() >= 0.5f; }
+    void syncEnabledState()
+    {
+        if (enabledParam == nullptr)
+            return;
+        const auto on = isModuleEnabled();
+        if (on != lastEnabled) { lastEnabled = on; repaint(); }
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        const auto on = isModuleEnabled();
+        paintPanelBody(g, getLocalBounds().toFloat().reduced(0.5f));
+        auto header = getLocalBounds().removeFromTop(captionH);
+        paintCaptionBar(g, header, on);
+        g.setColour(on ? text : mutedText);
+        g.setFont(uiFont(12.0f, true));
+        g.drawText(title.toUpperCase(), header.reduced(16, 0), juce::Justification::centred, true);
+
+        // PITCH sub-box: a recessed framed group, like Sylenth's pitch cluster.
+        g.setColour(fieldBg.withAlpha(0.45f));
+        g.fillRoundedRectangle(pitchBox.toFloat(), 2.5f);
+        g.setColour(juce::Colours::black.withAlpha(0.4f));
+        g.drawRoundedRectangle(pitchBox.toFloat().reduced(0.5f), 2.5f, 1.0f);
+
+        g.setColour(mutedText);
+        g.setFont(uiFont(9.5f, true));
+        for (const auto& l : labels)
+            g.drawText(l.second, l.first, juce::Justification::centred, false);
+    }
+
+    void resized() override
+    {
+        labels.clear();
+        auto area = getLocalBounds();
+        auto header = area.removeFromTop(captionH);
+        if (enabledParam != nullptr)
+            enableToggle.setBounds(header.removeFromRight(36).withSizeKeepingCentre(24, 15));
+
+        area = area.reduced(9, 0);
+        area.removeFromTop(5);
+        area.removeFromBottom(8);
+
+        // PITCH sub-box on the left: OCTAVE / NOTE inc-dec boxes, then a FINE knob.
+        pitchBox = area.removeFromLeft(88);
+        area.removeFromLeft(8);
+        {
+            auto p = pitchBox.reduced(5, 4);
+            labels.push_back({ p.removeFromTop(12), "PITCH" });
+            labels.push_back({ p.removeFromTop(9), "OCT" });
+            octave.setBounds(p.removeFromTop(19));
+            p.removeFromTop(2);
+            labels.push_back({ p.removeFromTop(9), "NOTE" });
+            note.setBounds(p.removeFromTop(19));
+            p.removeFromTop(3);
+            labels.push_back({ p.removeFromTop(9), "FINE" });
+            fine.setBounds(p.withSizeKeepingCentre(juce::jmin(40, p.getWidth()), p.getHeight()));
+        }
+
+        // Right area: a five-knob row over a four-cell control row.
+        auto bottom = area.removeFromBottom(40);
+        auto knobRow = area;
+        const auto kw = knobRow.getWidth() / 5;
+        auto placeKnob = [&](juce::Slider& s, const juce::String& name, bool last) {
+            auto c = last ? knobRow : knobRow.removeFromLeft(kw);
+            labels.push_back({ c.removeFromBottom(12), name });
+            const auto d = juce::jmin(48, juce::jmin(c.getWidth() - 6, c.getHeight()));
+            s.setBounds(c.withSizeKeepingCentre(d, d));
+        };
+        placeKnob(volume, "VOLUME", false);
+        placeKnob(phase,  "PHASE",  false);
+        placeKnob(detune, "DETUNE", false);
+        placeKnob(stereo, "STEREO", false);
+        placeKnob(pan,    "PAN",    true);
+
+        const auto bw = bottom.getWidth() / 4;
+        auto placeBottom = [&](juce::Component& comp, const juce::String& name, int w, bool centredToggle) {
+            auto c = (w == 0) ? bottom : bottom.removeFromLeft(w);
+            labels.push_back({ c.removeFromBottom(11), name });
+            if (centredToggle)
+                comp.setBounds(c.withSizeKeepingCentre(juce::jmin(42, c.getWidth() - 4), juce::jmin(20, c.getHeight())));
+            else
+                comp.setBounds(c.reduced(3, 1));
+        };
+        placeBottom(invert,    "INV",    bw, true);
+        placeBottom(wave,      "WAVE",   bw, false);
+        placeBottom(voicesCtl, "VOICES", bw, false);
+        placeBottom(retrig,    "RETRIG", 0,  true);
+    }
+
+private:
+    void setupKnob(juce::Slider& s, juce::AudioProcessorValueTreeState& state, const std::string& id)
+    {
+        if (synth::findParameterSpec(id) == nullptr)
+            return;
+        s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+        s.setRotaryParameters(rotaryStart, rotaryEnd, true);
+        s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0); // Sylenth osc knobs label only
+        sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, id, s));
+        addAndMakeVisible(s);
+    }
+
+    void setupIncDec(juce::Slider& s, juce::AudioProcessorValueTreeState& state, const std::string& id)
+    {
+        if (synth::findParameterSpec(id) == nullptr)
+            return;
+        s.setSliderStyle(juce::Slider::IncDecButtons);
+        s.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, 19);
+        s.setColour(juce::Slider::textBoxTextColourId, text);
+        s.setColour(juce::Slider::textBoxBackgroundColourId, fieldBg);
+        s.setColour(juce::Slider::textBoxOutlineColourId, strokeSoft.withAlpha(0.7f));
+        sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, id, s));
+        // Compact integer readout: Sylenth's OCT/NOTE/VOICES boxes show a number, not a unit.
+        s.textFromValueFunction = [](double v) { return juce::String(juce::roundToInt(v)); };
+        s.valueFromTextFunction = [](const juce::String& t) { return static_cast<double>(t.getIntValue()); };
+        s.updateText();
+        addAndMakeVisible(s);
+    }
+
+    void setupCombo(juce::ComboBox& c, juce::AudioProcessorValueTreeState& state, const std::string& id)
+    {
+        const auto* spec = synth::findParameterSpec(id);
+        if (spec == nullptr)
+            return;
+        for (int i = 0; i < static_cast<int>(spec->choices.size()); ++i)
+            c.addItem(juce::String(spec->choices[static_cast<std::size_t>(i)]), i + 1);
+        comboAttachments.push_back(std::make_unique<ComboBoxAttachment>(state, id, c));
+        addAndMakeVisible(c);
+    }
+
+    void setupToggle(juce::ToggleButton& t, juce::AudioProcessorValueTreeState& state, const std::string& id)
+    {
+        if (synth::findParameterSpec(id) == nullptr)
+            return;
+        t.setClickingTogglesState(true);
+        buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, id, t));
+        addAndMakeVisible(t);
+    }
+
+    static constexpr int captionH = 26;
+
+    juce::String title;
+    std::atomic<float>* enabledParam = nullptr;
+    bool lastEnabled = true;
+
+    juce::Slider octave, note, voicesCtl, fine, volume, phase, detune, stereo, pan;
+    juce::ComboBox wave;
+    juce::ToggleButton invert, retrig, enableToggle;
+
+    std::vector<std::unique_ptr<SliderAttachment>> sliderAttachments;
+    std::vector<std::unique_ptr<ComboBoxAttachment>> comboAttachments;
+    std::vector<std::unique_ptr<ButtonAttachment>> buttonAttachments;
+
+    juce::Rectangle<int> pitchBox;
+    std::vector<std::pair<juce::Rectangle<int>, juce::String>> labels;
+};
+
+// ============================================================================
 // EnvelopePanel: ADSR as vertical faders with a derived contour preview.
 //
 // This is a Sylenth-style envelope module: the four real APVTS parameters
@@ -1043,7 +1245,7 @@ public:
         }
     }
 
-    int preferredHeight(int) const override { return 192; }
+    int preferredHeight(int) const override { return 158; }
 
     void paint(juce::Graphics& g) override
     {
@@ -3196,17 +3398,11 @@ void SynthAudioProcessorEditor::setSelectedLayer(int layerIndex)
             soundPage.removeChildComponent(slotPanels[static_cast<std::size_t>(slot)].get());
 
         const auto slotNumber = slot + 1;
-        const auto oscPrefix = (layerPrefix + "osc." + juce::String(slotNumber) + ".").toStdString();
-        const auto slotTitle = "Osc " + layerLetter + juce::String(slotNumber);
-        const auto slotStrip = "Layer " + layerLetter + " Osc " + juce::String(slotNumber) + " ";
+        const auto oscPrefix = layerPrefix + "osc." + juce::String(slotNumber) + ".";
+        const auto slotTitle = "Oscillator " + layerLetter + juce::String(slotNumber);
 
-        auto panel = std::make_unique<Panel>(state, slotTitle, std::vector<std::string>{
-            oscPrefix + "enabled", oscPrefix + "waveform", oscPrefix + "voices",
-            oscPrefix + "octave", oscPrefix + "note", oscPrefix + "fine_cents",
-            oscPrefix + "level", oscPrefix + "phase_degrees", oscPrefix + "detune",
-            oscPrefix + "stereo", oscPrefix + "pan", oscPrefix + "retrigger",
-            oscPrefix + "invert"
-        }, "LIVE", live, slotStrip);
+        auto panel = std::make_unique<OscillatorPanel>(state, oscPrefix, slotTitle,
+                                                       oscPrefix + "enabled");
         soundPage.addAndMakeVisible(*panel);
         slotPanels[static_cast<std::size_t>(slot)] = std::move(panel);
     }
@@ -4005,6 +4201,12 @@ void SynthAudioProcessorEditor::timerCallback()
         if (modulationOverviewPanel != nullptr)
             modulationOverviewPanel->refresh();
         for (auto* panel : transModPanels)
+            if (panel != nullptr)
+                panel->syncEnabledState();
+    }
+    else if (currentPage == Page::Sound)
+    {
+        for (auto& panel : slotPanels)
             if (panel != nullptr)
                 panel->syncEnabledState();
     }

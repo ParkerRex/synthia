@@ -42,6 +42,7 @@ private:
     class LayoutSection;
     class ParameterControl;
     class Panel;
+    class OscillatorPanel;
     class EnvelopePanel;
     class LcdDisplay;
     class MixerPanel;
@@ -151,7 +152,7 @@ private:
     juce::Component fxPage;
     juce::Component browserPage;
     std::vector<std::unique_ptr<Panel>> soundPanels;
-    std::array<std::unique_ptr<Panel>, synth::oscillatorSlotsPerLayer> slotPanels;
+    std::array<std::unique_ptr<OscillatorPanel>, synth::oscillatorSlotsPerLayer> slotPanels;
     std::unique_ptr<LcdDisplay> lcdDisplay;
     std::unique_ptr<MixerPanel> mixerPanel;
     std::unique_ptr<PresetWorkflowPanel> presetWorkflowPanel;
