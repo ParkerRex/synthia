@@ -24,13 +24,14 @@ Completed current-build proof:
 - Hosted AU `Arp Motion 01` factory preset editor-state inspection.
 - Hosted AU and VST3 `Arp Motion 01` playback after preset load with active voices, MIDI count, output level, and Live meters.
 - AU and VST3 parameter automation record/playback.
+- Bounded Ableton offline bounce versus realtime resampling comparison.
 - Standalone rendered modulation route write/clear proof through `SylenthAIRender --modulation-route-render-test`, paired with hosted AU/VST3 `Arp Motion 01` route visibility during playback.
 
 Remaining host-validation gaps:
 
-- Offline bounce versus realtime comparison.
+- Stronger Ableton offline bounce versus realtime comparison that can reject mismatched audio, such as minimum aligned correlation or bounded diff-to-signal ratio.
 
-Residual modulation caveat: no Ableton audio-diff modulation comparison has been captured. Current host proof is route visibility plus playback; rendered route behavior is proven by the standalone modulation-route render test.
+Residual caveats: no Ableton audio-diff modulation comparison has been captured. Current host proof is route visibility plus playback; rendered route behavior is proven by the standalone modulation-route render test. The Ableton offline/realtime comparison is a bounded energy-level host comparison, not a strict waveform null test.
 
 ## Environment
 
@@ -978,9 +979,51 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 - `automation-au-playback-mid.png`
 - `automation-au-playback-late.png`
 
-Remaining host-validation gap:
+Follow-on host-validation work from this point, later closed by the next proof below:
 
 - Offline bounce versus realtime comparison.
+
+## Ableton Current-Build Bounce Versus Realtime Compare - 2026-06-07
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: restored `/Users/parkerrex/Desktop/testing-synth Project/testing-synth.als`
+- plugin formats present during this pass: hosted AU on track 1 and hosted VST3 on track 2
+- comparison path: Ableton Master offline export versus Ableton internal `Resampling` realtime capture on track 3
+- render settings: Master, start `1.1.1`, length `6.0.0`, 44100 Hz, WAV 16-bit, MP3 enabled
+- generated local report: `build/reports/ableton/bounce-compare/ableton-bounce-realtime-compare.json`
+
+Results:
+
+- Exported a fresh Master offline bounce to `build/reports/ableton/bounce-compare/ableton-offline-current.wav`; Ableton also wrote an MP3 sibling artifact.
+- Routed audio track 3 to `Resampling`, armed it, and recorded realtime Master output into Ableton.
+- Copied the valid recorded AIF from `/Users/parkerrex/Desktop/testing-synth Project/Samples/Recorded/3-Audio 0001 [2026-06-07 051355].aif` to `build/reports/ableton/bounce-compare/ableton-realtime-resample-current.aif`.
+- The offline WAV is stereo 44.1 kHz 16-bit PCM, 529200 frames, 12.0 seconds, peak `0.32830810546875`, RMS `0.036749536829718675`, non-silent, and non-clipping.
+- The realtime AIF is stereo 44.1 kHz 24-bit PCM, 969728 frames, 21.99 seconds before alignment, and non-silent.
+- Alignment found the offline bounce inside the realtime capture at realtime offset `222209` frames / `5.03875283446712` seconds.
+- The aligned realtime segment peak is `0.30682373046875`, RMS is `0.03703281940458229`, peak delta is `-0.5878531810754004` dB, and RMS delta is `0.06669814839033678` dB.
+- Difference metrics are finite: `rms_diff` `0.033165678108847414`, `rms_diff_dbfs` `-29.586222372908438`, and `mean_abs_diff` `0.012707634721843924`.
+- Waveform correlation is `0.6104798365036401`, so this is not a strict waveform/null-test pass and does not close the stronger offline/realtime host-matrix item. It is counted as a bounded Ableton host sanity check because offline and realtime renders are finite, non-silent, non-clipping, and energy-matched within 1 dB while exercising different host render paths.
+
+Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
+
+- `bounce-compare-export-dialog-window.png`
+- `bounce-compare-save-panel-target.png`
+- `bounce-compare-track3-resampling-selected.png`
+- `bounce-compare-track3-armed.png`
+- `bounce-compare-after-realtime-record.png`
+- `bounce-compare/ableton-offline-current.wav`
+- `bounce-compare/ableton-offline-current.mp3`
+- `bounce-compare/ableton-realtime-resample-current.aif`
+- `bounce-compare/ableton-bounce-realtime-compare.json`
+
+Remaining host-validation gaps:
+
+- Stronger Ableton offline bounce versus realtime comparison that can reject mismatched audio, such as minimum aligned correlation or bounded diff-to-signal ratio.
+- Strict offline/realtime waveform equivalence remains unclaimed.
 
 ## Historical Ableton Setup - 2026-06-05
 

@@ -39,7 +39,8 @@ sylenth-ai is not useful until it loads and restores correctly in Ableton. After
 - [x] 2026-06-05 EDT: Revalidated Release build, CTest, core suite, bundle checks, install signing, uninstall dry-run, and AU validation for the current FX/quality build.
 - [x] 2026-06-06 EDT: Revalidated the current renamed build with `build-release-phase1-ableton`; Ableton rescanned `sylenth-ai.vst3`, created ParkerX `sylenth-ai` v0.1.0, and played MIDI with active host meters. Hosted editor proof remains open.
 - [x] 2026-06-07 EDT: Ran AU/VST3 parameter automation record/playback proof in Ableton, including copied Live set XML inspection and playback screenshots.
-- [ ] Run Ableton bounce-versus-realtime validation against the current UI/preset/FX build.
+- [x] 2026-06-07 EDT: Ran bounded Ableton bounce-versus-realtime validation against the current UI/preset/FX build.
+- [ ] Run a stronger Ableton offline/realtime comparison that can reject mismatched audio, such as minimum aligned correlation or bounded diff-to-signal ratio.
 - [x] Document install, uninstall, and host troubleshooting.
 
 ## Surprises & Discoveries
