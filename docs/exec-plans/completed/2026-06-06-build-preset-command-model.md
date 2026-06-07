@@ -11,7 +11,7 @@ read_when:
   - Wiring UI buttons for Init, Reset, or Randomize.
   - Adding AI-generated preset commands.
   - Auditing preset state replacement, randomization bounds, or host-state behavior.
-  - Planning safe overwrite, dirty state, A/B compare, or preset provenance.
+  - Planning safe-save, dirty state, A/B compare, or preset provenance.
 ---
 
 # Build Preset Command Model
@@ -49,7 +49,7 @@ Decision: Keep randomization bounded and conservative.
 Rationale: This is a Phase 1 musical command, not a chaos generator. It must avoid invalid audio, runaway FX, excessive gain, and impossible parameter combinations.
 Date: 2026-06-06.
 
-Decision: Leave UI controls, safe overwrite, dirty tracking, A/B compare, delete, and AI provenance out of this slice.
+Decision: Leave UI controls, safe-save policy, dirty tracking, A/B compare, delete, and AI provenance out of this slice.
 Rationale: Those features need separate UI and persistence rules. This slice only supplies model-ready command actions.
 Date: 2026-06-06.
 
@@ -150,7 +150,7 @@ Reset depends on the current preset path. If the current state has no file path 
 
 No source-controlled runtime artifacts are produced. Disposable validation reports remain under `build/reports/`.
 
-Remaining follow-up: add UI controls for Init/Randomize/Reset, safe overwrite prompts, dirty indicators, A/B compare controls, and measured finite render proof for broader AI/randomized patch classes. The backend dirty/safe-save/A-B state model landed later in `2026-06-06-build-preset-workflow-state-model.md`.
+Remaining follow-up: add measured finite render proof for broader AI/randomized patch classes. The backend dirty/safe-save/A-B state model landed later in `2026-06-06-build-preset-workflow-state-model.md`; visible workflow controls landed later in `2026-06-06-build-preset-workflow-ui-controls.md` and `2026-06-06-build-preset-safe-save-metadata-ui.md`.
 
 ## Interfaces and Dependencies
 

@@ -61,6 +61,8 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [x] 2026-06-06 EDT: Captured native standalone screenshot evidence at `build/reports/ui/preset-workflow-ui-tall.png`, `build/reports/ui/preset-workflow-ui-workflow.png`, `build/reports/ui/preset-workflow-ui-compact-workflow.png`, and `build/reports/ui/preset-workflow-ui-after-a-store.png`.
 - [x] 2026-06-06 EDT: Passed `git diff --check`, Debug build, CTest 8/8, and `SylenthAIRender --suite core --output-dir build/reports/core` for the preset workflow UI-control slice.
 - [x] 2026-06-06 EDT: Ran manual control smoke in the standalone: clicked `A Store`, confirmed status changed to `Captured compare A`, and confirmed `A Load` became actionable.
+- [x] 2026-06-06 EDT: Added a Sound-page `PRESET SAVE` panel with metadata fields and explicit `Save New` / `Overwrite` actions over the real `PresetWriteOptions` create-new/overwrite model.
+- [x] 2026-06-06 EDT: Captured standalone screenshot evidence at `build/reports/ui/preset-safe-save-metadata-ui-workflow.png` and `build/reports/ui/preset-safe-save-metadata-ui-compact.png`.
 
 ## Surprises & Discoveries
 
@@ -89,10 +91,11 @@ Residual gaps after this pass:
 - The modulation-overview active-route count and source highlighting only populate once a preset/route actually drives `getModulationRouteView()`; the Init patch has zero routes, so the screenshot shows the empty path.
 - The ARP/STEP/CHORD panel is still the last Sound-page row and needs scrolling at the default window height; bottom-lane vertical density is unchanged.
 - Modulation drag/drop, matrix editing, per-route bypass/remove, and route halos still need explicit write adapters or schema support before they become UI scope.
-- Preset metadata editing, invalid-preset visible errors, safe overwrite prompt, bank import/export, delete/insert/copy/paste, and persisted A/B slots remain out of scope.
+- Invalid-preset visible errors, bank import/export, delete/insert/copy/paste, rich scanned-preset detail, and persisted A/B slots remain out of scope.
 - The preset workflow panel lives below the arp/step/chord row, so it requires scroll at compact/default heights.
+- The preset metadata/save panel sits below the workflow row, so it also requires scroll at compact/default heights.
 
-The next Claude Code pass can target deeper preset browser metadata/safe-save polish, arp/step/chord density, and FX rack visual polish only.
+The next Claude Code pass can target invalid-preset browser feedback, arp/step/chord density, and FX rack visual polish only.
 
 ## Context and Orientation
 

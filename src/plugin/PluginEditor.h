@@ -6,6 +6,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <vector>
 
 // Modern Sylenth-style control surface for sylenth-ai.
@@ -42,6 +43,7 @@ private:
     class ParameterControl;
     class Panel;
     class PresetWorkflowPanel;
+    class PresetMetadataPanel;
     class SequencerPanel;
     class PresetBrowserPanel;
     class MidiControllerPanel;
@@ -85,6 +87,9 @@ private:
     void captureCompareSlot(int slotIndex);
     void recallCompareSlot(int slotIndex);
     void refreshPresetWorkflow();
+    const SynthAudioProcessor::PresetListItem* findCurrentPresetItem();
+    void syncPresetMetadataPanel();
+    void savePresetWithMetadata(synth::PresetWriteMode mode);
 
     void updateStatus(const juce::String& message);
     void updateDiagnostics();
@@ -141,6 +146,7 @@ private:
     std::vector<std::unique_ptr<Panel>> soundPanels;
     std::array<std::unique_ptr<Panel>, synth::oscillatorSlotsPerLayer> slotPanels;
     std::unique_ptr<PresetWorkflowPanel> presetWorkflowPanel;
+    std::unique_ptr<PresetMetadataPanel> presetMetadataPanel;
     std::unique_ptr<PresetBrowserPanel> presetBrowserPanel;
     std::unique_ptr<MidiControllerPanel> midiControllerPanel;
     std::unique_ptr<SequencerPanel> sequencerPanel;
@@ -175,6 +181,7 @@ private:
     int selectedLayer = 0;
 
     std::vector<SynthAudioProcessor::PresetListItem> presetItems;
+    std::optional<SynthAudioProcessor::PresetListItem> currentPresetMetadataItem;
     std::unique_ptr<juce::FileChooser> fileChooser;
     int lastInvalidSamples = 0;
 

@@ -9,7 +9,7 @@ program_id: sylenth-lab-rebuild
 planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
 read_when:
   - Reviewing preset workflow UI bindings.
-  - Planning metadata editing or safe overwrite UI.
+  - Reviewing the later metadata/safe-save UI dependency.
   - Checking what preset workflow controls are already visible.
 ---
 
@@ -100,7 +100,6 @@ Manual UI proof:
 
 ## Follow-Up
 
-- Add metadata editing and author/notes detail.
-- Add explicit safe overwrite flow over the existing create-new/overwrite model.
+- Metadata editing and explicit safe-save controls later landed in `2026-06-06-build-preset-safe-save-metadata-ui.md`.
 - Add invalid-preset visible error rows.
 - Decide whether workflow controls should move closer to the header after the final Sylenth-style layout pass.
