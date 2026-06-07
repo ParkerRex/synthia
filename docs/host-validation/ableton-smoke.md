@@ -4,7 +4,7 @@ Use this file when validating sylenth-ai on a Mac with Ableton installed. Commit
 
 Local install, uninstall, ad-hoc signing, AU validation, and Ableton rescan troubleshooting are documented in `docs/host-validation/local-install-troubleshooting.md`.
 
-## Current Status Summary - 2026-06-06
+## Current Status Summary - 2026-06-07
 
 Completed current-build proof:
 
@@ -17,6 +17,7 @@ Completed current-build proof:
 - AU in-editor MIDI Learn capture and sidecar persistence.
 - AU global-panel MIDI Forget and post-Forget CC non-application.
 - VST3 all-notes-off, all-sound-off, and hosted Panic clearing sustained voices.
+- AU all-notes-off, all-sound-off, and hosted Panic clearing sustained voices.
 
 Remaining host-validation gaps:
 
@@ -24,7 +25,6 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- AU all-notes-off, all-sound-off, and hosted Panic proof.
 
 ## Environment
 
@@ -130,7 +130,7 @@ Remaining host-validation gaps after this VST3 smoke pass:
 - Current preset recreation and modulation exercise.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
-- Transport stop proof later passed; VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- Transport stop proof later passed; AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 - Hosted UI open/close while transport is running.
 
 ## Ableton Current-Build Restore Smoke - 2026-06-06
@@ -166,7 +166,7 @@ Remaining host-validation gaps after this restore smoke pass:
 - Current preset recreation and modulation exercise.
 - Offline bounce comparison.
 - Sample-rate and buffer-size changes.
-- Transport stop proof later passed; VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- Transport stop proof later passed; AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 - Hosted UI open/close while transport is running.
 
 ## Ableton Current-Build Transport/Device Smoke - 2026-06-06
@@ -202,7 +202,7 @@ Host-validation gaps after this slice:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 - Hosted UI open/close while transport is running.
 
 ## Ableton Current-Build Offline Bounce Smoke - 2026-06-06
@@ -241,7 +241,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 - Hosted UI open/close while transport is running.
 
 ## Ableton Current-Build AU Transport Smoke - 2026-06-06
@@ -263,7 +263,7 @@ Results:
 - Transport start ran the MIDI clip with the AU editor showing active voices, moving peak level, MIDI count, 44100 Hz sample rate, 512-sample block size, and active Live meters.
 - Transport stop halted playback with voices returning to `0`, peak returning to `-inf`, and no visible host crash.
 - Live also logged `Vst3: couldn't get controller state of sylenth-ai: not implemented` at `2026-06-06T03:34:10.014440`. Keep that VST3 controller-state warning on the host-state watchlist; it did not block this AU transport smoke.
-- This proves current-build AU create/play/stop behavior with a hosted editor window visible. At the time, it did not prove automation, learned CC mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport was running. Follow-on validation later proved hosted AU editor open/close/reopen while transport runs and hosted VST3 all-notes-off/all-sound-off/Panic clearing.
+- This proves current-build AU create/play/stop behavior with a hosted editor window visible. At the time, it did not prove automation, learned CC mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport was running. Follow-on validation later proved hosted AU editor open/close/reopen while transport runs and hosted AU/VST3 all-notes-off/all-sound-off/Panic clearing.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 
@@ -280,7 +280,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 
 ## Ableton Current-Build Hosted UI Lifecycle Attempt - 2026-06-06
 
@@ -317,7 +317,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 
 ## Ableton Current-Build Hosted AU Editor Reopen Control - 2026-06-06
 
@@ -358,7 +358,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 
 ## Ableton Current-Build VST3 Hosted Editor Lifecycle - 2026-06-06
 
@@ -399,7 +399,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 
 ## Ableton Current-Build VST3 Controller Learn Proof - 2026-06-06
 
@@ -445,7 +445,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 
 ## Ableton Current-Build VST3 Continuous Controller Value Proof - 2026-06-06
 
@@ -483,7 +483,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 
 ## Ableton Current-Build VST3 Controller Forget And Stepped Proof - 2026-06-06
 
@@ -530,7 +530,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 
 ## Ableton Current-Build AU Controller Value Proof - 2026-06-06
 
@@ -569,7 +569,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 
 ## Ableton Current-Build AU Controller Learn Proof - 2026-06-06
 
@@ -609,7 +609,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 
 ## Ableton Current-Build AU Controller Forget Proof - 2026-06-06
 
@@ -662,7 +662,7 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- VST3 all-notes-off/all-sound-off and hosted Panic proof later passed; AU all-notes-off/all-sound-off and hosted Panic proof remains open.
+- AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
 
 ## Ableton Current-Build VST3 All-Notes/Panic Proof - 2026-06-06
 
@@ -714,7 +714,49 @@ Remaining host-validation gaps:
 - Current preset recreation and modulation exercise.
 - Offline bounce versus realtime comparison.
 - Sample-rate and buffer-size changes.
-- AU all-notes-off, all-sound-off, and hosted Panic proof.
+
+## Ableton Current-Build AU All-Notes/Panic Proof - 2026-06-07
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: restored `testing-synth [testing-synth]` validation set
+- plugin format tested in this pass: AU
+- build under test: installed local current-build AU from `build-release-host-matrix`; no plugin source changes were made during this proof
+- MIDI source: temporary CoreMIDI source `SylenthAI Codex Panic Source`
+
+Results:
+
+- Ableton loaded the current AU from `Audio Units > ParkerX > sylenth-ai` and logged `Au: Going to create: sylenth-ai` then `Au: Created: sylenth-ai`.
+- Ableton exposed `SylenthAI Codex Panic Source` as a track-enabled MIDI input.
+- With two sustained notes held from the temporary source, the hosted AU editor showed `Voices 2/8`, MIDI input count advancing, active Ableton meters, and a finite output peak.
+- Sending MIDI CC123 all-notes-off cleared the hosted AU editor to `Voices 0/8`.
+- Holding two fresh notes and sending MIDI CC120 all-sound-off cleared the hosted AU editor to `Voices 0/8`.
+- Holding two fresh notes and clicking the hosted AU editor `Panic` button cleared the editor to `Voices 0/8`; the footer reported `Panic sent: voices and FX cleared`.
+- The temporary MIDI source was sent CC123, CC120, note-offs, and then quit.
+- A Live Preferences window appeared behind the hosted editor during the proof; it did not block the AU editor controls or invalidate the proof.
+
+Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
+
+- `au-panic-proof-audio-units-key-expanded.png`
+- `au-panic-proof-parkerx-expanded.png`
+- `au-panic-proof-after-au-load-return.png`
+- `au-panic-proof-held-before-cc123.png`
+- `au-panic-proof-after-cc123-all-notes-off.png`
+- `au-panic-proof-held-before-cc120.png`
+- `au-panic-proof-after-cc120-all-sound-off.png`
+- `au-panic-proof-held-before-panic-live-activated.png`
+- `au-panic-proof-after-panic-button-retry.png`
+- `au-panic-proof-ableton-log-excerpt.txt`
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- Current preset recreation and modulation exercise.
+- Offline bounce versus realtime comparison.
+- Sample-rate and buffer-size changes.
 
 ## Historical Ableton Setup - 2026-06-05
 
