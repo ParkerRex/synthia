@@ -156,7 +156,7 @@ Design constraints:
 - Text and values must fit at compact plugin sizes.
 - Draw modulation state from the route model; do not duplicate hidden UI-only routes.
 - Browser scan and preset operations must not run on the audio thread.
-- Use source screenshots/manual for workflow expectations, not literal copying.
+- Use source screenshots/manual as target evidence for Sylenth-faithful workflow, density, panel rhythm, and control treatment. Implement the result as real JUCE controls bound to existing route/browser/arp/FX state.
 
 ## Milestones
 
