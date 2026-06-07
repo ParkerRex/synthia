@@ -26,7 +26,7 @@
 
 7. Claude Code UI handoff: shell/layout
    - Depends on: enough backbone state to avoid fake A/B UI.
-   - Outputs: modern original Sylenth-level shell, screenshots, manual QA.
+   - Outputs: Sylenth-faithful shell, screenshots, manual QA.
 
 8. Claude Code UI handoff: modulation/preset/arp polish
    - Depends on: route model, browser model, arp model.
@@ -43,4 +43,3 @@
 11. Phase 3 conversational/reference control
     - Depends on: Phase 2 generation, reversible edit reports, stable UI affordances.
     - Outputs: prompt/reference workflows, diffs, confirmation, validation.
-

@@ -18,11 +18,11 @@ This specification separates product requirements from research confidence:
 - `Inferred` means the statement is a reasoned design conclusion from observed material.
 - `Unknown` means the statement is unresolved and MUST NOT be treated as confirmed behavior.
 
-The Phase 1 target is a Sylenth-level instrument experience, grounded in `Sylenth1Manual.pdf`, `research/sylenth1-screenshots/`, and `docs/modern-sylenth-baseline.md`. Older Strobe/pluck research remains supporting background for the current engine, not the product destination.
+The Phase 1 target is an approved Sylenth recreation direction for modern hosts, grounded in `Sylenth1Manual.pdf`, `research/sylenth1-screenshots/`, and `docs/modern-sylenth-baseline.md`. Older Strobe/pluck research remains supporting background for the current engine, not the product destination.
 
 ## 1. Problem Statement
 
-sylenth-ai is a software instrument for producers, sound designers, and coding agents in a lab context. The product mission is to rebuild the Sylenth1-style virtual analog workflow that producers still love, make it run well on today's macOS/Ableton systems, and then add AI-native workflows that legacy VSTs never had.
+sylenth-ai is a software instrument for producers, sound designers, and coding agents in a lab context. The product mission is to rebuild the Sylenth1 virtual analog workflow that producers still love, make it run well on today's macOS/Ableton systems, and then add AI-native workflows that legacy VSTs never had.
 
 The instrument solves these problems:
 
@@ -59,7 +59,7 @@ Success means:
 - Implement semitone-domain pitch and filter-cutoff modulation.
 - Implement a nonlinear OTA-cascade-style multimode filter with diode-feedback clipping behavior and drive/resonance interaction.
 - Provide amp-stage waveshaping, voice pan, unison pan, and analog-style instability controls.
-- Provide a compact production UI that reaches Sylenth-level speed while using a modern original visual system.
+- Provide a compact production UI that intentionally recreates Sylenth's visual hierarchy, density, panel rhythm, and control workflow as closely as the current real model-backed controls allow.
 - Phase 2: add AI-assisted patch randomization, sound generation, chord movement, and arpeggio generation.
 - Phase 3: add conversational VST control for text edits and reference-audio recreation workflows.
 - Ship AU and VST3 plugin targets for macOS.
@@ -72,7 +72,7 @@ Success means:
 
 - Bit-identical binary emulation of any third-party plugin.
 - Requiring a licensed Sylenth install at runtime.
-- Shipping third-party factory presets, samples, marks, or product assets as sylenth-ai-owned content.
+- Shipping third-party factory presets, samples, marks, logos, screenshots, manual content, or product assets as sylenth-ai-owned content without explicit legal approval.
 - Turning the product into a generic wavetable workstation before the Phase 1 Sylenth rebuild is complete.
 - VST2 support in the first release.
 - AAX support in the first release.
@@ -874,8 +874,9 @@ Required views:
 
 UI rules:
 
-- The UI MUST NOT copy the white SH-101-like historical plugin look, Roland SH-101 panel, FXpansion Strobe UI, or any other protected trade dress.
-- Controls SHOULD use compact, DAW-native visual language: knobs/sliders for continuous values, menus for modes, toggles for binary options, tabs for views, and clear modulation badges.
+- The UI SHOULD use the exact approved reference set, `Sylenth1Manual.pdf` plus every image listed in `research/sylenth1-screenshots/SOURCE_INDEX.md`, to recreate Sylenth's workflow, density, functional hierarchy, panel rhythm, control relationships, and preset interaction as faithfully as possible with the current real model-backed controls.
+- The UI MUST use original native controls and source-use-safe assets. It MUST NOT copy protected third-party trade dress, logos, raster assets, screenshot backplates, product marks, or other source material unless explicit legal approval exists; unrelated references such as the white SH-101-like historical plugin look, Roland SH-101 panel, and FXpansion Strobe UI are also out of scope.
+- Controls SHOULD use compact Sylenth-style production language: knobs/sliders for continuous values, menus for modes, toggles for binary options, tabs or panel selectors for views, and clear modulation badges.
 - Text MUST remain readable at all supported scales.
 - Every control MUST have a host parameter or documented local-only state.
 - Automation gestures MUST be correct for mouse, keyboard, and controller edits.
@@ -1137,11 +1138,12 @@ Current sources:
 
 ## 12. Security, Privacy, and Safety
 
-### 12.1 Clean-Room and Legal Safety
+### 12.1 Source Authorization And Legal Safety
 
 - Implementation MUST be original.
 - Developers MUST NOT decompile, disassemble, patch, or inspect proprietary binaries for algorithmic extraction.
-- Developers MUST NOT copy third-party presets, UI assets, manuals beyond fair-use notes, screenshots, product names, logos, or trade dress.
+- The Sylenth manual and screenshot corpus in this repo are approved Phase 1 rebuild references. Visual parity with Sylenth is an explicit product goal, not a constraint to avoid. Reference use does not permit copied presets, logos, screenshot backplates, raster UI assets, manual text, or bundled source material in shipped content unless explicit legal approval exists.
+- Developers MUST NOT copy third-party presets, UI assets, manuals beyond fair-use notes, screenshots, product names, logos, or trade dress into the implementation or shipped content unless explicit legal approval exists.
 - Shipped UI and factory content MUST avoid unlicensed marks including `FXpansion`, `Strobe`, `ROLI`, `Roland`, `SH-101`, `Deadmau5`, and song titles unless legal approval exists.
 - Internal research notes MAY cite sources and use third-party names for nominative reference.
 
@@ -1529,7 +1531,7 @@ Metrics:
 - Transport stop/all-notes-off.
 - Plugin UI open/close during playback.
 
-### 18.8 Security and Clean-Room Tests
+### 18.8 Security And Source-Use Tests
 
 - Factory preset display names avoid third-party marks.
 - Bundle metadata avoids third-party marks.
@@ -1559,7 +1561,7 @@ Metrics:
 - Arpeggiator and 16-step pattern workflow with host-tempo sync, gate, octave/wrap, velocity, hold/tie, and deterministic render proof.
 - Sylenth-level preset workflow: bank/folder browsing, previous/next, search/tags, favorites, author/notes, dirty state, init/randomize/reset, safe save/overwrite, and host restore.
 - FX rack coverage for distortion/saturation, phaser, chorus/flanger, EQ, delay, reverb, compressor, bypass state, tail reporting, and finite wet renders.
-- Modern original UI that reaches Sylenth-level speed and density while preserving readability and Ableton stability.
+- Sylenth-faithful UI that reaches the original's speed, density, panel rhythm, and workflow while preserving readability and Ableton stability.
 - Ableton AU/VST3 proof for scan/load/playback, automation, save/reopen restore, bounce, buffer/sample-rate changes, and UI open/close while playing.
 - Release-safe product names, preset names, UI, and metadata.
 
@@ -1617,9 +1619,9 @@ Metrics:
 - Whether the first public release should include onboard delay/reverb or keep FX disabled/internal until the dry core is validated.
 - Whether an audio-input/effect version is desired.
 - Whether to use GPL/commercial JUCE terms or another framework path.
-- Which exact reference audio clips and screenshots are approved for internal measurement.
+- Which exact reference audio clips, if any, are approved for internal audio measurement beyond the approved Sylenth manual and screenshot corpus.
 - Whether older Strobe research remains useful once the Phase 1 Sylenth rebuild is underway.
-- Exact UI visual direction, beyond the source-use and release constraints.
+- Exact release-safe branding, mark treatment, and source-use approvals for the Sylenth-faithful UI.
 - Whether factory preset names may use indirect nods or must be completely generic.
 
 ## Appendix A. Factory Pluck Profile

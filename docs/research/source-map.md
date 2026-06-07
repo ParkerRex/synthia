@@ -26,7 +26,7 @@ Observed:
 Inferred:
 
 - Phase 1 should recreate the Sylenth-level instrument workflow before adding broader synthesis families.
-- The screenshot corpus should drive layout density, control grouping, visual hierarchy, and workflow comparisons, not require a literal pixel copy.
+- The screenshot corpus is approved target evidence for visual parity: layout density, control grouping, panel rhythm, visual hierarchy, preset/LCD workflow, knob styling, and screenshot-to-screenshot comparison should drive UI decisions.
 
 ### AI Extension References
 
