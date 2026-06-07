@@ -20,11 +20,12 @@ Completed current-build proof:
 - AU all-notes-off, all-sound-off, and hosted Panic clearing sustained voices.
 - AU sample-rate and buffer-size change handling.
 - VST3 sample-rate and buffer-size change handling.
+- Hosted VST3 `Arp Motion 01` factory preset editor-state inspection with visible modulation routes and FX state.
 
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- AU preset load, playback after preset load, and Ableton-side modulation behavior exercise.
 - Offline bounce versus realtime comparison.
 
 ## Environment
@@ -128,7 +129,7 @@ Remaining host-validation gaps after this VST3 smoke pass:
 
 - AU and VST3 automation record/playback.
 - VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, AU in-editor Learn capture, and AU global-panel MIDI Forget later passed.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - Transport stop proof later passed; AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -164,7 +165,7 @@ Remaining host-validation gaps after this restore smoke pass:
 
 - AU and VST3 automation record/playback.
 - VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, AU in-editor Learn capture, and AU global-panel MIDI Forget later passed.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - Transport stop proof later passed; AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -200,7 +201,7 @@ Host-validation gaps after this slice:
 - AU and VST3 automation record/playback.
 - VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, AU in-editor Learn capture, and AU global-panel MIDI Forget later passed.
 - AU transport run/stop proof was later covered by `Ableton Current-Build AU Transport Smoke - 2026-06-06`.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -239,7 +240,7 @@ Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
 - VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, AU in-editor Learn capture, and AU global-panel MIDI Forget later passed.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -264,7 +265,7 @@ Results:
 - Transport start ran the MIDI clip with the AU editor showing active voices, moving peak level, MIDI count, 44100 Hz sample rate, 512-sample block size, and active Live meters.
 - Transport stop halted playback with voices returning to `0`, peak returning to `-inf`, and no visible host crash.
 - Live also logged `Vst3: couldn't get controller state of sylenth-ai: not implemented` at `2026-06-06T03:34:10.014440`. Keep that VST3 controller-state warning on the host-state watchlist; it did not block this AU transport smoke.
-- This proves current-build AU create/play/stop behavior with a hosted editor window visible. At the time, it did not prove automation, learned CC mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport was running. Follow-on validation later proved hosted AU editor open/close/reopen while transport runs, hosted AU/VST3 all-notes-off/all-sound-off/Panic clearing, and hosted AU sample-rate/buffer change handling.
+- This proves current-build AU create/play/stop behavior with a hosted editor window visible. At the time, it did not prove automation, learned CC mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport was running. Follow-on validation later proved hosted AU editor open/close/reopen while transport runs, hosted AU/VST3 all-notes-off/all-sound-off/Panic clearing, hosted AU/VST3 sample-rate/buffer change handling, and hosted VST3 preset editor-state inspection.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 
@@ -278,7 +279,7 @@ Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
 - VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, AU in-editor Learn capture, and AU global-panel MIDI Forget later passed.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -315,7 +316,7 @@ Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
 - VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, AU in-editor Learn capture, and AU global-panel MIDI Forget later passed.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -356,7 +357,7 @@ Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
 - VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, AU in-editor Learn capture, and AU global-panel MIDI Forget later passed.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -397,7 +398,7 @@ Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
 - VST3 learned-CC, continuous value-application, Forget, stepped-controller proof, AU seeded controller value proof, AU in-editor Learn capture, and AU global-panel MIDI Forget later passed.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -443,7 +444,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -481,7 +482,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -528,7 +529,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -567,7 +568,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -607,7 +608,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -660,7 +661,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 - AU and VST3 all-notes-off/all-sound-off and hosted Panic proof later passed.
@@ -712,7 +713,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 
@@ -755,7 +756,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - AU and VST3 sample-rate/buffer change proof later passed.
 
@@ -790,7 +791,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
 - Offline bounce versus realtime comparison.
 - VST3 sample-rate and buffer-size change proof later passed.
 
@@ -828,7 +829,45 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 Remaining host-validation gaps:
 
 - AU and VST3 automation record/playback.
-- Current preset recreation and modulation exercise.
+- Hosted VST3 Arp Motion 01 preset editor-state proof later passed; AU preset load, playback after preset load, and Ableton-side modulation behavior exercise remain open.
+- Offline bounce versus realtime comparison.
+
+## Ableton Current-Build VST3 Preset/Modulation Editor-State Proof - 2026-06-07
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: restored `testing-synth [testing-synth]` validation set
+- plugin format tested in this pass: VST3
+- build under test: installed local current-build VST3 from `build-release-host-matrix`; no plugin source changes were made during this proof
+
+Results:
+
+- Opened the hosted VST3 editor on track 2.
+- The hosted preset menu listed `Factory / Arps - Arp Motion 01 [arp, chord]`.
+- Selecting `Arp Motion 01` and clicking `Load` changed the hosted editor from Init to the factory patch and the footer reported `Loaded preset: Arp Motion 01`.
+- The hosted Sound page showed patch-specific oscillator, filter, LFO, macro, and patch-load estimate state.
+- The hosted Modulation page showed `ACTIVE ROUTES (2)`, with `Ramp -> Filter Cutoff x Velocity +12.0 st` and `LFO 1 -> Amp Level x Macro Motion +3.0 dB`; TransMod 1 and 2 were enabled with non-default sources/scalers.
+- The hosted Effects page showed patch-specific FX state with global FX enabled, active Saturation, Delay, and Reverb, and quality controls visible.
+- This pass did not prove AU preset loading, playback after the preset load, or modulation behavior in rendered Ableton audio.
+
+Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
+
+- `preset-modulation-vst3-editor-init.png`
+- `preset-modulation-preset-menu-open.png`
+- `preset-modulation-arp-motion-selected-before-load.png`
+- `preset-modulation-arp-motion-loaded-sound.png`
+- `preset-modulation-arp-motion-modulation-page.png`
+- `preset-modulation-arp-motion-effects-page.png`
+
+Supporting standalone preset render validation also passed: `./build/SylenthAIRender --suite patch-recreation --output-dir build/reports/patch-recreation-ableton-preset-proof` wrote six reports under `build/reports/patch-recreation-ableton-preset-proof/`.
+
+Remaining host-validation gaps:
+
+- AU and VST3 automation record/playback.
+- AU preset load, playback after preset load, and Ableton-side modulation behavior exercise.
 - Offline bounce versus realtime comparison.
 
 ## Historical Ableton Setup - 2026-06-05

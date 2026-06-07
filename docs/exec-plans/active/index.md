@@ -11,7 +11,7 @@ Active Claude handoff slice: `2026-06-06-handoff-sylenth-visual-information-arch
 
 UI handoff rule: the modern shell handoff is completed, and the roadmap truth audit says A/B layer plus four-slot rendering is real enough for a broad visual information architecture pass. Preset browser, invalid-preset browser error rows, preset workflow controls, metadata-aware safe-save controls, arp/step/chord, FX rack, patch cost, modulation inspection, and single-slot modulation route writing have model-backed surfaces; the main visible surfaces have screenshot evidence, while invalid-row bottom-browser proof remains manual until JUCE viewport automation is reliable. Per-route bypass/remove, richer bank management, and expanded modulation destinations still need later schema/workflow work.
 
-Product-order Codex slice: complete the remaining Ableton Phase 1 host matrix against AU/VST3 with automation record/playback, Ableton-side preset recreation, modulation exercise, and bounce-versus-realtime comparison.
+Product-order Codex slice: complete the remaining Ableton Phase 1 host matrix against AU/VST3 with automation record/playback, AU preset load, playback after preset load, Ableton-side modulation behavior exercise, and bounce-versus-realtime comparison.
 
 Completed child plans:
 
@@ -42,6 +42,7 @@ Completed child plans:
 - `../completed/2026-06-07-validate-ableton-au-all-notes-panic-proof.md`
 - `../completed/2026-06-07-validate-ableton-au-sample-rate-buffer-proof.md`
 - `../completed/2026-06-07-validate-ableton-vst3-sample-rate-buffer-proof.md`
+- `../completed/2026-06-07-validate-ableton-vst3-preset-modulation-proof.md`
 - `../completed/2026-06-06-validate-ableton-au-transport-smoke.md`
 - `../completed/2026-06-06-validate-ableton-hosted-ui-lifecycle-attempt.md`
 - `../completed/2026-06-06-validate-ableton-hosted-au-editor-reopen-control.md`
