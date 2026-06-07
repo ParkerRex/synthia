@@ -89,6 +89,7 @@ The current Program is not release hardening. It is a product expansion Program.
 - [x] 2026-06-06 EDT: Executed VST3 all-notes/panic proof: routed `SylenthAI Codex Panic Source`, proved held voices at `2/8`, proved CC123 all-notes-off, CC120 all-sound-off, and hosted Panic each cleared sustained voices to `0/8`.
 - [x] 2026-06-07 EDT: Executed AU all-notes/panic proof: loaded `Audio Units > ParkerX > sylenth-ai`, routed `SylenthAI Codex Panic Source`, proved held voices at `2/8`, and proved CC123 all-notes-off, CC120 all-sound-off, and hosted Panic each cleared sustained voices to `0/8`.
 - [x] 2026-06-07 EDT: Executed AU sample-rate/buffer proof: changed Ableton from `44100`/`512 Samples` to `48000`/`256 Samples`, reopened the hosted AU editor, and verified diagnostics updated to `SR 48000 Hz` and `Block 256`; restored Ableton to `44100`/`512 Samples` after proof.
+- [x] 2026-06-07 EDT: Executed VST3 sample-rate/buffer proof: loaded `Plug-Ins > VST3 > ParkerX > sylenth-ai`, changed Ableton from `44100`/`512 Samples` to `48000`/`256 Samples`, reopened the hosted VST3 editor, and verified diagnostics updated to `SR 48000 Hz` and `Block 256`; restored Ableton to `44100`/`512 Samples` after proof.
 - [x] 2026-06-06 EDT: Executed Phase 1 patch recreation suite with five additional lab-authored Factory presets, renderer support for preset-loaded arp/chord state, standalone WAV/JSON proof, and CTest coverage.
 - [x] 2026-06-06 EDT: Executed modulation write adapter slice with route-write compilation to existing `transmod.N.*` APVTS fields, processor write/clear APIs, and contract tests for writes, invalid inputs, clamping, and slot clearing.
 - [x] 2026-06-06 EDT: Executed patch cost and voice math model slice with a shared estimator, processor diagnostic exposure, header active/max voice display, and contract tests for default, high-cost, zero-level, solo/mute, mono/unison/poly, filter, and FX cases.
@@ -155,6 +156,7 @@ Completed child ExecPlans:
 - `docs/exec-plans/completed/2026-06-06-validate-ableton-vst3-all-notes-panic-proof.md`
 - `docs/exec-plans/completed/2026-06-07-validate-ableton-au-all-notes-panic-proof.md`
 - `docs/exec-plans/completed/2026-06-07-validate-ableton-au-sample-rate-buffer-proof.md`
+- `docs/exec-plans/completed/2026-06-07-validate-ableton-vst3-sample-rate-buffer-proof.md`
 
 Planned child ExecPlans are listed in `plan-split-recommendation.md`.
 
@@ -164,7 +166,7 @@ Product-order next Codex slice: complete the remaining Phase 1 Ableton host matr
 
 Preset browser, visible invalid-preset browser errors, arp/step/chord, FX rack, modulation inspection/write adapter with audio render proof, model-backed patch cost, backend preset commands, preset workflow state model plus visible dirty/init/randomize/reset/A-B and metadata-aware safe-save controls, layer/slot rendering, and MIDI controller bridge state now exist. Claude Code can take bounded visual polish passes over those ready surfaces; per-route bypass/remove, per-control MIDI context menus, expanded modulation destinations, and per-layer filter/envelope/master parity remain later slices.
 
-The remaining non-UI product proof is Ableton AU/VST3 automation record/playback, Ableton-side current preset recreation, modulation exercise, bounce-versus-realtime comparison, and VST3 sample-rate and buffer-size changes. Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, AU/VST3 all-notes-off/all-sound-off/hosted Panic proof, AU seeded controller value proof, AU in-editor MIDI Learn proof, AU global-panel MIDI Forget proof, AU sample-rate/buffer proof, and standalone patch recreation are already recorded.
+The remaining non-UI product proof is Ableton AU/VST3 automation record/playback, Ableton-side current preset recreation, modulation exercise, and bounce-versus-realtime comparison. Scan/load/play/restore, VST3 transport, VST3 offline bounce artifact creation, AU transport, AU/VST3 hosted editor open/close/reopen while transport runs, VST3 controller Learn/value/Forget/stepped proof, AU/VST3 all-notes-off/all-sound-off/hosted Panic proof, AU seeded controller value proof, AU in-editor MIDI Learn proof, AU global-panel MIDI Forget proof, AU/VST3 sample-rate/buffer proof, and standalone patch recreation are already recorded.
 
 ## Risks and Watchpoints
 
@@ -184,7 +186,7 @@ Pending implementation.
 Program-level acceptance requires:
 
 - Phase 1 A/B layers, four oscillator slots, arp/step workflow, FX rack, preset browser, MIDI/controller workflow, UI shell, and modulation UX are implemented and validated.
-- AU and VST3 load in Ableton, automate, save/reopen, restore state, prove learned controller mapping for both formats, exercise current presets/modulation, export offline bounce artifacts, compare offline bounce against realtime render, handle sample-rate/buffer-size changes, pass all-notes-off/panic checks, and survive hosted UI close/reopen while playing with the Phase 1 build. Current proof has already covered AU/VST3 load, restore, controller mapping, hosted UI lifecycle, VST3 offline bounce artifact creation, AU/VST3 all-notes-off/all-sound-off/hosted Panic, and AU sample-rate/buffer changes.
+- AU and VST3 load in Ableton, automate, save/reopen, restore state, prove learned controller mapping for both formats, exercise current presets/modulation, export offline bounce artifacts, compare offline bounce against realtime render, handle sample-rate/buffer-size changes, pass all-notes-off/panic checks, and survive hosted UI close/reopen while playing with the Phase 1 build. Current proof has already covered AU/VST3 load, restore, controller mapping, hosted UI lifecycle, VST3 offline bounce artifact creation, AU/VST3 all-notes-off/all-sound-off/hosted Panic, and AU/VST3 sample-rate/buffer changes.
 - Claude Code UI handoff plans are completed or explicitly closed with screenshots/manual QA notes.
 - Phase 2 AI generation can create finite, valid, editable preset/arp/modulation state.
 - Phase 3 conversational/reference workflows can produce reversible edits with clear reports.

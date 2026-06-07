@@ -44,3 +44,4 @@
 - `2026-06-06-validate-ableton-vst3-all-notes-panic-proof.md`
 - `2026-06-07-validate-ableton-au-all-notes-panic-proof.md`
 - `2026-06-07-validate-ableton-au-sample-rate-buffer-proof.md`
+- `2026-06-07-validate-ableton-vst3-sample-rate-buffer-proof.md`
