@@ -23,11 +23,11 @@ Completed current-build proof:
 - Hosted VST3 `Arp Motion 01` factory preset editor-state inspection with visible modulation routes and FX state.
 - Hosted AU `Arp Motion 01` factory preset editor-state inspection.
 - Hosted AU and VST3 `Arp Motion 01` playback after preset load with active voices, MIDI count, output level, and Live meters.
+- AU and VST3 parameter automation record/playback.
 - Standalone rendered modulation route write/clear proof through `SylenthAIRender --modulation-route-render-test`, paired with hosted AU/VST3 `Arp Motion 01` route visibility during playback.
 
 Remaining host-validation gaps:
 
-- AU and VST3 automation record/playback.
 - Offline bounce versus realtime comparison.
 
 Residual modulation caveat: no Ableton audio-diff modulation comparison has been captured. Current host proof is route visibility plus playback; rendered route behavior is proven by the standalone modulation-route render test.
@@ -939,7 +939,47 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 
 Remaining host-validation gaps:
 
-- AU and VST3 automation record/playback.
+- Offline bounce versus realtime comparison.
+
+## Ableton Current-Build Automation Record/Playback Proof - 2026-06-07
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- Live set: restored `/Users/parkerrex/Desktop/testing-synth Project/testing-synth.als`
+- plugin formats tested in this pass: AU and VST3
+- parameter automated in both formats: `Layer A Level`
+- visible audio state during proof: 44100 Hz, 512-sample block
+- build under test: installed local current-build AU/VST3 from the active Ableton host-matrix build; no plugin source changes were made during this proof
+
+Results:
+
+- Arrangement automation mode was enabled in Ableton and `Layer A Level` was recorded on the hosted AU track `1-sylenth-ai`.
+- A disposable Ableton set copy was written under ignored build evidence, then parsed as XML. The AU device is `AuPluginDevice` with source `query:Plugins#Audio%20Units:ParkerX:sylenth-ai`; `Layer A Level` maps to automation target `23778`.
+- The AU envelope contains 7 automation events, with values changing from `0.8328332901` to `0.9639999866`.
+- The same workflow was repeated on hosted VST3 track `2-sylenth-ai`.
+- The VST3 device appears as `PluginDevice` in the Ableton set XML, with source context `query:Plugins#VST3:ParkerX:sylenth-ai`; `Layer A Level` maps to automation target `24168`.
+- The VST3 envelope contains 12 automation events, with values changing from `0.8000000119` to `0.9759999514`.
+- A generated proof report at `build/reports/ableton/automation/automation-envelope-proof.json` records both tracks, both plugin formats, event counts, value ranges, source paths, and `passed: true`.
+- Replaying the VST3 automation showed `Layer A Level` moving from `0.00` early in playback to `10.56`, with the hosted editor showing active voices, output level, MIDI count, and Live meters.
+- Replaying the AU automation showed the bottom Live device value moving from `1.97` to `9.84`, then back to `1.97`, while transport ran.
+
+Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
+
+- `automation/automation-envelope-proof.json`
+- `automation/testing-synth-copy-after-au-vst3-automation.als`
+- `automation-vst3-record-started.png`
+- `automation-vst3-after-record-pass.png`
+- `automation-vst3-playback-early.png`
+- `automation-vst3-playback-late.png`
+- `automation-au-playback-early.png`
+- `automation-au-playback-mid.png`
+- `automation-au-playback-late.png`
+
+Remaining host-validation gap:
+
 - Offline bounce versus realtime comparison.
 
 ## Historical Ableton Setup - 2026-06-05
