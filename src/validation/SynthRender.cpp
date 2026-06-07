@@ -32,6 +32,7 @@ struct Options
     bool filterTest = false;
     bool modulationTest = false;
     bool modulationRouteRenderTest = false;
+    bool offlineRealtimeCompareTest = false;
     bool randomizeTest = false;
     bool presetRender = false;
     bool dry = false;
@@ -187,6 +188,12 @@ Options parseOptions(int argc, char* argv[])
             options.modulationRouteRenderTest = true;
             options.output = "build/reports/modulation-route-render.json";
         }
+        else if (arg == "--offline-realtime-compare-test")
+        {
+            options.offlineRealtimeCompareTest = true;
+            options.presetPath = "presets/factory/fx-space-01.json";
+            options.output = "build/reports/offline-realtime-compare.json";
+        }
         else if (arg == "--randomize-test")
         {
             options.randomizeTest = true;
@@ -252,6 +259,7 @@ Options parseOptions(int argc, char* argv[])
             std::cout << "  SylenthAIRender --filter-test --output <path>\n";
             std::cout << "  SylenthAIRender --modulation-test --fixture <path> --output <path>\n";
             std::cout << "  SylenthAIRender --modulation-route-render-test --fixture <path> --output <path>\n";
+            std::cout << "  SylenthAIRender --offline-realtime-compare-test --preset <json> --fixture <path> --output <path>\n";
             std::cout << "  SylenthAIRender --randomize-test --seeds 1,42,12345 --fixture <path> --output <path>\n";
             std::cout << "  SylenthAIRender --suite core --output-dir <dir>\n";
             std::cout << "  SylenthAIRender --suite patch-recreation --output-dir <dir>\n";
@@ -2454,6 +2462,74 @@ void evaluateWetDifference(PresetRenderResult& wet, const PresetRenderResult& dr
     wet.passed = wet.passed && wet.wetMeaningfulPassed;
 }
 
+int writeOfflineRealtimeCompareReport(const Options& options)
+{
+    synth::SynthParameters baseParameters;
+    std::string error;
+    if (!loadPresetParameters(options.presetPath, baseParameters, error))
+    {
+        writeFailureReport(options.output, "offline-realtime-compare", error);
+        return 1;
+    }
+
+    auto realtimeParameters = baseParameters;
+    realtimeParameters.quality.offlineMode = realtimeParameters.quality.realtimeMode;
+
+    const auto realtime = renderParameterAudio(realtimeParameters, options.fixturePath,
+                                               PresetRenderVariant::Default,
+                                               RenderFxMode::AsPrepared);
+    const auto offline = renderParameterAudio(baseParameters, options.fixturePath,
+                                              PresetRenderVariant::Default,
+                                              RenderFxMode::AsPrepared);
+    if (!realtime.ok || !offline.ok)
+    {
+        writeFailureReport(options.output, "offline-realtime-compare",
+                           !realtime.ok ? realtime.error : offline.error);
+        return 1;
+    }
+
+    const auto diff = compareAudio(offline, realtime);
+    constexpr auto minMaxAbsDiff = 1.0e-5;
+    constexpr auto minRmsDiff = 1.0e-6;
+    constexpr auto maxMaxAbsDiff = 0.5;
+    constexpr auto maxRmsDiff = 0.1;
+
+    const auto qualityModesDiffer = realtime.qualityMode != offline.qualityMode;
+    const auto bothFinite = realtime.passed && offline.passed;
+    const auto differenceMeaningful = diff.maxAbs >= minMaxAbsDiff && diff.rms >= minRmsDiff;
+    const auto differenceBounded = diff.maxAbs <= maxMaxAbsDiff && diff.rms <= maxRmsDiff;
+    const auto passed = bothFinite && qualityModesDiffer && differenceMeaningful && differenceBounded;
+
+    ensureParentDirectory(options.output);
+    std::ofstream out(options.output);
+    out << "{\n";
+    out << "  \"schema_version\": 1,\n";
+    out << "  \"suite\": \"offline-realtime-compare\",\n";
+    out << "  \"preset\": \"" << genericString(options.presetPath) << "\",\n";
+    out << "  \"fixture\": \"" << genericString(options.fixturePath) << "\",\n";
+    out << "  \"realtime_quality_mode\": \"" << toString(realtime.qualityMode) << "\",\n";
+    out << "  \"offline_quality_mode\": \"" << toString(offline.qualityMode) << "\",\n";
+    out << "  \"realtime_peak\": " << realtime.metrics.peak << ",\n";
+    out << "  \"offline_peak\": " << offline.metrics.peak << ",\n";
+    out << "  \"realtime_rms\": " << realtime.metrics.rms << ",\n";
+    out << "  \"offline_rms\": " << offline.metrics.rms << ",\n";
+    out << "  \"max_abs_diff\": " << diff.maxAbs << ",\n";
+    out << "  \"rms_diff\": " << diff.rms << ",\n";
+    out << "  \"peak_delta\": " << diff.peakDelta << ",\n";
+    out << "  \"min_max_abs_diff\": " << minMaxAbsDiff << ",\n";
+    out << "  \"min_rms_diff\": " << minRmsDiff << ",\n";
+    out << "  \"max_max_abs_diff\": " << maxMaxAbsDiff << ",\n";
+    out << "  \"max_rms_diff\": " << maxRmsDiff << ",\n";
+    out << "  \"quality_modes_differ\": " << boolString(qualityModesDiffer) << ",\n";
+    out << "  \"both_finite\": " << boolString(bothFinite) << ",\n";
+    out << "  \"difference_meaningful\": " << boolString(differenceMeaningful) << ",\n";
+    out << "  \"difference_bounded\": " << boolString(differenceBounded) << ",\n";
+    out << "  \"passed\": " << boolString(passed) << "\n";
+    out << "}\n";
+
+    return passed ? 0 : 1;
+}
+
 int writeDeterminismReport(const std::filesystem::path& reportPath,
                            const std::filesystem::path& failureDir,
                            const std::filesystem::path& presetPath,
@@ -2674,6 +2750,14 @@ int writeCoreSuite(const Options& options)
         routeRenderOptions.output = outputDir / "modulation-route-render.json";
         addItem("modulation-route-render", routeRenderOptions.output,
                 writeModulationRouteRenderReport(routeRenderOptions));
+    }
+
+    {
+        auto compareOptions = options;
+        compareOptions.output = outputDir / "offline-realtime-compare.json";
+        compareOptions.presetPath = "presets/factory/fx-space-01.json";
+        addItem("offline-realtime-compare", compareOptions.output,
+                writeOfflineRealtimeCompareReport(compareOptions));
     }
 
     {
@@ -3039,6 +3123,13 @@ int main(int argc, char* argv[])
     {
         const auto exitCode = writeModulationRouteRenderReport(options);
         std::cout << "Modulation route render validation " << (exitCode == 0 ? "passed." : "failed.") << "\n";
+        return exitCode;
+    }
+
+    if (options.offlineRealtimeCompareTest)
+    {
+        const auto exitCode = writeOfflineRealtimeCompareReport(options);
+        std::cout << "Offline/realtime compare validation " << (exitCode == 0 ? "passed." : "failed.") << "\n";
         return exitCode;
     }
 
