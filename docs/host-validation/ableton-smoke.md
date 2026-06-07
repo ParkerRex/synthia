@@ -25,13 +25,14 @@ Completed current-build proof:
 - Hosted AU and VST3 `Arp Motion 01` playback after preset load with active voices, MIDI count, output level, and Live meters.
 - AU and VST3 parameter automation record/playback.
 - Bounded Ableton offline bounce versus realtime resampling comparison.
+- Stronger Ableton offline bounce versus realtime content comparison with envelope alignment, per-channel filtered-band thresholds, and negative controls.
 - Standalone rendered modulation route write/clear proof through `SylenthAIRender --modulation-route-render-test`, paired with hosted AU/VST3 `Arp Motion 01` route visibility during playback.
 
 Remaining host-validation gaps:
 
-- Stronger Ableton offline bounce versus realtime comparison that can reject mismatched audio, such as minimum aligned correlation or bounded diff-to-signal ratio.
+- None in the current non-UI Phase 1 host matrix.
 
-Residual caveats: no Ableton audio-diff modulation comparison has been captured. Current host proof is route visibility plus playback; rendered route behavior is proven by the standalone modulation-route render test. The Ableton offline/realtime comparison is a bounded energy-level host comparison, not a strict waveform null test.
+Residual caveats: no Ableton audio-diff modulation comparison has been captured. Current host proof is route visibility plus playback; rendered route behavior is proven by the standalone modulation-route render test. The Ableton offline/realtime comparison uses content-match thresholds and negative controls, not a strict waveform null test.
 
 ## Environment
 
@@ -433,7 +434,7 @@ Results:
 ```
 
 - The proof sidecar was copied to `build/reports/ableton/midi-controller-map-vst3-proof.json`, then the temporary user-level sidecar was removed to avoid polluting future validation.
-- A short Arrangement record attempt from the CC/note stream produced live MIDI input and learned-assignment persistence, but Arrangement view showed no captured clip or envelope. AU/VST3 automation record/playback remains open. Later VST3 continuous value-application and Forget/stepped proofs showed the persisted controller map driving continuous and choice parameters and being cleared from the hosted panel; later AU proofs showed a seeded AU controller map driving a continuous parameter and the hosted AU editor capturing a fresh learned CC.
+- A short Arrangement record attempt from the CC/note stream produced live MIDI input and learned-assignment persistence, but Arrangement view showed no captured clip or envelope. AU/VST3 automation record/playback was still open at this point and was later closed by the automation proof below. Later VST3 continuous value-application and Forget/stepped proofs showed the persisted controller map driving continuous and choice parameters and being cleared from the hosted panel; later AU proofs showed a seeded AU controller map driving a continuous parameter and the hosted AU editor capturing a fresh learned CC.
 
 Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
 
@@ -1020,9 +1021,51 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 - `bounce-compare/ableton-realtime-resample-current.aif`
 - `bounce-compare/ableton-bounce-realtime-compare.json`
 
-Remaining host-validation gaps:
+Follow-on host-validation work from this bounded pass, closed by the stronger proof below:
 
 - Stronger Ableton offline bounce versus realtime comparison that can reject mismatched audio, such as minimum aligned correlation or bounded diff-to-signal ratio.
+
+## Ableton Current-Build Strong Bounce Versus Realtime Compare - 2026-06-07
+
+Environment:
+
+- machine: rex, MacBook Pro `MacBookPro18,2`, Apple M1 Max, 64 GB
+- macOS version: 26.5 `25F71`
+- Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
+- local helper: `scripts/compare-ableton-bounce-realtime.py`
+- compared files: `build/reports/ableton/bounce-compare/ableton-offline-current.wav` and `build/reports/ableton/bounce-compare/ableton-realtime-resample-current.aif`
+- generated local report: `build/reports/ableton/bounce-compare/ableton-bounce-realtime-strong-compare.json`
+- helper self-test report: `build/reports/ableton/bounce-compare/strong-compare-self-test.json`
+
+Results:
+
+- The helper aligned the realtime capture to the offline bounce at frame `222208`, using a 4096-sample RMS envelope and 1024-sample hop.
+- Alignment/content envelope correlation is `0.9855785842652811`.
+- RMS delta is `0.06586950503671164` dB and peak delta is `-0.2278228057611496` dB.
+- Per-channel content envelope correlation floor is `0.9432697509451544`.
+- Per-channel RMS delta range is `-0.8406264635442906` to `0.8676234690114247` dB; peak delta range is `-1.6826751105175193` to `0.3252204424193288` dB.
+- Per-channel filtered-band correlation mean floor is `0.9177223458754987`; the minimum per-band correlation is `0.8982884460435024`.
+- Per-channel frame filtered-band cosine mean floor is `0.8257845095752637`.
+- Per-channel waveform correlations are `0.5984748756409872` and `0.5631472554905425`, so the proof remains a content-match comparison rather than a null test.
+- Negative controls all failed as expected: wrong offset, reversed realtime, same-RMS sine, same-RMS noise, and silent last channel.
+- The report records `passed: true` for `comparison_mode` `stereo_envelope_alignment_plus_per_channel_filtered_band_content_match`.
+
+Validation commands:
+
+```bash
+scripts/compare-ableton-bounce-realtime.py \
+  --self-test \
+  --output build/reports/ableton/bounce-compare/strong-compare-self-test.json
+
+scripts/compare-ableton-bounce-realtime.py \
+  --offline build/reports/ableton/bounce-compare/ableton-offline-current.wav \
+  --realtime build/reports/ableton/bounce-compare/ableton-realtime-resample-current.aif \
+  --output build/reports/ableton/bounce-compare/ableton-bounce-realtime-strong-compare.json
+```
+
+Remaining host-validation gaps:
+
+- None in the current non-UI Phase 1 host matrix.
 - Strict offline/realtime waveform equivalence remains unclaimed.
 
 ## Historical Ableton Setup - 2026-06-05

@@ -50,6 +50,6 @@ This completed ExecPlan records the bounded Ableton offline/realtime host compar
 
 ## Remaining Gaps
 
-- Stronger Ableton offline/realtime comparison remains open; this bounded pass can confirm signal health and rough energy matching but cannot reject all mismatched audio.
+- Stronger Ableton offline/realtime comparison was not closed by this bounded pass; it is closed by the later `2026-06-07-build-ableton-strong-bounce-compare.md` proof.
 - Ableton audio-diff modulation capture remains unclaimed.
 - Strict offline/realtime waveform-null equivalence remains unclaimed.

@@ -25,6 +25,7 @@ ctest --test-dir build --output-on-failure
 ./build/SylenthAIRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
 ./build/SylenthAIRender --modulation-route-render-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation-route-render.json
 ./build/SylenthAIRender --offline-realtime-compare-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/offline-realtime-compare.json
+scripts/compare-ableton-bounce-realtime.py --self-test --output build/reports/ableton/bounce-compare/strong-compare-self-test.json
 ./build/SylenthAIRender --randomize-test --seeds 1,42,12345,67890 --fixture fixtures/midi/overlap-pluck.mid --output build/reports/randomize.json
 ./build/SylenthAIRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
 ./build/SylenthAIRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --wet --output build/renders/pluck-core-01-wet.wav --report build/reports/pluck-core-01-wet.json
@@ -78,7 +79,7 @@ The current DSP validation proves:
 - APVTS automation-readiness is covered by `SylenthAIContractTest`: every registry parameter must be exposed by APVTS, remain host-automatable when marked automatable, match its declared float/bool/choice type, and accept host-notifying default writes. Ableton AU/VST3 automation record/playback is covered by the 2026-06-07 host proof in `docs/host-validation/ableton-smoke.md`.
 - MIDI controller-map persistence is covered by `SylenthAIContractTest`; learned CC capture, persistence, value application, and Forget behavior in AU and VST3 are covered by the current Ableton host proof in `docs/host-validation/ableton-smoke.md`.
 - FX bypass stays null-equivalent to dry rendering when globally bypassed, disabled expanded-rack modules are dry-equivalent, phaser/EQ/compressor/distortion-mode processing is finite and measurably audible when enabled, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active time-based FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
-- `SylenthAIRender --offline-realtime-compare-test` renders `FX Space 01` in realtime Normal quality and offline High quality, verifies both renders are finite and non-clipping, and records a bounded meaningful audio difference caused by the quality-mode switch. Ableton bounded offline bounce versus realtime resampling is recorded by the 2026-06-07 host proof in `docs/host-validation/ableton-smoke.md`; a stronger host comparison that can reject mismatched audio remains open.
+- `SylenthAIRender --offline-realtime-compare-test` renders `FX Space 01` in realtime Normal quality and offline High quality, verifies both renders are finite and non-clipping, and records a bounded meaningful audio difference caused by the quality-mode switch. Ableton offline bounce versus realtime resampling is covered by the 2026-06-07 host proof in `docs/host-validation/ableton-smoke.md` and the stronger `scripts/compare-ableton-bounce-realtime.py` content-match report.
 - `SylenthAIRender --randomize-test` prepares seedable bounded randomized APVTS state through `PresetManager`, renders each seed through the standalone engine as prepared, rejects malformed seed lists, and checks finite non-silent non-clipping output.
 - `SylenthAIRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, modulation route render, offline/realtime compare, randomize render, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
 - `SylenthAIRender --suite patch-recreation` renders `Pluck Core 01`, `Supersaw Stack 01`, `Bass Wub 01`, `Pad Wide 01`, `Arp Motion 01`, and `FX Space 01` against the overlap-pluck fixture, writes WAV/report artifacts for each, and checks finite non-clipping output plus meaningful wet-versus-dry FX differences. The arp/chord patch also asserts that `SynthRender` applies preset-loaded `arp.*` and `chord.*` state.
@@ -159,7 +160,7 @@ Required Ableton checks:
 - UI open/close while playing.
 - MIDI Learn and Forget from the global controller panel, plus mapped CC playback against at least one continuous and one stepped parameter.
 
-Current Ableton proof includes AU/VST3 `Layer A Level` automation record/playback and a bounded Master offline bounce versus realtime resampling sanity comparison. A stronger offline/realtime comparison with a minimum aligned waveform-correlation or bounded diff-to-signal criterion remains open; strict waveform/null-test equivalence is not claimed.
+Current Ableton proof includes AU/VST3 `Layer A Level` automation record/playback plus Master offline bounce versus realtime resampling content comparison with envelope alignment, per-channel filtered-band correlation thresholds, and negative controls. Strict waveform/null-test equivalence is not claimed.
 
 Recommended additional hosts:
 

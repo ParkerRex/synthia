@@ -37,10 +37,10 @@ sylenth-ai is not useful until it loads and restores correctly in Ableton. After
 - [x] Run early Ableton AU and VST3 scan/load/play/reopen smoke validation.
 - [x] 2026-06-05 EDT: Added `scripts/uninstall-local-plugins.sh`, local install troubleshooting docs, and default ad-hoc signing of installed AU/VST3 bundles for local host scanning.
 - [x] 2026-06-05 EDT: Revalidated Release build, CTest, core suite, bundle checks, install signing, uninstall dry-run, and AU validation for the current FX/quality build.
-- [x] 2026-06-06 EDT: Revalidated the current renamed build with `build-release-phase1-ableton`; Ableton rescanned `sylenth-ai.vst3`, created ParkerX `sylenth-ai` v0.1.0, and played MIDI with active host meters. Hosted editor proof remains open.
+- [x] 2026-06-06 EDT: Revalidated the current renamed build with `build-release-phase1-ableton`; Ableton rescanned `sylenth-ai.vst3`, created ParkerX `sylenth-ai` v0.1.0, and played MIDI with active host meters. Hosted editor proof was later closed by the AU/VST3 hosted editor lifecycle passes.
 - [x] 2026-06-07 EDT: Ran AU/VST3 parameter automation record/playback proof in Ableton, including copied Live set XML inspection and playback screenshots.
 - [x] 2026-06-07 EDT: Ran bounded Ableton bounce-versus-realtime validation against the current UI/preset/FX build.
-- [ ] Run a stronger Ableton offline/realtime comparison that can reject mismatched audio, such as minimum aligned correlation or bounded diff-to-signal ratio.
+- [x] 2026-06-07 EDT: Ran stronger Ableton offline/realtime content comparison with envelope alignment, per-channel filtered-band thresholds, and negative controls that reject mismatched audio.
 - [x] Document install, uninstall, and host troubleshooting.
 
 ## Surprises & Discoveries
@@ -49,13 +49,13 @@ sylenth-ai is not useful until it loads and restores correctly in Ableton. After
 
 2026-06-05: A `build-release` single-config CMake build writes plugin bundles under `build-release/SylenthAIPlugin_artefacts/Release/`, while the first helper script versions assumed bundles lived directly under `SylenthAIPlugin_artefacts/`. The scripts now resolve root and config-scoped layouts before checking or installing.
 
-2026-06-05: Early Ableton Live 11 Suite smoke passed on macOS 26.5: VST3 appeared under `Plug-Ins > VST3 > ParkerX > sylenth-ai`, AU appeared after enabling Audio Units, both loaded on MIDI tracks, both produced audible output from MIDI notes, and both loaded again after Ableton quit/reopen of the saved set. Automation, bounce, preset recreation, and full behavior exercise remain for the UI/preset and later host-validation passes.
+2026-06-05: Early Ableton Live 11 Suite smoke passed on macOS 26.5: VST3 appeared under `Plug-Ins > VST3 > ParkerX > sylenth-ai`, AU appeared after enabling Audio Units, both loaded on MIDI tracks, both produced audible output from MIDI notes, and both loaded again after Ableton quit/reopen of the saved set. Automation, bounce, preset recreation, and full behavior exercise were left for later host-validation passes and are now covered by the current proof ledger.
 
 2026-06-05: The install script now ad-hoc signs the installed per-user AU and VST3 bundles by default. This is local-development signing only and does not replace distribution signing, hardened runtime, notarization, or clean-machine verification.
 
 2026-06-05: `auval -v aumu SyAI PkRx` passed against the installed AU after the FX/quality build. `auval` emitted a non-fatal warning for `Delay Feedback` maximum-value retention but ended with `AU VALIDATION SUCCEEDED`.
 
-2026-06-06: The current renamed VST3 required a normal Ableton Preferences > Plug-Ins > Rescan before Live stopped showing the old `Synth` browser label from its stale scan state. After rescan, `PluginScanner.txt` found `sylenth-ai.vst3`; Ableton created `sylenth-ai`, reported 2427 parameters, and playback showed active host meters. A later transport/device pass corrected earlier standalone-window evidence and left hosted editor proof open.
+2026-06-06: The current renamed VST3 required a normal Ableton Preferences > Plug-Ins > Rescan before Live stopped showing the old `Synth` browser label from its stale scan state. After rescan, `PluginScanner.txt` found `sylenth-ai.vst3`; Ableton created `sylenth-ai`, reported 2427 parameters, and playback showed active host meters. A later transport/device pass corrected earlier standalone-window evidence, and the hosted editor proof was later closed by AU/VST3 lifecycle passes.
 
 Record Ableton scan, plugin cache, code signing, architecture, and state-restore issues here.
 
@@ -71,7 +71,7 @@ Pending implementation.
 
 ## Context and Orientation
 
-Full host-release acceptance depends on a working plugin, editor, presets, validation harness, and FX/quality state. The next validation pass should exercise the current AU/VST3 bundles with UI, preset restore, automation, wet/dry behavior, and bounce checks.
+Full host-release acceptance depends on a working plugin, editor, presets, validation harness, and FX/quality state. Current proof has exercised AU/VST3 bundles with UI, preset restore, automation, wet/dry behavior, and bounce checks; future release passes should focus on release packaging and any newly added host-facing features.
 
 Ableton docs identify macOS plugin folders under `/Library/Audio/Plug-Ins/Components/` and `/Library/Audio/Plug-Ins/VST3/`, with per-user equivalents also available.
 
