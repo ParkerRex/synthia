@@ -45,7 +45,7 @@ The current contract validation proves:
 - TransMod slot objects use valid slot IDs, source/scaler choices, depth domains, and destination IDs.
 - Init, Reset, and seedable Randomize commands prepare ordinary APVTS state without mutating live state before replacement.
 - Preset workflow helpers cover metadata-aware writes, no-clobber create-only safe-save rejection, dirty-state comparison against immutable baseline fingerprints, and local A/B compare slot capture/recall without mutating live state before replacement.
-- Standalone UI smoke covers the preset workflow and metadata-save controls at normal and compact sizes: dirty-state pill, Init, Random, Reset, A Store/A Load, B Store/B Load, Preset name, Author, Bank, Category, Tags, Notes, Save New, Overwrite, and the adjacent preset browser/MIDI panels. The A Store manual control smoke confirms A Load becomes actionable after capture.
+- Standalone UI smoke covers the preset workflow and metadata-save controls at normal and compact sizes: dirty-state pill, Init, Random, Reset, A Store/A Load, B Store/B Load, Preset name, Author, Bank, Category, Tags, Notes, Save New, Overwrite, and the adjacent preset browser/MIDI panels. The A Store manual control smoke confirms A Load becomes actionable after capture. Invalid-preset browser rows are model-backed in the editor and require manual browser-bottom QA until JUCE viewport scrolling is reliable under automation.
 - MIDI controller-map normalization rejects invalid assignments, resolves CC/parameter conflicts deterministically, and round-trips through the global user sidecar JSON shape.
 
 The current voice-core validation proves:

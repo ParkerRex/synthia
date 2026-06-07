@@ -101,5 +101,5 @@ Manual UI proof:
 ## Follow-Up
 
 - Metadata editing and explicit safe-save controls later landed in `2026-06-06-build-preset-safe-save-metadata-ui.md`.
-- Add invalid-preset visible error rows.
+- Invalid-preset visible error rows later landed in `2026-06-06-build-preset-browser-invalid-errors.md`.
 - Decide whether workflow controls should move closer to the header after the final Sylenth-style layout pass.

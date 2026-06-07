@@ -2,6 +2,7 @@
 
 #include "PluginEditor.h"
 #include "../presets/PresetManager.h"
+#include "../presets/PresetValidator.h"
 
 #include <algorithm>
 #include <cmath>
@@ -64,6 +65,24 @@ SynthAudioProcessor::PresetListItem makePresetListItem(const synth::PresetSummar
         item.tags.add(juce::String(tag));
     item.factory = preset.factory;
     item.favorite = preset.favorite;
+    return item;
+}
+
+SynthAudioProcessor::PresetListItem makeInvalidPresetListItem(const synth::PresetValidationResult& validation,
+                                                              synth::PresetSource source)
+{
+    SynthAudioProcessor::PresetListItem item;
+    item.displayName = juce::String(validation.path.stem().string());
+    item.bank = juce::String(synth::presetSourceLabel(source));
+    item.category = "Invalid";
+    item.sourceLabel = juce::String(synth::presetSourceLabel(source));
+    item.validationMessage = validation.errors.empty()
+        ? juce::String("Preset validation failed")
+        : juce::String(validation.errors.front());
+    item.file = juce::File(juce::String(validation.path.string()));
+    item.tags.add("invalid");
+    item.valid = false;
+    item.factory = source == synth::PresetSource::Factory;
     return item;
 }
 } // namespace
@@ -675,9 +694,22 @@ std::vector<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetL
             items.push_back(makePresetListItem(preset));
     };
 
+    auto appendInvalid = [&items](const std::filesystem::path& directory, synth::PresetSource source) {
+        for (const auto& validation : synth::validatePresetDirectory(directory))
+        {
+            if (validation.passed() || validation.path.extension() != ".json")
+                continue;
+
+            items.push_back(makeInvalidPresetListItem(validation, source));
+        }
+    };
+
     append(synth::scanPresetDirectory(synth::factoryPresetDirectory(), synth::PresetSource::Factory, favoriteKeys));
+    appendInvalid(synth::factoryPresetDirectory(), synth::PresetSource::Factory);
     append(synth::scanPresetDirectory(synth::defaultUserPresetDirectory(), synth::PresetSource::User, favoriteKeys));
+    appendInvalid(synth::defaultUserPresetDirectory(), synth::PresetSource::User);
     append(synth::scanPresetDirectory(synth::legacyUserPresetDirectory(), synth::PresetSource::LegacyUser, favoriteKeys));
+    appendInvalid(synth::legacyUserPresetDirectory(), synth::PresetSource::LegacyUser);
     return items;
 }
 

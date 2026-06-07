@@ -9,7 +9,7 @@ Active child plans:
 
 Active Claude handoff slice: `2026-06-06-handoff-sylenth-visual-information-architecture.md`.
 
-UI handoff rule: the modern shell handoff is completed, and the roadmap truth audit says A/B layer plus four-slot rendering is real enough for a broad visual information architecture pass. Preset browser, preset workflow controls, metadata-aware safe-save controls, arp/step/chord, FX rack, patch cost, modulation inspection, and single-slot modulation route writing have model-backed surfaces and screenshot evidence. Per-route bypass/remove, invalid-preset visible errors, richer bank management, and expanded modulation destinations still need later schema/workflow work.
+UI handoff rule: the modern shell handoff is completed, and the roadmap truth audit says A/B layer plus four-slot rendering is real enough for a broad visual information architecture pass. Preset browser, invalid-preset browser error rows, preset workflow controls, metadata-aware safe-save controls, arp/step/chord, FX rack, patch cost, modulation inspection, and single-slot modulation route writing have model-backed surfaces; the main visible surfaces have screenshot evidence, while invalid-row bottom-browser proof remains manual until JUCE viewport automation is reliable. Per-route bypass/remove, richer bank management, and expanded modulation destinations still need later schema/workflow work.
 
 Product-order Codex slice: complete the remaining Ableton Phase 1 host matrix against AU/VST3 with automation record/playback, AU global-panel Forget proof, Ableton-side preset recreation, modulation exercise, bounce-versus-realtime comparison, buffer/sample-rate, and all-notes-off/panic proof.
 
@@ -23,6 +23,7 @@ Completed child plans:
 - `../completed/2026-06-06-build-preset-workflow-state-model.md`
 - `../completed/2026-06-06-build-preset-workflow-ui-controls.md`
 - `../completed/2026-06-06-build-preset-safe-save-metadata-ui.md`
+- `../completed/2026-06-06-build-preset-browser-invalid-errors.md`
 - `../completed/2026-06-06-build-sylenth-patch-recreation-suite.md`
 - `../completed/2026-06-05-build-sylenth-layer-oscillator-backbone.md`
 - `../completed/2026-06-05-build-sylenth-layer-b-and-four-osc-rendering.md`

@@ -57,8 +57,10 @@ public:
         juce::String category;
         juce::String sourceLabel;
         juce::String favoriteKey;
+        juce::String validationMessage;
         juce::File file;
         juce::StringArray tags;
+        bool valid = true;
         bool factory = false;
         bool favorite = false;
     };

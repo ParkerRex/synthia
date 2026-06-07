@@ -91,11 +91,11 @@ Residual gaps after this pass:
 - The modulation-overview active-route count and source highlighting only populate once a preset/route actually drives `getModulationRouteView()`; the Init patch has zero routes, so the screenshot shows the empty path.
 - The ARP/STEP/CHORD panel is still the last Sound-page row and needs scrolling at the default window height; bottom-lane vertical density is unchanged.
 - Modulation drag/drop, matrix editing, per-route bypass/remove, and route halos still need explicit write adapters or schema support before they become UI scope.
-- Invalid-preset visible errors, bank import/export, delete/insert/copy/paste, rich scanned-preset detail, and persisted A/B slots remain out of scope.
+- Bank import/export, delete/insert/copy/paste, rich scanned-preset detail, and persisted A/B slots remain out of scope.
 - The preset workflow panel lives below the arp/step/chord row, so it requires scroll at compact/default heights.
 - The preset metadata/save panel sits below the workflow row, so it also requires scroll at compact/default heights.
 
-The next Claude Code pass can target invalid-preset browser feedback, arp/step/chord density, and FX rack visual polish only.
+The next Claude Code pass can target preset-browser visual hierarchy, arp/step/chord density, and FX rack visual polish only.
 
 ## Context and Orientation
 

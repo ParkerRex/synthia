@@ -102,7 +102,7 @@ Captured from the standalone (`build/SylenthAIPlugin_artefacts/Standalone/sylent
 ### Residual gaps (backend-dependent, intentionally not done)
 
 - Writable modulation UX: drag/drop, halos on modulated controls, hover inspector, matrix editing, per-route bypass/remove — needs a route write adapter/schema.
-- Preset workflow follow-up: invalid-preset visible errors, delete, copy/paste, richer scanned-preset detail, and persisted A/B compare.
+- Preset workflow follow-up: delete, copy/paste, richer scanned-preset detail, and persisted A/B compare.
 - Per-control right-click MIDI Learn/Forget context menus (global panel remains the bridge).
 - LFO2, editable LFO/envelope movement graphs, and a filter response graph with modulation overlays.
 - Per-layer Filter A/B, per-layer envelopes, cross-routing, and post-filter mixer/master parity.
@@ -167,7 +167,7 @@ Known missing backend/model support that must not be faked:
 
 - Modulation drag/drop writing, halos, matrix editing, per-route bypass/remove, and expanded destination writing.
 - Per-control right-click MIDI Learn/Forget context menus.
-- Invalid-preset visible error rows, delete/copy/paste preset actions, richer scanned-preset detail, and persisted A/B compare.
+- Delete/copy/paste preset actions, richer scanned-preset detail, and persisted A/B compare.
 - LFO2 and editable movement graphs.
 - Per-layer filters/envelopes, cross-routing, and final post-filter mixer/master parity.
 - Full AU/VST3 automation proof.
