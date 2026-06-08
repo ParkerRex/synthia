@@ -415,17 +415,38 @@ std::filesystem::path bundleFactoryPresetDirectory()
     return {};
 }
 
-std::filesystem::path withJsonExtension(std::filesystem::path path)
+std::string lowercaseExtension(std::filesystem::path path)
 {
     auto extension = path.extension().string();
     std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char character) {
         return static_cast<char>(std::tolower(character));
     });
+    return extension;
+}
 
-    if (extension == ".json")
+bool isPresetFilePath(const std::filesystem::path& path)
+{
+    return lowercaseExtension(path) == ".synthiapreset";
+}
+
+std::filesystem::path withPresetExtension(std::filesystem::path path)
+{
+    const auto extension = lowercaseExtension(path);
+
+    if (extension == ".synthiapreset")
         return path;
 
-    return path.replace_extension(".json");
+    return path.replace_extension(".SynthiaPreset");
+}
+
+const juce::DynamicObject* presetPayloadObject(const juce::DynamicObject& root)
+{
+    const auto fileType = root.getProperty(juce::Identifier("fileType"));
+    if (!fileType.isString() || fileType.toString() != "SynthiaPreset")
+        return nullptr;
+
+    const auto preset = root.getProperty(juce::Identifier("preset"));
+    return preset.isObject() ? preset.getDynamicObject() : nullptr;
 }
 
 std::unique_ptr<juce::DynamicObject> readPresetObject(const std::filesystem::path& path)
@@ -434,11 +455,15 @@ std::unique_ptr<juce::DynamicObject> readPresetObject(const std::filesystem::pat
     if (!parsed.isObject())
         return {};
 
-    const auto* source = parsed.getDynamicObject();
-    if (source == nullptr)
+    const auto* root = parsed.getDynamicObject();
+    if (root == nullptr)
         return {};
 
-    return std::unique_ptr<juce::DynamicObject>(source->clone());
+    const auto* payload = presetPayloadObject(*root);
+    if (payload == nullptr)
+        return {};
+
+    return std::unique_ptr<juce::DynamicObject>(payload->clone());
 }
 
 std::string propertyString(const juce::DynamicObject& object, const char* propertyName)
@@ -473,8 +498,6 @@ std::string defaultBankForSource(PresetSource source)
 {
     if (source == PresetSource::Factory)
         return "Factory";
-    if (source == PresetSource::LegacyUser)
-        return "Legacy User";
     return "User";
 }
 
@@ -485,8 +508,6 @@ std::string defaultCategoryForSource(PresetSource source, const std::vector<std:
 
     if (source == PresetSource::Factory)
         return "Factory";
-    if (source == PresetSource::LegacyUser)
-        return "Legacy";
     return "User";
 }
 
@@ -753,8 +774,6 @@ std::string presetSourceId(PresetSource source)
 {
     if (source == PresetSource::Factory)
         return "factory";
-    if (source == PresetSource::LegacyUser)
-        return "legacy_user";
     return "user";
 }
 
@@ -762,8 +781,6 @@ std::string presetSourceLabel(PresetSource source)
 {
     if (source == PresetSource::Factory)
         return "Factory";
-    if (source == PresetSource::LegacyUser)
-        return "Legacy User";
     return "User";
 }
 
@@ -794,13 +811,13 @@ std::vector<PresetSummary> scanPresetDirectory(const std::filesystem::path& dire
     if (!std::filesystem::exists(directory, error) || error)
         return presets;
 
-    std::filesystem::directory_iterator iterator { directory,
+    std::filesystem::recursive_directory_iterator iterator { directory,
         std::filesystem::directory_options::skip_permission_denied,
         error };
     if (error)
         return presets;
 
-    for (std::filesystem::directory_iterator end; iterator != end; iterator.increment(error))
+    for (std::filesystem::recursive_directory_iterator end; iterator != end; iterator.increment(error))
     {
         if (error)
         {
@@ -809,7 +826,7 @@ std::vector<PresetSummary> scanPresetDirectory(const std::filesystem::path& dire
         }
 
         const auto& entry = *iterator;
-        if (!entry.is_regular_file(error) || error || entry.path().extension() != ".json")
+        if (!entry.is_regular_file(error) || error || !isPresetFilePath(entry.path()))
         {
             error.clear();
             continue;
@@ -867,8 +884,6 @@ std::vector<PresetSummary> filterPresetSummaries(const std::vector<PresetSummary
         if (preset.source == PresetSource::Factory && !filter.includeFactory)
             continue;
         if (preset.source == PresetSource::User && !filter.includeUser)
-            continue;
-        if (preset.source == PresetSource::LegacyUser && !filter.includeLegacyUser)
             continue;
         if (filter.favoritesOnly && !preset.favorite)
             continue;
@@ -1360,7 +1375,7 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
                         const PresetWriteOptions& options,
                         std::string& error)
 {
-    const auto destination = withJsonExtension(path);
+    const auto destination = withPresetExtension(path);
     const auto safeName = options.metadata.displayName.empty() ? std::string("User Preset")
                                                                : options.metadata.displayName;
     std::error_code existsError;
@@ -1386,16 +1401,20 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
         return false;
     }
 
-    auto root = std::make_unique<juce::DynamicObject>();
-    root->setProperty("schema_version", 1);
-    root->setProperty("plugin_min_version", SYNTHIA_PROJECT_VERSION);
-    root->setProperty("id", juce::String(presetIdFromDisplayName(safeName)));
-    root->setProperty("display_name", juce::String(safeName));
-    root->setProperty("author", juce::String(options.metadata.author.empty() ? "User"
-                                                                             : options.metadata.author));
-    root->setProperty("description", juce::String(options.metadata.description.empty()
+    const auto author = options.metadata.author.empty() ? std::string("User") : options.metadata.author;
+    const auto description = options.metadata.description.empty()
         ? "User preset saved from the Synthia editor."
-        : options.metadata.description));
+        : options.metadata.description;
+    const auto bank = options.metadata.bank.empty() ? std::string("User") : options.metadata.bank;
+    const auto category = options.metadata.category.empty() ? std::string("User") : options.metadata.category;
+
+    auto preset = std::make_unique<juce::DynamicObject>();
+    preset->setProperty("schema_version", 1);
+    preset->setProperty("plugin_min_version", SYNTHIA_PROJECT_VERSION);
+    preset->setProperty("id", juce::String(presetIdFromDisplayName(safeName)));
+    preset->setProperty("display_name", juce::String(safeName));
+    preset->setProperty("author", juce::String(author));
+    preset->setProperty("description", juce::String(description));
     const auto tagsToWrite = options.metadata.tags.empty()
         ? std::vector<std::string> { "user" }
         : options.metadata.tags;
@@ -1407,23 +1426,42 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
     }
     if (tags.isEmpty())
         tags.add(juce::var("user"));
-    root->setProperty("tags", tags);
-    root->setProperty("parameters", currentParameterObject(parameters));
-    root->setProperty("mod_slots", currentModSlotArray(parameters));
-    root->setProperty("macros", currentMacroArray(parameters));
+    preset->setProperty("tags", tags);
+    preset->setProperty("parameters", currentParameterObject(parameters));
+    preset->setProperty("mod_slots", currentModSlotArray(parameters));
+    preset->setProperty("macros", currentMacroArray(parameters));
 
     auto metadata = std::make_unique<juce::DynamicObject>();
     metadata->setProperty("program", "synthia_lab_rebuild");
     auto browser = std::make_unique<juce::DynamicObject>();
-    browser->setProperty("bank", juce::String(options.metadata.bank.empty() ? "User"
-                                                                            : options.metadata.bank));
-    browser->setProperty("category", juce::String(options.metadata.category.empty() ? "User"
-                                                                                    : options.metadata.category));
+    browser->setProperty("bank", juce::String(bank));
+    browser->setProperty("category", juce::String(category));
     browser->setProperty("source", "user");
     metadata->setProperty("browser", juce::var(browser.release()));
-    root->setProperty("metadata", juce::var(metadata.release()));
+    preset->setProperty("metadata", juce::var(metadata.release()));
 
-    const auto presetJson = juce::JSON::toString(juce::var(root.release()), true);
+    auto envelope = std::make_unique<juce::DynamicObject>();
+    envelope->setProperty("fileType", "SynthiaPreset");
+    envelope->setProperty("presetName", juce::String(safeName));
+    envelope->setProperty("presetAuthor", juce::String(author));
+    envelope->setProperty("presetDescription", juce::String(description));
+    envelope->setProperty("product", "Synthia");
+    envelope->setProperty("productVersion", SYNTHIA_PROJECT_VERSION);
+    envelope->setProperty("vendor", "ParkerX");
+    envelope->setProperty("url", "https://parkerx.com/");
+    envelope->setProperty("version", 1);
+    envelope->setProperty("bank", juce::String(bank));
+    envelope->setProperty("category", juce::String(category));
+    envelope->setProperty("tags", tags);
+
+    auto preview = std::make_unique<juce::DynamicObject>();
+    preview->setProperty("type", "render_fixture");
+    preview->setProperty("fixture", "fixtures/midi/overlap-pluck.mid");
+    preview->setProperty("render_mode", "wet");
+    envelope->setProperty("preview", juce::var(preview.release()));
+    envelope->setProperty("preset", juce::var(preset.release()));
+
+    const auto presetJson = juce::JSON::toString(juce::var(envelope.release()), true);
     auto wrotePreset = false;
     if (options.mode == PresetWriteMode::CreateNew)
     {

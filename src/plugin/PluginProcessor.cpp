@@ -84,6 +84,16 @@ SynthAudioProcessor::PresetListItem makePresetListItem(const synth::PresetSummar
     return item;
 }
 
+bool hasPresetFileExtension(const juce::File& file)
+{
+    return file.getFileExtension().equalsIgnoreCase(".SynthiaPreset");
+}
+
+juce::File withPresetFileExtension(juce::File file)
+{
+    return hasPresetFileExtension(file) ? file : file.withFileExtension(".SynthiaPreset");
+}
+
 SynthAudioProcessor::PresetListItem makeInvalidPresetListItem(const synth::PresetValidationResult& validation,
                                                               synth::PresetSource source)
 {
@@ -713,7 +723,7 @@ std::vector<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetL
     auto appendInvalid = [&items](const std::filesystem::path& directory, synth::PresetSource source) {
         for (const auto& validation : synth::validatePresetDirectory(directory))
         {
-            if (validation.passed() || validation.path.extension() != ".json")
+            if (validation.passed())
                 continue;
 
             items.push_back(makeInvalidPresetListItem(validation, source));
@@ -722,8 +732,11 @@ std::vector<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetL
 
     append(synth::scanPresetDirectory(synth::factoryPresetDirectory(), synth::PresetSource::Factory, favoriteKeys));
     appendInvalid(synth::factoryPresetDirectory(), synth::PresetSource::Factory);
-    append(synth::scanPresetDirectory(synth::defaultUserPresetDirectory(), synth::PresetSource::User, favoriteKeys));
-    appendInvalid(synth::defaultUserPresetDirectory(), synth::PresetSource::User);
+
+    const auto userPresetDirectory = synth::defaultUserPresetDirectory();
+    append(synth::scanPresetDirectory(userPresetDirectory, synth::PresetSource::User, favoriteKeys));
+    if (std::filesystem::exists(userPresetDirectory))
+        appendInvalid(userPresetDirectory, synth::PresetSource::User);
     return items;
 }
 
@@ -732,7 +745,7 @@ std::optional<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPrese
     if (file == juce::File())
         return std::nullopt;
 
-    const auto target = file.hasFileExtension(".json") ? file : file.withFileExtension(".json");
+    const auto target = withPresetFileExtension(file);
     for (const auto& item : getPresetList())
     {
         if (item.file.getFullPathName() == target.getFullPathName())
@@ -802,7 +815,7 @@ bool SynthAudioProcessor::savePresetFile(const juce::File& file,
     {
         const auto metadataName = juce::String(options.metadata.displayName);
         const auto presetName = metadataName.isNotEmpty() ? metadataName : file.getFileNameWithoutExtension();
-        const auto presetFile = file.hasFileExtension(".json") ? file : file.withFileExtension(".json");
+        const auto presetFile = withPresetFileExtension(file);
         message = "Saved preset: " + presetName;
         setPresetMetadata(presetName, message, presetFile.getFullPathName());
         setPresetBaselineFingerprint(synth::fingerprintCurrentPresetState(parameters));

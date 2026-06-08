@@ -87,8 +87,81 @@ bool isAllowedBrowserSource(const juce::var& source)
     const auto value = source.toString();
     return value == "factory"
         || value == "user"
-        || value == "legacy_user"
         || value == "ai_generated";
+}
+
+std::string lowercaseExtension(std::filesystem::path path)
+{
+    auto extension = path.extension().string();
+    std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char character) {
+        return static_cast<char>(std::tolower(character));
+    });
+    return extension;
+}
+
+bool isPresetFilePath(const std::filesystem::path& path)
+{
+    return lowercaseExtension(path) == ".synthiapreset";
+}
+
+void validateTags(PresetValidationResult& result, const juce::var& tags);
+
+const juce::DynamicObject* presetPayloadObject(PresetValidationResult& result, const juce::DynamicObject& root)
+{
+    const auto fileType = root.getProperty(juce::Identifier("fileType"));
+    if (fileType.isVoid())
+    {
+        result.errors.push_back("fileType must be SynthiaPreset");
+        return nullptr;
+    }
+
+    if (!fileType.isVoid())
+    {
+        if (!fileType.isString() || fileType.toString() != "SynthiaPreset")
+        {
+            result.errors.push_back("fileType must be SynthiaPreset");
+            return nullptr;
+        }
+
+        const auto presetName = root.getProperty(juce::Identifier("presetName"));
+        if (!presetName.isString())
+            result.errors.push_back("presetName must be a string");
+
+        const auto presetAuthor = root.getProperty(juce::Identifier("presetAuthor"));
+        if (!presetAuthor.isString())
+            result.errors.push_back("presetAuthor must be a string");
+
+        const auto presetDescription = root.getProperty(juce::Identifier("presetDescription"));
+        if (!presetDescription.isString())
+            result.errors.push_back("presetDescription must be a string");
+
+        const auto product = root.getProperty(juce::Identifier("product"));
+        if (!product.isString() || product.toString() != "Synthia")
+            result.errors.push_back("product must be Synthia");
+
+        const auto version = root.getProperty(juce::Identifier("version"));
+        if (!version.isInt() || static_cast<int>(version) < 1)
+            result.errors.push_back("version must be an integer >= 1");
+
+        const auto tags = root.getProperty(juce::Identifier("tags"));
+        if (!tags.isVoid())
+            validateTags(result, tags);
+
+        const auto preview = root.getProperty(juce::Identifier("preview"));
+        if (!preview.isVoid() && !preview.isObject())
+            result.errors.push_back("preview must be an object");
+
+        const auto preset = root.getProperty(juce::Identifier("preset"));
+        if (!preset.isObject())
+        {
+            result.errors.push_back("preset must be an object");
+            return nullptr;
+        }
+
+        return preset.getDynamicObject();
+    }
+
+    return nullptr;
 }
 
 void validateParameterValue(PresetValidationResult& result, const ParameterSpec& spec, const juce::var& value)
@@ -172,7 +245,7 @@ void validateBrowserMetadata(PresetValidationResult& result, const juce::Dynamic
 
     const auto source = browserObject->getProperty(juce::Identifier("source"));
     if (!source.isVoid() && !isAllowedBrowserSource(source))
-        result.errors.push_back("metadata.browser.source must be factory, user, legacy_user, or ai_generated");
+        result.errors.push_back("metadata.browser.source must be factory, user, or ai_generated");
 }
 
 void validateMetadata(PresetValidationResult& result, const juce::var& metadata)
@@ -297,6 +370,12 @@ PresetValidationResult validatePresetFile(const std::filesystem::path& path)
     PresetValidationResult result;
     result.path = path;
 
+    if (!isPresetFilePath(path))
+    {
+        result.errors.push_back("preset extension must be .SynthiaPreset");
+        return result;
+    }
+
     const auto file = juceFileForPath(path);
     if (!file.existsAsFile())
     {
@@ -311,12 +390,16 @@ PresetValidationResult validatePresetFile(const std::filesystem::path& path)
         return result;
     }
 
-    const auto* object = parsed.getDynamicObject();
-    if (object == nullptr)
+    const auto* root = parsed.getDynamicObject();
+    if (root == nullptr)
     {
         result.errors.push_back("preset root object unavailable");
         return result;
     }
+
+    const auto* object = presetPayloadObject(result, *root);
+    if (object == nullptr)
+        return result;
 
     const char* required[] = {
         "schema_version", "plugin_min_version", "id", "display_name",
@@ -392,7 +475,7 @@ std::vector<PresetValidationResult> validatePresetDirectory(const std::filesyste
         return results;
     }
 
-    std::filesystem::directory_iterator iterator { directory,
+    std::filesystem::recursive_directory_iterator iterator { directory,
         std::filesystem::directory_options::skip_permission_denied,
         error };
     if (error)
@@ -404,7 +487,7 @@ std::vector<PresetValidationResult> validatePresetDirectory(const std::filesyste
         return results;
     }
 
-    for (std::filesystem::directory_iterator end; iterator != end; iterator.increment(error))
+    for (std::filesystem::recursive_directory_iterator end; iterator != end; iterator.increment(error))
     {
         if (error)
         {
@@ -413,7 +496,7 @@ std::vector<PresetValidationResult> validatePresetDirectory(const std::filesyste
         }
 
         const auto& entry = *iterator;
-        if (entry.is_regular_file(error) && !error && entry.path().extension() == ".json")
+        if (entry.is_regular_file(error) && !error && isPresetFilePath(entry.path()))
             results.push_back(validatePresetFile(entry.path()));
 
         error.clear();
@@ -423,7 +506,7 @@ std::vector<PresetValidationResult> validatePresetDirectory(const std::filesyste
     {
         PresetValidationResult result;
         result.path = directory;
-        result.errors.push_back("preset directory contains no JSON presets");
+        result.errors.push_back("preset directory contains no Synthia preset files");
         results.push_back(result);
     }
 

@@ -207,7 +207,7 @@ Options parseOptions(int argc, char* argv[])
         else if (arg == "--offline-realtime-compare-test")
         {
             options.offlineRealtimeCompareTest = true;
-            options.presetPath = "presets/factory/fx-space-01.json";
+            options.presetPath = "presets/factory/FX/FX - Space 01.SynthiaPreset";
             options.output = "build/reports/offline-realtime-compare.json";
         }
         else if (arg == "--randomize-test")
@@ -1259,6 +1259,23 @@ bool loadPresetParameters(const std::filesystem::path& path, synth::SynthParamet
         return false;
     }
 
+    const juce::DynamicObject* presetRoot = nullptr;
+    const auto fileType = root->getProperty(juce::Identifier("fileType"));
+    if (!fileType.isString() || fileType.toString() != "SynthiaPreset")
+    {
+        error = "preset fileType must be SynthiaPreset: " + path.string();
+        return false;
+    }
+
+    const auto preset = root->getProperty(juce::Identifier("preset"));
+    if (!preset.isObject())
+    {
+        error = "SynthiaPreset payload unavailable: " + path.string();
+        return false;
+    }
+
+    presetRoot = preset.getDynamicObject();
+
     const auto validation = synth::validatePresetFile(path);
     if (!validation.passed())
     {
@@ -1268,7 +1285,7 @@ bool loadPresetParameters(const std::filesystem::path& path, synth::SynthParamet
         return false;
     }
 
-    const auto parameterVar = root->getProperty(juce::Identifier("parameters"));
+    const auto parameterVar = presetRoot->getProperty(juce::Identifier("parameters"));
     if (!parameterVar.isObject())
     {
         error = "preset parameters must be an object: " + path.string();
@@ -1285,7 +1302,7 @@ bool loadPresetParameters(const std::filesystem::path& path, synth::SynthParamet
     for (const auto& property : parameterObject->getProperties())
         applyPresetValue(parameters, property.name.toString().toStdString(), property.value);
 
-    const auto modSlots = root->getProperty(juce::Identifier("mod_slots"));
+    const auto modSlots = presetRoot->getProperty(juce::Identifier("mod_slots"));
     if (modSlots.isArray())
     {
         if (const auto* slots = modSlots.getArray())
@@ -1683,7 +1700,7 @@ int writeModulationReport(const Options& options)
     {
         synth::SynthParameters parameters;
         std::string error;
-        if (loadPresetParameters("fixtures/presets/mod-slots-only.json", parameters, error))
+        if (loadPresetParameters("fixtures/presets/mod-slots-only.SynthiaPreset", parameters, error))
         {
             const auto& slot = parameters.transMod.slots[0];
             metrics.modSlotSchemaPassed = slot.enabled
@@ -2079,6 +2096,26 @@ PresetRenderResult renderParameterAudio(synth::SynthParameters parameters,
     return result;
 }
 
+std::filesystem::path factoryPresetPathForId(const std::string& id)
+{
+    if (id == "init")
+        return "presets/factory/Init/Init.SynthiaPreset";
+    if (id == "pluck-core-01")
+        return "presets/factory/Pluck/PL - Pluck Core 01.SynthiaPreset";
+    if (id == "supersaw-stack-01")
+        return "presets/factory/Lead/LD - Supersaw Stack 01.SynthiaPreset";
+    if (id == "bass-wub-01")
+        return "presets/factory/Bass/BA - Bass Wub 01.SynthiaPreset";
+    if (id == "pad-wide-01")
+        return "presets/factory/Pad/PD - Pad Wide 01.SynthiaPreset";
+    if (id == "arp-motion-01")
+        return "presets/factory/Arp/ARP - Arp Motion 01.SynthiaPreset";
+    if (id == "fx-space-01")
+        return "presets/factory/FX/FX - Space 01.SynthiaPreset";
+
+    return std::filesystem::path { "presets/factory" } / (id + ".SynthiaPreset");
+}
+
 PresetRenderResult renderPresetAudio(const std::filesystem::path& presetPath,
                                      const std::filesystem::path& fixturePath,
                                      PresetRenderVariant variant,
@@ -2152,7 +2189,7 @@ int writeModulationRouteRenderReport(const Options& options)
     constexpr auto clearMaxAbsTolerance = 1.0e-7;
     constexpr auto clearRmsTolerance = 1.0e-9;
 
-    const auto presetPath = std::filesystem::path { "presets/factory/pluck-core-01.json" };
+    const auto presetPath = factoryPresetPathForId("pluck-core-01");
     synth::SynthParameters baselineParameters;
     std::string error;
     if (!loadPresetParameters(presetPath, baselineParameters, error))
@@ -2705,7 +2742,7 @@ int writeCoreSuite(const Options& options)
     const auto outputDir = options.outputDir;
     const auto artifactDir = outputDir / "artifacts";
     const auto failureDir = outputDir / "failures";
-    const auto presetPath = std::filesystem::path { "presets/factory/pluck-core-01.json" };
+    const auto presetPath = factoryPresetPathForId("pluck-core-01");
     const auto presetDirectory = std::filesystem::path { "presets/factory" };
     const auto fixturePath = options.fixturePath;
 
@@ -2770,7 +2807,7 @@ int writeCoreSuite(const Options& options)
     {
         auto compareOptions = options;
         compareOptions.output = outputDir / "offline-realtime-compare.json";
-        compareOptions.presetPath = "presets/factory/fx-space-01.json";
+        compareOptions.presetPath = factoryPresetPathForId("fx-space-01");
         addItem("offline-realtime-compare", compareOptions.output,
                 writeOfflineRealtimeCompareReport(compareOptions));
     }
@@ -2887,16 +2924,16 @@ std::vector<PatchRecreationCase> patchRecreationCases()
         { "pluck-core-01", "Pluck Core 01", "Plucks",
           "Existing pluck baseline with ramp, TransMod, saturation, delay, and reverb.",
           RenderFxMode::Wet, PresetRenderVariant::Default, true, false },
-        { "supersaw-stack-01", "Supersaw Stack 01", "Leads",
-          "Wide saw stack using A/B layers, four oscillator slots, unison, chorus, delay, and reverb.",
+        { "supersaw-stack-01", "Supersaw Stack 01", "Lead",
+          "Wide saw lead using one primary saw stack, restrained detune, chorus, delay, and reverb.",
           RenderFxMode::Wet, PresetRenderVariant::Default, true, false },
         { "bass-wub-01", "Bass Wub 01", "Bass",
           "Mono-legato bass with sub support, filter LFO motion, drive, and compressor proof.",
           RenderFxMode::Wet, PresetRenderVariant::MonoLfo, true, false },
-        { "pad-wide-01", "Pad Wide 01", "Pads",
-          "Slow-attack dual-layer pad with wide oscillator slots, phaser, chorus, delay, and reverb.",
+        { "pad-wide-01", "Pad Wide 01", "Pad",
+          "Slow-attack pad with a compact saw stack, chorus, delay, and reverb.",
           RenderFxMode::Wet, PresetRenderVariant::Default, true, false },
-        { "arp-motion-01", "Arp Motion 01", "Arps",
+        { "arp-motion-01", "Arp Motion 01", "Arp",
           "Arpeggiated chord/step patch proving preset-loaded arp and chord state in the renderer.",
           RenderFxMode::Wet, PresetRenderVariant::Default, true, true },
         { "fx-space-01", "FX Space 01", "FX",
@@ -3006,7 +3043,7 @@ int writePatchRecreationSuite(const Options& options)
     std::vector<PatchRecreationItem> items;
     for (const auto& patch : patchRecreationCases())
     {
-        const auto presetPath = std::filesystem::path { "presets/factory" } / (std::string(patch.id) + ".json");
+        const auto presetPath = factoryPresetPathForId(patch.id);
         const auto reportPath = outputDir / (std::string(patch.id) + "-" + toString(patch.fxMode) + ".json");
         const auto wavPath = artifactDir / (std::string(patch.id) + "-" + toString(patch.fxMode) + ".wav");
 

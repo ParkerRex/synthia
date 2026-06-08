@@ -3207,12 +3207,13 @@ juce::String fileSafeName(juce::String name)
     return safe.empty() ? "user-preset" : juce::String(safe);
 }
 
-juce::File presetJsonFile(juce::File file)
+juce::File presetFileWithExtension(juce::File file)
 {
-    if (file == juce::File() || file.getFileExtension().equalsIgnoreCase(".json"))
+    if (file == juce::File()
+        || file.getFileExtension().equalsIgnoreCase(".SynthiaPreset"))
         return file;
 
-    return file.withFileExtension(".json");
+    return file.withFileExtension(".SynthiaPreset");
 }
 
 juce::String nonEmptyPresetField(const juce::String& value, const juce::String& fallback)
@@ -4119,9 +4120,10 @@ void SynthAudioProcessorEditor::savePresetAs()
         ? nameEditor.getText().trim()
         : audioProcessor.getCurrentPresetName();
     const auto suggestedFile = audioProcessor.getUserPresetDirectory()
-        .getChildFile(fileSafeName(presetName) + ".json");
+        .getChildFile(fileSafeName(presetName) + ".SynthiaPreset");
 
-    fileChooser = std::make_unique<juce::FileChooser>("Save Synthia preset", suggestedFile, "*.json");
+    fileChooser = std::make_unique<juce::FileChooser>("Save Synthia preset", suggestedFile,
+                                                       "*.SynthiaPreset");
     juce::Component::SafePointer<SynthAudioProcessorEditor> safeEditor { this };
     fileChooser->launchAsync(juce::FileBrowserComponent::saveMode
                              | juce::FileBrowserComponent::canSelectFiles
@@ -4130,7 +4132,7 @@ void SynthAudioProcessorEditor::savePresetAs()
                                  if (safeEditor == nullptr)
                                      return;
 
-                                 const auto file = presetJsonFile(chooser.getResult());
+                                 const auto file = presetFileWithExtension(chooser.getResult());
                                  if (file == juce::File())
                                      return;
 
@@ -4155,10 +4157,10 @@ void SynthAudioProcessorEditor::duplicatePreset()
         presetName << " Copy";
 
     auto directory = audioProcessor.getUserPresetDirectory();
-    auto file = directory.getChildFile(fileSafeName(presetName) + ".json");
+    auto file = directory.getChildFile(fileSafeName(presetName) + ".SynthiaPreset");
     auto suffix = 2;
     while (file.existsAsFile())
-        file = directory.getChildFile(fileSafeName(presetName) + "-" + juce::String(suffix++) + ".json");
+        file = directory.getChildFile(fileSafeName(presetName) + "-" + juce::String(suffix++) + ".SynthiaPreset");
 
     juce::String message;
     if (audioProcessor.savePresetFile(file, presetName, message))
@@ -4290,7 +4292,7 @@ void SynthAudioProcessorEditor::savePresetWithMetadata(synth::PresetWriteMode mo
 
     auto options = presetMetadataPanel->writeOptions(mode);
     auto file = audioProcessor.getUserPresetDirectory()
-        .getChildFile(fileSafeName(presetName) + ".json");
+        .getChildFile(fileSafeName(presetName) + ".SynthiaPreset");
 
     if (mode == synth::PresetWriteMode::OverwriteExisting)
     {

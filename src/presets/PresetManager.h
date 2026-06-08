@@ -13,7 +13,6 @@ enum class PresetSource
 {
     Factory,
     User,
-    LegacyUser,
 };
 
 enum class PresetWriteMode
@@ -47,7 +46,6 @@ struct PresetBrowserFilter
     bool favoritesOnly = false;
     bool includeFactory = true;
     bool includeUser = true;
-    bool includeLegacyUser = true;
 };
 
 struct PresetBrowserCatalog

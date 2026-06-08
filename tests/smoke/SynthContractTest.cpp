@@ -695,6 +695,20 @@ bool checkMidiControllerMap()
 bool checkPresetManagerLoadAndSave()
 {
     StateRoundTripProcessor processor;
+    const auto pluckPresetPath = "presets/factory/Pluck/PL - Pluck Core 01.SynthiaPreset";
+    auto presetPayloadObject = [](const juce::var& parsed) -> const juce::DynamicObject* {
+        const auto* root = parsed.getDynamicObject();
+        if (root == nullptr)
+            return nullptr;
+
+        const auto fileType = root->getProperty(juce::Identifier("fileType"));
+        if (!fileType.isString() || fileType.toString() != "SynthiaPreset")
+            return nullptr;
+
+        const auto preset = root->getProperty(juce::Identifier("preset"));
+        return preset.isObject() ? preset.getDynamicObject() : nullptr;
+    };
+
     if (!parameterValueMatches(processor.parameters, "filter.cutoff_semitones", 96.0f))
     {
         std::cerr << "Unexpected default filter cutoff before preset prepare.\n";
@@ -717,7 +731,7 @@ bool checkPresetManagerLoadAndSave()
         return false;
     }
 
-    const auto prepared = synth::preparePresetState(processor.parameters, "presets/factory/pluck-core-01.json");
+    const auto prepared = synth::preparePresetState(processor.parameters, pluckPresetPath);
     if (!prepared.loaded || !prepared.state.isValid())
     {
         std::cerr << prepared.message << "\n";
@@ -730,7 +744,7 @@ bool checkPresetManagerLoadAndSave()
         return false;
     }
 
-    const auto load = synth::loadPresetIntoState(processor.parameters, "presets/factory/pluck-core-01.json");
+    const auto load = synth::loadPresetIntoState(processor.parameters, pluckPresetPath);
     if (!load.loaded)
     {
         std::cerr << load.message << "\n";
@@ -820,7 +834,7 @@ bool checkPresetManagerLoadAndSave()
     }
 
     const auto tempFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("synthia-preset-manager-test.json");
+        .getChildFile("synthia-preset-manager-test.SynthiaPreset");
     tempFile.deleteFile();
 
     std::string error;
@@ -842,7 +856,7 @@ bool checkPresetManagerLoadAndSave()
     }
 
     const auto savedPreset = juce::JSON::parse(tempFile);
-    const auto* savedObject = savedPreset.getDynamicObject();
+    const auto* savedObject = presetPayloadObject(savedPreset);
     const auto savedParameters = savedObject != nullptr
         ? savedObject->getProperty(juce::Identifier("parameters"))
         : juce::var();
@@ -881,7 +895,7 @@ bool checkPresetManagerLoadAndSave()
     tempFile.deleteFile();
 
     const auto metadataFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("synthia-preset-metadata-test.json");
+        .getChildFile("synthia-preset-metadata-test.SynthiaPreset");
     metadataFile.deleteFile();
     synth::PresetWriteOptions writeOptions;
     writeOptions.mode = synth::PresetWriteMode::CreateNew;
@@ -908,7 +922,7 @@ bool checkPresetManagerLoadAndSave()
     }
 
     const auto metadataPreset = juce::JSON::parse(metadataFile);
-    const auto* metadataObject = metadataPreset.getDynamicObject();
+    const auto* metadataObject = presetPayloadObject(metadataPreset);
     const auto metadataRoot = metadataObject != nullptr
         ? metadataObject->getProperty(juce::Identifier("metadata"))
         : juce::var();
@@ -954,7 +968,7 @@ bool checkPresetManagerLoadAndSave()
     }
 
     const auto overwrittenPreset = juce::JSON::parse(metadataFile);
-    const auto* overwrittenObject = overwrittenPreset.getDynamicObject();
+    const auto* overwrittenObject = presetPayloadObject(overwrittenPreset);
     metadataFile.deleteFile();
     if (overwrittenObject == nullptr
         || overwrittenObject->getProperty(juce::Identifier("display_name")).toString() != "Metadata Overwrite Test")
@@ -969,7 +983,7 @@ bool checkPresetManagerLoadAndSave()
     });
     if (pluckPreset == factoryPresets.end()
         || pluckPreset->bank != "Factory"
-        || pluckPreset->category != "Plucks"
+        || pluckPreset->category != "Pluck"
         || !containsString(pluckPreset->tags, "pluck")
         || pluckPreset->favorite
         || pluckPreset->favoriteKey != "factory:pluck-core-01")
@@ -987,7 +1001,7 @@ bool checkPresetManagerLoadAndSave()
         return false;
     }
 
-    const auto browserPresetFile = browserDirectory.getChildFile("browser-favorite-test.json");
+    const auto browserPresetFile = browserDirectory.getChildFile("browser-favorite-test.SynthiaPreset");
     if (!synth::writeCurrentPreset(processor.parameters, browserPresetFile.getFullPathName().toStdString(),
                                    "Browser Favorite Test", error))
     {
@@ -1022,7 +1036,7 @@ bool checkPresetManagerLoadAndSave()
         return false;
     }
 
-    const auto duplicateBrowserPresetFile = browserDirectory.getChildFile("browser-favorite-test-duplicate.json");
+    const auto duplicateBrowserPresetFile = browserDirectory.getChildFile("browser-favorite-test-duplicate.SynthiaPreset");
     if (!synth::writeCurrentPreset(processor.parameters, duplicateBrowserPresetFile.getFullPathName().toStdString(),
                                    "Browser Favorite Test", error))
     {
@@ -1088,9 +1102,9 @@ bool checkPresetManagerLoadAndSave()
 
     const auto extensionlessFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
         .getChildFile("synthia-preset-manager-extension-test");
-    const auto extensionlessJsonFile = extensionlessFile.withFileExtension(".json");
+    const auto extensionlessPresetFile = extensionlessFile.withFileExtension(".SynthiaPreset");
     extensionlessFile.deleteFile();
-    extensionlessJsonFile.deleteFile();
+    extensionlessPresetFile.deleteFile();
     if (!synth::writeCurrentPreset(processor.parameters, extensionlessFile.getFullPathName().toStdString(),
                                    "Preset Extension Test", error))
     {
@@ -1098,9 +1112,9 @@ bool checkPresetManagerLoadAndSave()
         return false;
     }
 
-    const auto extensionValidation = synth::validatePresetFile(extensionlessJsonFile.getFullPathName().toStdString());
+    const auto extensionValidation = synth::validatePresetFile(extensionlessPresetFile.getFullPathName().toStdString());
     extensionlessFile.deleteFile();
-    extensionlessJsonFile.deleteFile();
+    extensionlessPresetFile.deleteFile();
     if (!extensionValidation.passed())
     {
         std::cerr << "Preset manager did not normalize extensionless save path.\n";
@@ -1345,7 +1359,7 @@ int main()
         }
     }
 
-    const auto invalidModDepth = synth::validatePresetFile("fixtures/presets/invalid-mod-slot-depth.json");
+    const auto invalidModDepth = synth::validatePresetFile("fixtures/presets/invalid-mod-slot-depth.SynthiaPreset");
     if (invalidModDepth.passed())
     {
         std::cerr << "Invalid mod slot depth fixture passed validation.\n";

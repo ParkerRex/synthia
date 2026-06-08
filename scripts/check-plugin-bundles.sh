@@ -64,8 +64,8 @@ check_bundle() {
   fi
 
   local preset_dir="$bundle/Contents/Resources/factory"
-  [[ -f "$preset_dir/init.json" ]] || fail "$label factory preset missing: $preset_dir/init.json"
-  [[ -f "$preset_dir/pluck-core-01.json" ]] || fail "$label factory preset missing: $preset_dir/pluck-core-01.json"
+  [[ -f "$preset_dir/Init/Init.SynthiaPreset" ]] || fail "$label factory preset missing: $preset_dir/Init/Init.SynthiaPreset"
+  [[ -f "$preset_dir/Pluck/PL - Pluck Core 01.SynthiaPreset" ]] || fail "$label factory preset missing: $preset_dir/Pluck/PL - Pluck Core 01.SynthiaPreset"
 }
 
 check_bundle "Standalone" \

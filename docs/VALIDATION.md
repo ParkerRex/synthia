@@ -27,8 +27,8 @@ ctest --test-dir build --output-on-failure
 ./build/SynthiaRender --offline-realtime-compare-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/offline-realtime-compare.json
 scripts/compare-ableton-bounce-realtime.py --self-test --output build/reports/ableton/bounce-compare/strong-compare-self-test.json
 ./build/SynthiaRender --randomize-test --seeds 1,42,12345,67890 --fixture fixtures/midi/overlap-pluck.mid --output build/reports/randomize.json
-./build/SynthiaRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
-./build/SynthiaRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --wet --output build/renders/pluck-core-01-wet.wav --report build/reports/pluck-core-01-wet.json
+./build/SynthiaRender --preset "presets/factory/Pluck/PL - Pluck Core 01.SynthiaPreset" --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
+./build/SynthiaRender --preset "presets/factory/Pluck/PL - Pluck Core 01.SynthiaPreset" --fixture fixtures/midi/overlap-pluck.mid --wet --output build/renders/pluck-core-01-wet.wav --report build/reports/pluck-core-01-wet.json
 ./build/SynthiaRender --suite core --output-dir build/reports/core
 ./build/SynthiaRender --suite patch-recreation --output-dir build/reports/patch-recreation
 ```
@@ -90,7 +90,7 @@ The current DSP validation proves:
 - `SynthiaOfflineRealtimeCompareTest` runs the standalone realtime/offline quality-mode comparison under CTest.
 - `SynthiaPatchRecreationSuite` runs the patch-recreation suite under CTest.
 
-Preset render validation is expected to fail if the preset file is missing, the preset JSON is invalid, the MIDI fixture is missing, the fixture is not a valid MIDI file, or the fixture has no note events.
+Preset render validation is expected to fail if the preset file is missing, the `.SynthiaPreset` envelope or nested preset payload is invalid, the MIDI fixture is missing, the fixture is not a valid MIDI file, or the fixture has no note events.
 
 ## Validation Profiles
 

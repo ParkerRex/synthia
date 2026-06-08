@@ -4,7 +4,7 @@ This document sketches the planned preset schema. `SPEC.md` remains the source o
 
 ## Format
 
-Presets should be JSON:
+Preset files use a JSON `.SynthiaPreset` envelope:
 
 - deterministic key order when written by tools,
 - human-inspectable,
@@ -12,23 +12,37 @@ Presets should be JSON:
 - migratable,
 - no copied third-party data.
 
+The canonical and only supported preset extension is `.SynthiaPreset`.
+
 Current factory presets:
 
-- `presets/factory/init.json`
-- `presets/factory/pluck-core-01.json`
-- `presets/factory/supersaw-stack-01.json`
-- `presets/factory/bass-wub-01.json`
-- `presets/factory/pad-wide-01.json`
-- `presets/factory/arp-motion-01.json`
-- `presets/factory/fx-space-01.json`
+- `presets/factory/Init/Init.SynthiaPreset`
+- `presets/factory/Lead/LD - Supersaw Stack 01.SynthiaPreset`
+- `presets/factory/Lead/LD - Rolling Circuit.SynthiaPreset`
+- `presets/factory/Pluck/PL - Pluck Core 01.SynthiaPreset`
+- `presets/factory/Pluck/PL - Droplet Glass.SynthiaPreset`
+- `presets/factory/Pluck/PL - Room Shine.SynthiaPreset`
+- `presets/factory/Bass/BA - Bass Wub 01.SynthiaPreset`
+- `presets/factory/Bass/BA - OTT Saw Lift.SynthiaPreset`
+- `presets/factory/Bass/BA - Acid Thread.SynthiaPreset`
+- `presets/factory/Pad/PD - Pad Wide 01.SynthiaPreset`
+- `presets/factory/Pad/PD - Analog Silk Sweep.SynthiaPreset`
+- `presets/factory/Pad/PD - Cosmic Aura.SynthiaPreset`
+- `presets/factory/Pad/PD - Dark Space.SynthiaPreset`
+- `presets/factory/Arp/ARP - Arp Motion 01.SynthiaPreset`
+- `presets/factory/FX/FX - Space 01.SynthiaPreset`
+- `presets/factory/Synth/SY - Broken Tape Keys.SynthiaPreset`
+- `presets/factory/Synth/SY - Pixel Storm Poly.SynthiaPreset`
+
+Factory patches are Synthia-native remixes authored from local reference library category/name targets. They do not embed third-party binary preset payloads.
 
 Current user preset location:
 
 - `~/Music/ParkerX/synthia/Presets`
 
-The preset browser also scans the legacy `~/Music/ParkerX/Synth/Presets` path so local presets saved before the project rename remain visible. New user preset writes go to the `synthia` path.
+The preset browser scans only the current Synthia user preset location.
 
-The editor scans factory presets from bundled plugin resources when running from an installed AU, VST3, or Standalone bundle, falling back to the source `presets/factory` directory for development tools. User presets are scanned from the user preset location. Factory presets are treated as read-only; editor Save As and Duplicate write schema-valid user JSON presets.
+The editor recursively scans factory presets from bundled plugin resources when running from an installed AU, VST3, or Standalone bundle, falling back to the source `presets/factory` directory for development tools. User presets are scanned from the user preset location. Factory presets are treated as read-only; editor Save As and Duplicate write schema-valid user `.SynthiaPreset` files.
 
 Current validation command:
 
@@ -43,6 +57,25 @@ Current patch recreation command:
 ```
 
 ## Required Top-Level Fields
+
+`.SynthiaPreset` files carry a lightweight browser envelope:
+
+- `fileType`: `SynthiaPreset`.
+- `presetName`: display name.
+- `presetAuthor`: author name.
+- `presetDescription`: short description.
+- `product`: `Synthia`.
+- `productVersion`: plugin/project version.
+- `vendor`: vendor string.
+- `url`: vendor URL.
+- `version`: envelope schema version.
+- `bank`: browser bank.
+- `category`: browser category.
+- `tags`: browser-facing tag list.
+- `preview`: preview/audition metadata.
+- `preset`: the validated Synthia preset payload.
+
+The nested `preset` payload keeps the render-state contract:
 
 - `schema_version`: integer.
 - `plugin_min_version`: semantic version string.
@@ -66,14 +99,14 @@ Preset browser metadata is UI/library state, not realtime audio state. It does n
 
 The current browser-facing scan summary exposes:
 
-- `source`: `factory`, `user`, or `legacy_user`.
+- `source`: `factory` or `user`.
 - `bank`: display bank name, for example `Factory` or `User`.
 - `category`: browser category, for example `Init`, `Plucks`, or `User`.
 - `tags`: top-level tag strings from the preset JSON.
 - `favorite_key`: stable local key. Factory presets use `<source>:<preset_id>`; user and legacy-user presets add the normalized local file path so duplicate user preset IDs do not share favorite state.
 - `favorite`: local favorite state resolved from the sidecar favorites file.
 
-Preset JSON may provide browser metadata as:
+The nested preset payload may provide browser metadata as:
 
 ```json
 "metadata": {
@@ -86,7 +119,7 @@ Preset JSON may provide browser metadata as:
 }
 ```
 
-If `metadata.browser` is absent, scan summaries fall back to source-derived bank/category defaults so older valid presets remain visible.
+If `metadata.browser` is absent, scan summaries fall back to source-derived bank/category defaults so older valid presets remain visible. Envelope `bank`, `category`, and `tags` exist for browser/audition tooling; render state is still owned by the nested preset payload.
 
 Favorites are stored outside preset JSON in:
 
@@ -99,7 +132,7 @@ The sidecar shape is:
   "schema_version": 1,
   "favorite_keys": [
     "factory:pluck-core-01",
-    "user:browser-favorite-test:/Users/example/Music/ParkerX/synthia/Presets/browser-favorite-test.json"
+    "user:browser-favorite-test:/Users/example/Music/ParkerX/synthia/Presets/browser-favorite-test.SynthiaPreset"
   ]
 }
 ```

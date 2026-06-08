@@ -97,7 +97,7 @@ Render the factory dry-core pluck:
 
 ```bash
 ./build/SynthiaRender \
-  --preset presets/factory/pluck-core-01.json \
+  --preset "presets/factory/Pluck/PL - Pluck Core 01.SynthiaPreset" \
   --fixture fixtures/midi/overlap-pluck.mid \
   --dry \
   --output build/renders/pluck-core-01-dry.wav \
@@ -108,7 +108,7 @@ Render the factory wet pluck:
 
 ```bash
 ./build/SynthiaRender \
-  --preset presets/factory/pluck-core-01.json \
+  --preset "presets/factory/Pluck/PL - Pluck Core 01.SynthiaPreset" \
   --fixture fixtures/midi/overlap-pluck.mid \
   --wet \
   --output build/renders/pluck-core-01-wet.wav \
