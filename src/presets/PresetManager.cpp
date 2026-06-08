@@ -36,6 +36,21 @@ namespace synth
 {
 namespace
 {
+juce::File juceFileForPath(const std::filesystem::path& path)
+{
+    if (path.is_absolute())
+        return juce::File { juce::String(path.lexically_normal().string()) };
+
+    std::error_code error;
+    auto absolutePath = std::filesystem::current_path(error);
+    if (!error)
+        absolutePath /= path;
+    else
+        absolutePath = path;
+
+    return juce::File { juce::String(absolutePath.lexically_normal().string()) };
+}
+
 bool isNumber(const juce::var& value)
 {
     return value.isDouble() || value.isInt() || value.isInt64();
@@ -419,8 +434,7 @@ std::filesystem::path withJsonExtension(std::filesystem::path path)
 
 std::unique_ptr<juce::DynamicObject> readPresetObject(const std::filesystem::path& path)
 {
-    const auto file = juce::File(juce::String(path.string()));
-    const auto parsed = juce::JSON::parse(file);
+    const auto parsed = juce::JSON::parse(juceFileForPath(path));
     if (!parsed.isObject())
         return {};
 
@@ -763,7 +777,7 @@ std::string presetFavoriteKey(PresetSource source, const std::string& presetId, 
     if (keyId.empty())
         keyId = presetIdFromDisplayName(path.stem().string());
 
-    const auto prefix = presetSourceId(source) + ":" + keyId;
+    auto prefix = presetSourceId(source) + ":" + keyId;
     if (source == PresetSource::Factory)
         return prefix;
 
@@ -936,7 +950,7 @@ PresetBrowserCatalog buildPresetBrowserCatalog(const std::vector<PresetSummary>&
 
 std::filesystem::path factoryPresetDirectory()
 {
-    const auto bundled = bundleFactoryPresetDirectory();
+    auto bundled = bundleFactoryPresetDirectory();
     if (!bundled.empty())
         return bundled;
 
@@ -986,7 +1000,7 @@ std::string presetIdFromDisplayName(const std::string& displayName)
 
 std::vector<std::string> readFavoritePresetKeys(const std::filesystem::path& path)
 {
-    const auto file = juce::File(juce::String(path.string()));
+    const auto file = juceFileForPath(path);
     if (!file.existsAsFile())
         return {};
 
@@ -1036,7 +1050,7 @@ bool writeFavoritePresetKeys(const std::filesystem::path& path,
         keyArray.add(juce::var(juce::String(key)));
     root->setProperty("favorite_keys", keyArray);
 
-    const auto file = juce::File(juce::String(path.string()));
+    const auto file = juceFileForPath(path);
     if (!file.replaceWithText(juce::JSON::toString(juce::var(root.release()), true), false, false, "\n"))
     {
         error = "could not write favorites file: " + path.string();
@@ -1094,7 +1108,7 @@ static bool writeNewTextFile(const std::filesystem::path& path, const juce::Stri
 #else
     const auto tempPath = path.parent_path()
         / ("." + path.filename().string() + ".tmp-" + std::to_string(juce::Time::getMillisecondCounter()));
-    const auto tempFile = juce::File(juce::String(tempPath.string()));
+    const auto tempFile = juceFileForPath(tempPath);
     if (!tempFile.replaceWithText(text, false, false, "\n"))
     {
         error = "could not write temporary preset file: " + tempPath.string();
@@ -1427,7 +1441,7 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
     }
     else
     {
-        const auto file = juce::File(juce::String(destination.string()));
+        const auto file = juceFileForPath(destination);
         wrotePreset = file.replaceWithText(presetJson, false, false, "\n");
         if (!wrotePreset)
             error = "could not write preset file: " + destination.string();

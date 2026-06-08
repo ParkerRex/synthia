@@ -13,6 +13,7 @@ This directory holds implementation-facing documentation for sylenth-ai. `../SPE
 
 - `ARCHITECTURE.md`: component model, planned code layout, realtime boundaries.
 - `PRESET_SCHEMA.md`: preset and host-state shape.
+- `QUALITY.md`: local formatting, linting, realtime-safety, and build-loop quality gates.
 - `VALIDATION.md`: tests, render fixtures, host checks, and acceptance metrics.
 - `modern-sylenth-baseline.md`: Phase 1 Sylenth rebuild baseline, current gaps, and Phase 2/3 AI roadmap.
 - `PLANS.md`: routing for Programs and ExecPlans.

@@ -8,4 +8,4 @@ cmake-build-*/
 *.aiff
 *.component
 *.vst3
-
+__pycache__/

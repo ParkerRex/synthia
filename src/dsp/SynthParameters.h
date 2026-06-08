@@ -455,14 +455,152 @@ inline float clampUnit(float value) noexcept
     return std::clamp(value, 0.0f, 1.0f);
 }
 
+inline float softSaturate(float value) noexcept
+{
+    value = std::clamp(value, -64.0f, 64.0f);
+    return value / (1.0f + std::abs(value));
+}
+
+inline float inverseSqrtForCount(int count) noexcept
+{
+    constexpr std::array<float, 33> values {
+        0.0f,
+        1.0f,
+        0.70710678118f,
+        0.57735026919f,
+        0.5f,
+        0.44721359550f,
+        0.40824829046f,
+        0.37796447301f,
+        0.35355339059f,
+        0.33333333333f,
+        0.31622776602f,
+        0.30151134458f,
+        0.28867513459f,
+        0.27735009811f,
+        0.26726124191f,
+        0.25819888975f,
+        0.25f,
+        0.24253562504f,
+        0.23570226040f,
+        0.22941573387f,
+        0.22360679775f,
+        0.21821789024f,
+        0.21320071636f,
+        0.20851441406f,
+        0.20412414523f,
+        0.2f,
+        0.19611613514f,
+        0.19245008973f,
+        0.18898223650f,
+        0.18569533818f,
+        0.18257418584f,
+        0.17960530203f,
+        0.17677669530f,
+    };
+
+    return values[static_cast<std::size_t>(std::clamp(count, 0, static_cast<int>(values.size()) - 1))];
+}
+
+inline float inverseSqrtForWeight(float weight) noexcept
+{
+    const auto safeWeight = std::isfinite(weight) ? weight : 1.0f;
+    const auto clampedWeight = std::clamp(safeWeight, 0.0f, 32.0f);
+    if (clampedWeight <= 0.0f)
+        return 0.0f;
+
+    if (clampedWeight <= 1.0f)
+        return 1.0f;
+
+    const auto lowerIndex = static_cast<int>(clampedWeight);
+    const auto fraction = clampedWeight - static_cast<float>(lowerIndex);
+    const auto upperIndex = std::min(lowerIndex + 1, 32);
+    const auto lower = inverseSqrtForCount(lowerIndex);
+    return lower + (inverseSqrtForCount(upperIndex) - lower) * fraction;
+}
+
+inline constexpr float decibelGainTableMinDb = -96.0f;
+inline constexpr float decibelGainTableMaxDb = 36.0f;
+inline constexpr float decibelGainTableStepDb = 0.5f;
+inline constexpr auto decibelGainTableSize = 265u;
+inline constexpr std::array<float, decibelGainTableSize> decibelGainTable = [] {
+    std::array<float, decibelGainTableSize> values {};
+    auto gain = 0.000015848931925f;
+    constexpr auto stepGain = 1.05925372518f;
+    for (auto& value : values)
+    {
+        value = gain;
+        gain *= stepGain;
+    }
+    return values;
+}();
+
 inline float decibelsToGain(float db) noexcept
 {
-    return std::pow(10.0f, db / 20.0f);
+    const auto safeDb = std::isfinite(db) ? db : 0.0f;
+    const auto clampedDb = std::clamp(safeDb, decibelGainTableMinDb, decibelGainTableMaxDb);
+    const auto position = (clampedDb - decibelGainTableMinDb) / decibelGainTableStepDb;
+    const auto index = static_cast<int>(position);
+    const auto fraction = position - static_cast<float>(index);
+    const auto nextIndex = std::min(index + 1, static_cast<int>(decibelGainTable.size()) - 1);
+    return decibelGainTable[static_cast<std::size_t>(index)]
+        + (decibelGainTable[static_cast<std::size_t>(nextIndex)] - decibelGainTable[static_cast<std::size_t>(index)]) * fraction;
 }
+
+inline float gainToDecibels(float gain) noexcept
+{
+    const auto safeGain = std::isfinite(gain) ? gain : decibelGainTable.front();
+    const auto clampedGain = std::clamp(safeGain, decibelGainTable.front(), decibelGainTable.back());
+    auto lowerIndex = 0;
+    auto upperIndex = static_cast<int>(decibelGainTable.size()) - 1;
+    while (upperIndex - lowerIndex > 1)
+    {
+        const auto midpoint = lowerIndex + (upperIndex - lowerIndex) / 2;
+        if (decibelGainTable[static_cast<std::size_t>(midpoint)] <= clampedGain)
+            lowerIndex = midpoint;
+        else
+            upperIndex = midpoint;
+    }
+
+    const auto lowerGain = decibelGainTable[static_cast<std::size_t>(lowerIndex)];
+    const auto upperGain = decibelGainTable[static_cast<std::size_t>(upperIndex)];
+    const auto span = std::max(upperGain - lowerGain, 1.0e-12f);
+    const auto fraction = (clampedGain - lowerGain) / span;
+    return decibelGainTableMinDb + (static_cast<float>(lowerIndex) + fraction) * decibelGainTableStepDb;
+}
+
+inline constexpr int midiNoteFrequencyTableMinNote = -192;
+inline constexpr int midiNoteFrequencyTableMaxNote = 320;
+inline constexpr auto midiNoteFrequencyTableSize = 513u;
+inline constexpr std::array<float, midiNoteFrequencyTableSize> midiNoteFrequencyTable = [] {
+    std::array<float, midiNoteFrequencyTableSize> values {};
+    constexpr auto semitoneRatio = 1.05946309436f;
+    auto frequency = 8.17579891564f;
+    for (int note = 0; note > midiNoteFrequencyTableMinNote; --note)
+        frequency /= semitoneRatio;
+
+    for (auto& value : values)
+    {
+        value = frequency;
+        frequency *= semitoneRatio;
+    }
+    return values;
+}();
 
 inline float midiNoteToHz(float midiNote) noexcept
 {
-    return 440.0f * std::pow(2.0f, (midiNote - 69.0f) / 12.0f);
+    const auto safeMidiNote = std::isfinite(midiNote) ? midiNote : 0.0f;
+    const auto clampedNote = std::clamp(safeMidiNote,
+                                        static_cast<float>(midiNoteFrequencyTableMinNote),
+                                        static_cast<float>(midiNoteFrequencyTableMaxNote));
+    const auto position = clampedNote - static_cast<float>(midiNoteFrequencyTableMinNote);
+    const auto index = static_cast<int>(position);
+    const auto fraction = position - static_cast<float>(index);
+    const auto nextIndex = std::min(index + 1, static_cast<int>(midiNoteFrequencyTable.size()) - 1);
+    return midiNoteFrequencyTable[static_cast<std::size_t>(index)]
+        + (midiNoteFrequencyTable[static_cast<std::size_t>(nextIndex)]
+           - midiNoteFrequencyTable[static_cast<std::size_t>(index)])
+        * fraction;
 }
 
 inline bool isLegacyCompatibilityOscillatorSlot(int layerIndex, int oscillatorIndex) noexcept

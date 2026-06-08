@@ -59,6 +59,21 @@ The default build fetches JUCE `8.0.13`. Set `SYLENTH_AI_JUCE_PATH=/path/to/JUCE
 
 ## Validation
 
+Run the default quality gate:
+
+```bash
+scripts/check-quality.sh
+```
+
+This runs repo whitespace checks, the realtime/type-safety C++ fitness gate, CMake configure with `compile_commands.json`, Debug build, CTest, and the standalone core render suite. The slower sweep commands are:
+
+```bash
+scripts/check-cpp-format.sh --all
+scripts/check-quality.sh --with-tidy
+```
+
+Use `--exclude <path>` on the sweep commands when another agent owns a file, for example the active UI editor files. See `docs/QUALITY.md` for sanitizer builds, formatting policy, clang-tidy, and realtime-safety rules.
+
 Run the full standalone core suite:
 
 ```bash

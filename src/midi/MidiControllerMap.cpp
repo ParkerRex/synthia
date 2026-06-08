@@ -10,6 +10,21 @@ namespace synth
 {
 namespace
 {
+juce::File juceFileForPath(const std::filesystem::path& path)
+{
+    if (path.is_absolute())
+        return juce::File { juce::String(path.lexically_normal().string()) };
+
+    std::error_code error;
+    auto absolutePath = std::filesystem::current_path(error);
+    if (!error)
+        absolutePath /= path;
+    else
+        absolutePath = path;
+
+    return juce::File { juce::String(absolutePath.lexically_normal().string()) };
+}
+
 bool validControllerNumber(int controllerNumber) noexcept
 {
     return controllerNumber >= 0 && controllerNumber <= 127;
@@ -49,7 +64,7 @@ std::vector<MidiControllerAssignment> normalizeMidiControllerAssignments(
 
 std::vector<MidiControllerAssignment> readMidiControllerAssignments(const std::filesystem::path& path)
 {
-    const auto file = juce::File(juce::String(path.string()));
+    const auto file = juceFileForPath(path);
     const auto parsed = juce::JSON::parse(file);
     if (!parsed.isObject())
         return {};
@@ -115,7 +130,7 @@ bool writeMidiControllerAssignments(const std::filesystem::path& path,
     }
     root->setProperty("mappings", mappingArray);
 
-    const auto file = juce::File(juce::String(path.string()));
+    const auto file = juceFileForPath(path);
     if (!file.replaceWithText(juce::JSON::toString(juce::var(root.release()), true)))
     {
         error = "could not write MIDI map: " + path.string();

@@ -195,6 +195,7 @@ Current voice-core status:
 
 - `SynthEngine` consumes note-on, note-off, all-notes-off, and all-sound-off from the plugin processor.
 - `VoiceAllocator` supports basic poly allocation, note release, panic, and deterministic random-on-note values.
+- Voice allocation-shape changes, held-note rebuilds, and surplus-voice removals use a short de-click fade instead of hard-resetting audible voices.
 - `Envelope` and `Lfo` provide deterministic per-voice modulation primitives.
 - `OscillatorStack` renders polyBLEP saw/pulse, deterministic noise, sub waveforms, stack detune, and hard sync.
 - `Filter` renders semitone-domain L2/L4/B2/B4/H2/H4/Peak2/Notch2/Notch4 nonlinear responses with drive/resonance compensation and interpolated oversampling sub-steps.

@@ -34,6 +34,23 @@ Keep parameter IDs stable and centralized in the parameter registry. UI labels m
 
 ## Build And Test
 
+Default quality gate:
+
+```bash
+scripts/check-quality.sh
+```
+
+This runs whitespace hygiene, the repo-local realtime/type-safety fitness gate, CMake configure with `compile_commands.json`, Debug build, CTest, and the standalone core render suite.
+
+For focused quality sweeps:
+
+```bash
+scripts/check-cpp-format.sh --all
+scripts/check-quality.sh --with-tidy
+```
+
+The format and tidy sweeps may expose historical debt. Do not touch `src/plugin/PluginEditor.cpp` or `src/plugin/PluginEditor.h` during non-UI cleanup while another agent is polishing UI work. Use `--exclude src/plugin/PluginEditor.cpp --exclude src/plugin/PluginEditor.h` with sweep commands when those files are owned elsewhere.
+
 Configure:
 
 ```bash

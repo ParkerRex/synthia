@@ -53,6 +53,8 @@ constexpr int layerBarHeight  = 80;
 constexpr int tabBarHeight    = 36;
 constexpr int footerHeight    = 26;
 
+const juce::Identifier readoutParameterIdProperty { "sylenthReadoutParameterId" };
+
 juce::Font uiFont(float size = 13.0f, bool bold = false)
 {
     return juce::Font(juce::FontOptions(size, bold ? juce::Font::bold : juce::Font::plain));
@@ -105,6 +107,12 @@ juce::String formatValue(const synth::ParameterSpec& spec, double value)
     if (unit == "voices")
         return juce::String(static_cast<int>(std::round(snapToDisplayedZero(value, 1.0))));
     return juce::String(snapToDisplayedZero(value, 0.01), 2);
+}
+
+void tagSliderReadout(juce::Slider& slider, const std::string& parameterId, const juce::String& displayName)
+{
+    slider.setName(displayName);
+    slider.getProperties().set(readoutParameterIdProperty, juce::String(parameterId));
 }
 
 juce::String formatGridValue(const synth::ParameterSpec& spec, double value)
@@ -464,7 +472,7 @@ public:
             slider.setColour(juce::Slider::textBoxBackgroundColourId, fieldBg.withAlpha(0.55f));
             slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
             slider.setNumDecimalPlacesToDisplay(2); // fallback so text never renders in scientific form
-            slider.setName(juce::String(spec.name)); // feeds the LCD touch readout
+            tagSliderReadout(slider, spec.id, juce::String(spec.name));
 
             // The attachment must exist first: SliderParameterAttachment overwrites the
             // text<->value functions in its constructor, so our formatter is applied after.
@@ -614,7 +622,11 @@ public:
     // Called from the editor timer; clears the touch readout after its hold elapses.
     void tickTouchReadout()
     {
-        if (touchHold > 0 && --touchHold == 0)
+        if (touchHold <= 0)
+            return;
+
+        --touchHold;
+        if (touchHold == 0)
             repaint();
     }
 
@@ -824,7 +836,7 @@ private:
         knob.ok = true;
         knob.slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         knob.slider.setRotaryParameters(rotaryStart, rotaryEnd, true);
-        knob.slider.setName(label); // feeds the LCD touch readout
+        tagSliderReadout(knob.slider, id, label);
         // Match the recessed value-box treatment used by every other knob (ParameterControl).
         knob.slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 15);
         knob.slider.setColour(juce::Slider::textBoxTextColourId, text);
@@ -1159,7 +1171,7 @@ private:
         s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         s.setRotaryParameters(rotaryStart, rotaryEnd, true);
         s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0); // Sylenth osc knobs label only
-        s.setName(juce::String(spec->name)); // feeds the LCD touch readout
+        tagSliderReadout(s, id, juce::String(spec->name));
         sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, id, s));
         const auto sp = *spec;
         s.textFromValueFunction = [sp](double v) { return formatValue(sp, v); };
@@ -1177,7 +1189,7 @@ private:
         s.setColour(juce::Slider::textBoxTextColourId, text);
         s.setColour(juce::Slider::textBoxBackgroundColourId, fieldBg);
         s.setColour(juce::Slider::textBoxOutlineColourId, strokeSoft.withAlpha(0.7f));
-        s.setName(juce::String(spec->name)); // feeds the LCD touch readout
+        tagSliderReadout(s, id, juce::String(spec->name));
         sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, id, s));
         // Compact integer readout: Sylenth's OCT/NOTE/VOICES boxes show a number, not a unit.
         s.textFromValueFunction = [](double v) { return juce::String(juce::roundToInt(v)); };
@@ -1333,7 +1345,7 @@ private:
         s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         s.setRotaryParameters(rotaryStart, rotaryEnd, true);
         s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-        s.setName(juce::String(spec->name)); // feeds the LCD touch readout
+        tagSliderReadout(s, id, juce::String(spec->name));
         sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, id, s));
         const auto sp = *spec;
         s.textFromValueFunction = [sp](double v) { return formatValue(sp, v); };
@@ -1415,6 +1427,7 @@ public:
             slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
 
             const auto spec = stage.spec;
+            tagSliderReadout(slider, id, juce::String(spec.name));
             stage.attachment = std::make_unique<SliderAttachment>(state, id, slider);
             slider.textFromValueFunction = [spec](double value) { return formatValue(spec, value); };
             slider.valueFromTextFunction = [spec](const juce::String& textValue) {
@@ -2908,6 +2921,7 @@ private:
             control.slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
             control.slider.setTooltip(tooltip);
             control.slider.setNumDecimalPlacesToDisplay(0);
+            tagSliderReadout(control.slider, id, juce::String(spec.name));
             control.attachment = std::make_unique<SliderAttachment>(valueTreeState, id, control.slider);
             control.slider.textFromValueFunction = [spec](double value) { return formatGridValue(spec, value); };
             control.slider.valueFromTextFunction = [spec](const juce::String& textValue) {
@@ -3394,11 +3408,11 @@ SynthAudioProcessorEditor::Panel* SynthAudioProcessorEditor::addPanel(
     juce::Component& page,
     std::vector<std::unique_ptr<Panel>>& store,
     juce::String title,
-    std::vector<std::string> ids,
+    const std::vector<std::string>& ids,
     juce::String badge,
     juce::Colour badgeColour,
-    juce::String stripPrefix,
-    juce::String enabledParamId)
+    const juce::String& stripPrefix,
+    const juce::String& enabledParamId)
 {
     auto panel = std::make_unique<Panel>(audioProcessor.getValueTreeState(), std::move(title),
                                          ids, std::move(badge), badgeColour, stripPrefix,
@@ -4381,13 +4395,28 @@ void SynthAudioProcessorEditor::showSliderReadout(const juce::MouseEvent& event)
 {
     if (lcdDisplay == nullptr)
         return;
-    // When a named slider (knob/fader/inc-dec) is touched, echo its name + current value in
-    // the LCD, the way Sylenth shows the live control on its centre screen.
-    if (auto* slider = dynamic_cast<juce::Slider*>(event.eventComponent))
+
+    if (event.eventComponent == nullptr)
+        return;
+
+    const auto parameterId = event.eventComponent->getProperties()[readoutParameterIdProperty].toString();
+    if (parameterId.isNotEmpty())
     {
-        const auto name = slider->getName();
-        if (name.isNotEmpty())
-            lcdDisplay->setTouchReadout(name + "  =  " + slider->getTextFromValue(slider->getValue()));
+        const auto parameterKey = parameterId.toStdString();
+        const auto* spec = synth::findParameterSpec(parameterKey);
+        const auto* rawValue = audioProcessor.getValueTreeState().getRawParameterValue(parameterId);
+        if (spec != nullptr && rawValue != nullptr)
+        {
+            lcdDisplay->setTouchReadout(juce::String(spec->name) + "  =  "
+                                        + formatValue(*spec, rawValue->load()));
+            return;
+        }
+    }
+
+    const auto name = event.eventComponent->getName();
+    if (name.isNotEmpty())
+    {
+        lcdDisplay->setTouchReadout(name);
     }
 }
 

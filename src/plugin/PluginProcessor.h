@@ -316,7 +316,7 @@ private:
                                       bool persist);
     bool applyModulationRouteParameterEdits(const std::vector<synth::ModulationRouteParameterEdit>& edits,
                                             juce::String& message);
-    bool applyPreparedPresetState(juce::ValueTree state,
+    bool applyPreparedPresetState(const juce::ValueTree& state,
                                   const synth::PresetStateFingerprint& baselineFingerprint,
                                   const juce::String& status,
                                   const juce::String& presetName,

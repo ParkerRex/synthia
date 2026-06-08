@@ -11,7 +11,7 @@ constexpr float twoPi = 6.28318530717958647692f;
 
 float softClip(float value) noexcept
 {
-    return std::tanh(value);
+    return softSaturate(value);
 }
 
 float flushTiny(float value) noexcept
@@ -70,7 +70,8 @@ float Filter::processCore(float input, float cutoffHz, float resonance, float dr
                           FilterMode mode, float effectiveSampleRate) noexcept
 {
     const auto safeSampleRate = std::max(1000.0f, effectiveSampleRate);
-    const auto g = std::clamp(1.0f - std::exp(-twoPi * cutoffHz / safeSampleRate), 0.00001f, 0.99f);
+    const auto normalizedCutoff = twoPi * cutoffHz / safeSampleRate;
+    const auto g = std::clamp(normalizedCutoff / (1.0f + normalizedCutoff), 0.00001f, 0.99f);
     const auto driveGain = 1.0f + clampUnit(drive) * 9.0f;
     const auto feedback = std::clamp(resonance, 0.0f, 1.0f) * (3.85f / (1.0f + clampUnit(drive) * 1.35f));
     const auto drivenInput = softClip((input - feedback * softClip(stage[3])) * driveGain);

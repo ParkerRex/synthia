@@ -565,7 +565,7 @@ void SynthEngine::triggerDirectNotesFromInputNotes() noexcept
 
 void SynthEngine::resetVoicesForHeldInputRebuild() noexcept
 {
-    voices.panic();
+    voices.stopAllWithFade(64);
     if (sustainPedalDown)
         voices.setSustainPedal(true);
 }

@@ -214,6 +214,8 @@ void Voice::noteOn(int note, float normalizedVelocity, float randomValue,
         currentMidiNote = targetMidiNote;
 
     randomOnNote = randomValue;
+    stopFadeSamples = 0;
+    stopFadeTotalSamples = 0;
     setAllocationIndices(voiceIndex, voiceCount, newUnisonIndex, newUnisonCount);
     if (shouldRetrigger)
     {
@@ -236,9 +238,40 @@ void Voice::noteOff() noexcept
     if (state == VoiceState::Idle)
         return;
 
+    if (stopFadeSamples > 0)
+        return;
+
+    stopFadeSamples = 0;
+    stopFadeTotalSamples = 0;
     state = VoiceState::Releasing;
     ampEnvelope.noteOff();
     modEnvelope.noteOff();
+}
+
+void Voice::stopWithFade(int fadeSamples) noexcept
+{
+    if (state == VoiceState::Idle)
+        return;
+
+    if (stopFadeSamples > 0)
+        return;
+
+    stopFadeTotalSamples = std::max(1, fadeSamples);
+    stopFadeSamples = stopFadeTotalSamples;
+    state = VoiceState::Releasing;
+}
+
+float Voice::normalizationPowerWeight() const noexcept
+{
+    if (state == VoiceState::Idle)
+        return 0.0f;
+
+    if (stopFadeSamples <= 0 || stopFadeTotalSamples <= 0)
+        return 1.0f;
+
+    const auto fade = static_cast<float>(stopFadeSamples)
+        / static_cast<float>(std::max(1, stopFadeTotalSamples));
+    return fade * fade;
 }
 
 void Voice::reset() noexcept
@@ -255,6 +288,8 @@ void Voice::reset() noexcept
     targetMidiNote = 0.0f;
     glideSamples = 0;
     glideTotalSamples = 0;
+    stopFadeSamples = 0;
+    stopFadeTotalSamples = 0;
     randomOnNote = 0.0f;
     ampEnvelope.reset();
     modEnvelope.reset();
@@ -277,7 +312,7 @@ void Voice::process(int numSamples) noexcept
         lfo.process();
     }
 
-    if (state == VoiceState::Releasing && !ampEnvelope.isActive())
+    if (state == VoiceState::Releasing && !ampEnvelope.isActive() && stopFadeSamples <= 0)
         reset();
 }
 
@@ -299,7 +334,7 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     const auto effectiveNote = processGlide(parameters);
     const auto glidedVelocity = processVelocityGlide(parameters);
 
-    if (state == VoiceState::Releasing && !ampEnvelope.isActive())
+    if (state == VoiceState::Releasing && !ampEnvelope.isActive() && stopFadeSamples <= 0)
     {
         reset();
         return {};
@@ -341,7 +376,8 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
 
     const auto ampDrive = clampUnit(parameters.amp.drive + parameters.macro.drive * 0.35f);
     const auto driveGain = 1.0f + ampDrive * 7.0f;
-    sample = std::tanh(sample * driveGain) / std::tanh(driveGain);
+    const auto driveNormalizer = softSaturate(driveGain);
+    sample = driveNormalizer > 0.0f ? softSaturate(sample * driveGain) / driveNormalizer : sample;
     sample *= amp * (0.35f + 0.65f * glidedVelocity);
     sample *= decibelsToGain(parameters.amp.levelDb + lastTransModSums.ampLevelDb);
 
@@ -351,7 +387,19 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     const auto pan = std::clamp(parameters.amp.pan + voiceSpread + layerMix.pan + lastTransModSums.pan, -1.0f, 1.0f);
     const auto angle = (pan + 1.0f) * 0.5f * halfPi;
 
-    return { sanitize(sample * std::cos(angle)), sanitize(sample * std::sin(angle)) };
+    auto output = StereoFrame { sanitize(sample * std::cos(angle)), sanitize(sample * std::sin(angle)) };
+    if (stopFadeSamples > 0)
+    {
+        const auto fade = static_cast<float>(stopFadeSamples)
+            / static_cast<float>(std::max(1, stopFadeTotalSamples));
+        output.left *= fade;
+        output.right *= fade;
+        --stopFadeSamples;
+        if (stopFadeSamples <= 0)
+            reset();
+    }
+
+    return output;
 }
 
 void Voice::resetLayerOscillators(const SynthParameters& parameters, float fallbackPhase) noexcept
@@ -443,7 +491,7 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
         }
     }
 
-    mix.sample *= 1.0f / std::sqrt(static_cast<float>(activeSlotCount));
+    mix.sample *= inverseSqrtForCount(activeSlotCount);
     mix.sample = sanitize(mix.sample);
     mix.pan = panWeight > 0.0f ? std::clamp(weightedPan / panWeight, -1.0f, 1.0f) : 0.0f;
     return mix;

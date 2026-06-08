@@ -28,11 +28,11 @@ float mix(float dry, float wet, float amount) noexcept
 float saturate(float sample, float drive) noexcept
 {
     const auto gain = 1.0f + clampUnit(drive) * 12.0f;
-    const auto normalizer = std::tanh(gain);
+    const auto normalizer = softSaturate(gain);
     if (normalizer <= 0.0f)
         return sample;
 
-    return std::tanh(sample * gain) / normalizer;
+    return softSaturate(sample * gain) / normalizer;
 }
 
 float clipDistort(float sample, float drive) noexcept
@@ -43,15 +43,19 @@ float clipDistort(float sample, float drive) noexcept
 
 float foldDistort(float sample, float drive) noexcept
 {
-    auto folded = std::fmod(sample * (1.0f + clampUnit(drive) * 14.0f) + 1.0f, 4.0f);
+    auto folded = sample * (1.0f + clampUnit(drive) * 14.0f) + 1.0f;
+    const auto wraps = static_cast<int>(folded * 0.25f);
+    folded -= static_cast<float>(wraps) * 4.0f;
     if (folded < 0.0f)
         folded += 4.0f;
+    else if (folded >= 4.0f)
+        folded -= 4.0f;
     return 1.0f - std::abs(folded - 2.0f);
 }
 
 float dbToGain(float db) noexcept
 {
-    return std::pow(10.0f, std::clamp(db, -48.0f, 24.0f) / 20.0f);
+    return decibelsToGain(std::clamp(db, -48.0f, 24.0f));
 }
 
 int secondsToSamples(double sampleRate, float seconds) noexcept
@@ -191,6 +195,8 @@ void FxChain::prepare(double newSampleRate, int newMaxBlockSize)
 {
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
     maxBlockSize = std::max(1, newMaxBlockSize);
+    compressorAttackCoefficient = 1.0f / (0.004f * static_cast<float>(sampleRate));
+    compressorReleaseCoefficient = 1.0f / (0.080f * static_cast<float>(sampleRate));
 
     const auto delaySamples = secondsToSamples(sampleRate, maxTempoSyncedDelaySeconds) + 1;
     delayLeft.prepare(delaySamples);
@@ -419,13 +425,11 @@ FxStereoFrame FxChain::processCompressor(FxStereoFrame input, const SynthParamet
         return input;
 
     const auto peak = std::max(std::abs(input.left), std::abs(input.right));
-    const auto attack = 1.0f - std::exp(-1.0f / (0.004f * static_cast<float>(sampleRate)));
-    const auto release = 1.0f - std::exp(-1.0f / (0.080f * static_cast<float>(sampleRate)));
-    const auto coefficient = peak > compressorEnvelope ? attack : release;
+    const auto coefficient = peak > compressorEnvelope ? compressorAttackCoefficient : compressorReleaseCoefficient;
     compressorEnvelope += (peak - compressorEnvelope) * coefficient;
 
     const auto safeEnvelope = std::max(compressorEnvelope, 1.0e-6f);
-    const auto envelopeDb = 20.0f * std::log10(safeEnvelope);
+    const auto envelopeDb = gainToDecibels(safeEnvelope);
     const auto thresholdDb = std::clamp(parameters.fx.compressorThresholdDb, -36.0f, 0.0f);
     const auto ratio = std::clamp(parameters.fx.compressorRatio, 1.0f, 8.0f);
     auto gainDb = 0.0f;
@@ -434,6 +438,7 @@ FxStereoFrame FxChain::processCompressor(FxStereoFrame input, const SynthParamet
         const auto compressedDb = thresholdDb + (envelopeDb - thresholdDb) / ratio;
         gainDb = compressedDb - envelopeDb;
     }
+
     const auto wetGain = dbToGain(gainDb + parameters.fx.compressorMakeupDb);
     const auto wetLeft = input.left * wetGain;
     const auto wetRight = input.right * wetGain;

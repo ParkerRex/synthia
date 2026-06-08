@@ -8,6 +8,7 @@
 #include "../dsp/SynthParameters.h"
 
 #include <array>
+#include <cstddef>
 
 namespace synth
 {
@@ -60,6 +61,7 @@ public:
                 int newUnisonIndex, int newUnisonCount, const SynthParameters& parameters,
                 bool allowGlide, bool retriggerModulators) noexcept;
     void noteOff() noexcept;
+    void stopWithFade(int fadeSamples) noexcept;
     void reset() noexcept;
     void process(int numSamples) noexcept;
     StereoFrame renderSample(const SynthParameters& parameters, const float* monoLfoValue = nullptr) noexcept;
@@ -67,6 +69,7 @@ public:
     bool isActive() const noexcept { return state != VoiceState::Idle; }
     bool isHeld() const noexcept { return state == VoiceState::Held; }
     int getMidiNote() const noexcept { return midiNote; }
+    float normalizationPowerWeight() const noexcept;
     VoiceSnapshot snapshot() const noexcept;
 
 private:
@@ -115,13 +118,17 @@ private:
     int voiceCount = 1;
     int unisonIndex = 0;
     int unisonCount = 1;
+    int stopFadeSamples = 0;
+    int stopFadeTotalSamples = 0;
     double sampleRate = 44100.0;
     Envelope ampEnvelope;
     Envelope modEnvelope;
     Lfo lfo;
     Ramp ramp;
     OscillatorStack oscillator;
-    std::array<OscillatorStack, layerCount * oscillatorSlotsPerLayer> layerOscillators;
+    static constexpr auto layerOscillatorCount =
+        static_cast<std::size_t>(layerCount) * static_cast<std::size_t>(oscillatorSlotsPerLayer);
+    std::array<OscillatorStack, layerOscillatorCount> layerOscillators;
     Filter filter;
     ModulationSums lastDirectSums;
     ModulationSums lastTransModSums;

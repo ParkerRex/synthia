@@ -219,6 +219,17 @@ void VoiceAllocator::panic() noexcept
         voice.reset();
 }
 
+void VoiceAllocator::stopAllWithFade(int fadeSamples) noexcept
+{
+    sustainPedalDown = false;
+    heldNotes.fill(false);
+    sustainedNotes.fill(false);
+    heldVelocities.fill(0.0f);
+    heldOrder.fill(0);
+    for (auto& voice : voices)
+        voice.stopWithFade(fadeSamples);
+}
+
 void VoiceAllocator::process(int numSamples) noexcept
 {
     for (auto& voice : voices)
@@ -245,21 +256,21 @@ StereoFrame VoiceAllocator::renderSample(const SynthParameters& parameters) noex
     }
 
     StereoFrame frame;
-    auto renderedVoices = 0;
+    auto normalizationPower = 0.0f;
     for (auto& voice : voices)
     {
         if (!voice.isActive())
             continue;
 
+        normalizationPower += voice.normalizationPowerWeight();
         const auto voiceFrame = voice.renderSample(parameters, useMonoLfo ? &monoValue : nullptr);
         frame.left += voiceFrame.left;
         frame.right += voiceFrame.right;
-        ++renderedVoices;
     }
 
-    if (renderedVoices > 1)
+    if (normalizationPower > 1.0f)
     {
-        const auto compensation = 1.0f / std::sqrt(static_cast<float>(renderedVoices));
+        const auto compensation = inverseSqrtForWeight(normalizationPower);
         frame.left *= compensation;
         frame.right *= compensation;
     }
@@ -458,13 +469,13 @@ void VoiceAllocator::enforceVoiceLimit(const SynthParameters& parameters) noexce
     {
         if (i >= static_cast<int>(keep.size()))
         {
-            voices[static_cast<std::size_t>(i)].reset();
+            voices[static_cast<std::size_t>(i)].stopWithFade(64);
             continue;
         }
 
         auto& voice = voices[static_cast<std::size_t>(i)];
         if (voice.isActive() && !keep[static_cast<std::size_t>(i)])
-            voice.reset();
+            voice.stopWithFade(64);
     }
 
     auto allocationIndex = 0;

@@ -12,6 +12,21 @@ namespace synth
 {
 namespace
 {
+juce::File juceFileForPath(const std::filesystem::path& path)
+{
+    if (path.is_absolute())
+        return juce::File { juce::String(path.lexically_normal().string()) };
+
+    std::error_code error;
+    auto absolutePath = std::filesystem::current_path(error);
+    if (!error)
+        absolutePath /= path;
+    else
+        absolutePath = path;
+
+    return juce::File { juce::String(absolutePath.lexically_normal().string()) };
+}
+
 bool hasProperty(const juce::DynamicObject& object, const char* name)
 {
     return object.hasProperty(juce::Identifier(name));
@@ -282,7 +297,7 @@ PresetValidationResult validatePresetFile(const std::filesystem::path& path)
     PresetValidationResult result;
     result.path = path;
 
-    const juce::File file { juce::String(path.string()) };
+    const auto file = juceFileForPath(path);
     if (!file.existsAsFile())
     {
         result.errors.push_back("preset file missing");

@@ -108,11 +108,11 @@ private:
     Panel* addPanel(juce::Component& page,
                     std::vector<std::unique_ptr<Panel>>& store,
                     juce::String title,
-                    std::vector<std::string> ids,
+                    const std::vector<std::string>& ids,
                     juce::String badge = {},
                     juce::Colour badgeColour = {},
-                    juce::String stripPrefix = {},
-                    juce::String enabledParamId = {});
+                    const juce::String& stripPrefix = {},
+                    const juce::String& enabledParamId = {});
 
     SynthAudioProcessor& audioProcessor;
     std::unique_ptr<SynthLookAndFeel> lookAndFeel;

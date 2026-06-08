@@ -74,7 +74,7 @@ float OscillatorStack::renderSample(float midiNote, const OscillatorParameters& 
             phases[static_cast<std::size_t>(i)] = syncMasterPhase;
 
         const auto cents = detuneOffsetCents(i, stackCount, osc.stackDetune);
-        const auto frequency = std::clamp(baseFrequency * std::pow(2.0f, cents / 1200.0f) * syncSlaveRatio,
+        const auto frequency = std::clamp(midiNoteToHz(basePitch + cents / 100.0f) * syncSlaveRatio,
                                           1.0f, static_cast<float>(sampleRate * 0.45));
         const auto increment = std::clamp(frequency / static_cast<float>(sampleRate), 0.0f, 0.49f);
 
@@ -93,7 +93,7 @@ float OscillatorStack::renderSample(float midiNote, const OscillatorParameters& 
         stacked += voice;
     }
 
-    stacked /= std::sqrt(static_cast<float>(stackCount));
+    stacked *= inverseSqrtForCount(stackCount);
 
     auto sub = 0.0f;
     if (osc.subLevel > 0.0f)

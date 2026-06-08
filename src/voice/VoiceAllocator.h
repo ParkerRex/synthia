@@ -20,6 +20,7 @@ public:
     void setSustainPedal(bool down) noexcept;
     void allNotesOff() noexcept;
     void panic() noexcept;
+    void stopAllWithFade(int fadeSamples) noexcept;
     void process(int numSamples) noexcept;
     StereoFrame renderSample(const SynthParameters& parameters) noexcept;
 

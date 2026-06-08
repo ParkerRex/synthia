@@ -244,10 +244,12 @@ void Arpeggiator::sortCandidates(std::array<Candidate, maxCandidates>& candidate
         auto j = i - 1;
         while (j >= 0 && candidateComesBefore(current, candidates[static_cast<std::size_t>(j)], mode))
         {
-            candidates[static_cast<std::size_t>(j + 1)] = candidates[static_cast<std::size_t>(j)];
+            const auto destinationIndex = static_cast<std::size_t>(j) + 1u;
+            candidates[destinationIndex] = candidates[static_cast<std::size_t>(j)];
             --j;
         }
-        candidates[static_cast<std::size_t>(j + 1)] = current;
+        const auto insertionIndex = j < 0 ? std::size_t { 0 } : static_cast<std::size_t>(j) + 1u;
+        candidates[insertionIndex] = current;
     }
 }
 

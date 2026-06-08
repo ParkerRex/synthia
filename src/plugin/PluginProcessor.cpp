@@ -7,9 +7,25 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <system_error>
 
 namespace
 {
+juce::File juceFileForPath(const std::filesystem::path& path)
+{
+    if (path.is_absolute())
+        return juce::File { juce::String(path.lexically_normal().string()) };
+
+    std::error_code error;
+    auto absolutePath = std::filesystem::current_path(error);
+    if (!error)
+        absolutePath /= path;
+    else
+        absolutePath = path;
+
+    return juce::File { juce::String(absolutePath.lexically_normal().string()) };
+}
+
 class ScopedParameterStateUpdate final
 {
 public:
@@ -60,7 +76,7 @@ SynthAudioProcessor::PresetListItem makePresetListItem(const synth::PresetSummar
     item.category = juce::String(preset.category);
     item.sourceLabel = juce::String(synth::presetSourceLabel(preset.source));
     item.favoriteKey = juce::String(preset.favoriteKey);
-    item.file = juce::File(juce::String(preset.path.string()));
+    item.file = juceFileForPath(preset.path);
     for (const auto& tag : preset.tags)
         item.tags.add(juce::String(tag));
     item.factory = preset.factory;
@@ -79,7 +95,7 @@ SynthAudioProcessor::PresetListItem makeInvalidPresetListItem(const synth::Prese
     item.validationMessage = validation.errors.empty()
         ? juce::String("Preset validation failed")
         : juce::String(validation.errors.front());
-    item.file = juce::File(juce::String(validation.path.string()));
+    item.file = juceFileForPath(validation.path);
     item.tags.add("invalid");
     item.valid = false;
     item.factory = source == synth::PresetSource::Factory;
@@ -730,7 +746,7 @@ std::optional<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPrese
     const auto summaries = synth::scanPresetDirectory(parentPath, synth::PresetSource::User, favoriteKeys);
     for (const auto& preset : summaries)
     {
-        const auto presetFile = juce::File(juce::String(preset.path.string()));
+        const auto presetFile = juceFileForPath(preset.path);
         if (presetFile.getFullPathName() == target.getFullPathName())
             return makePresetListItem(preset);
     }
@@ -740,7 +756,7 @@ std::optional<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPrese
 
 juce::File SynthAudioProcessor::getUserPresetDirectory() const
 {
-    return juce::File(juce::String(synth::defaultUserPresetDirectory().string()));
+    return juceFileForPath(synth::defaultUserPresetDirectory());
 }
 
 bool SynthAudioProcessor::loadPresetFile(const juce::File& file, juce::String& message)
@@ -820,7 +836,7 @@ bool SynthAudioProcessor::resetCurrentPreset(juce::String& message)
     if (presetPath.isEmpty())
         return initializeCurrentPreset(message);
 
-    return loadPresetFile(juce::File(presetPath), message);
+    return loadPresetFile(juceFileForPath(std::filesystem::path { presetPath.toStdString() }), message);
 }
 
 bool SynthAudioProcessor::randomizeCurrentPreset(juce::String& message)
@@ -1255,7 +1271,7 @@ bool SynthAudioProcessor::applyModulationRouteParameterEdits(
     return true;
 }
 
-bool SynthAudioProcessor::applyPreparedPresetState(juce::ValueTree state,
+bool SynthAudioProcessor::applyPreparedPresetState(const juce::ValueTree& state,
                                                    const synth::PresetStateFingerprint& baselineFingerprint,
                                                    const juce::String& status,
                                                    const juce::String& presetName,

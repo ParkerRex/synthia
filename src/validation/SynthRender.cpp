@@ -18,6 +18,7 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <system_error>
 #include <vector>
 
 namespace
@@ -60,6 +61,21 @@ struct SuiteItem
     std::filesystem::path reportPath;
     bool passed = false;
 };
+
+juce::File juceFileForPath(const std::filesystem::path& path)
+{
+    if (path.is_absolute())
+        return juce::File { juce::String(path.lexically_normal().string()) };
+
+    std::error_code error;
+    auto absolutePath = std::filesystem::current_path(error);
+    if (!error)
+        absolutePath /= path;
+    else
+        absolutePath = path;
+
+    return juce::File { juce::String(absolutePath.lexically_normal().string()) };
+}
 
 bool parseSeedList(const std::string& seedList,
                    std::vector<std::uint32_t>& seeds,
@@ -1228,8 +1244,7 @@ bool loadPresetParameters(const std::filesystem::path& path, synth::SynthParamet
         return false;
     }
 
-    const juce::File file { juce::String(path.string()) };
-    const auto parsed = juce::JSON::parse(file);
+    const auto parsed = juce::JSON::parse(juceFileForPath(path));
 
     if (!parsed.isObject())
     {
@@ -1292,7 +1307,7 @@ bool loadMidiFixture(const std::filesystem::path& path, int sampleRate,
         return false;
     }
 
-    juce::FileInputStream stream { juce::File { juce::String(path.string()) } };
+    juce::FileInputStream stream { juceFileForPath(path) };
     if (!stream.openedOk())
     {
         error = "fixture file could not be opened: " + path.string();
@@ -3048,6 +3063,7 @@ int writePatchRecreationSuite(const Options& options)
 
 int main(int argc, char* argv[])
 {
+    const juce::ScopedJuceInitialiser_GUI juceInitialiser;
     const auto options = parseOptions(argc, argv);
 
     if (!options.argumentError.empty())

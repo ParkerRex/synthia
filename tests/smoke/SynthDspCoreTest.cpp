@@ -64,6 +64,38 @@ bool testOscillatorTuning()
     return std::abs(centsBetween(frequency, synth::midiNoteToHz(60.0f))) < 5.0f;
 }
 
+bool testMidiNoteLookupCoversModulatedPitchRange()
+{
+    const auto nanPitch = synth::midiNoteToHz(std::numeric_limits<float>::quiet_NaN());
+    const auto lowPitch = synth::midiNoteToHz(-120.0f);
+    const auto midiZero = synth::midiNoteToHz(0.0f);
+    const auto formerUpperEdge = synth::midiNoteToHz(136.0f);
+    const auto highModulatedPitch = synth::midiNoteToHz(272.0f);
+    const auto nextHighPitch = synth::midiNoteToHz(273.0f);
+
+    return std::isfinite(nanPitch)
+        && std::isfinite(lowPitch)
+        && std::isfinite(highModulatedPitch)
+        && lowPitch > 0.0f
+        && lowPitch < midiZero
+        && highModulatedPitch > formerUpperEdge
+        && nextHighPitch > highModulatedPitch;
+}
+
+bool testDecibelGainLookupCoversAmpModulationRange()
+{
+    const auto nanGain = synth::decibelsToGain(std::numeric_limits<float>::quiet_NaN());
+    const auto gainAt24Db = synth::decibelsToGain(24.0f);
+    const auto gainAt36Db = synth::decibelsToGain(36.0f);
+    const auto gainAt35AndHalfDb = synth::decibelsToGain(35.5f);
+
+    return std::isfinite(nanGain)
+        && std::isfinite(gainAt36Db)
+        && gainAt24Db > 0.0f
+        && gainAt36Db > gainAt24Db * 3.75f
+        && gainAt36Db > gainAt35AndHalfDb;
+}
+
 bool testPulseWidth()
 {
     for (const auto width : { 0.10f, 0.25f, 0.50f, 0.75f, 0.90f })
@@ -1065,6 +1097,17 @@ bool testVoiceModeCapChangeReleasesSurplusVoices()
         engine.setParameters(parameters);
         processSamples(engine, 1);
 
+        auto held = heldSnapshots(engine);
+        if (held.size() != 1
+            || held.front().midiNote != 67
+            || std::abs(held.front().voiceBi) >= 0.0001f
+            || std::abs(held.front().unisonBi) >= 0.0001f
+            || activeSnapshotCount(engine) <= 1)
+        {
+            return false;
+        }
+
+        processSamples(engine, 64);
         const auto remaining = firstActiveSnapshot(engine);
         if (activeSnapshotCount(engine) != 1
             || remaining.state != synth::VoiceState::Held
@@ -1136,24 +1179,26 @@ bool testPolyCapReductionKeepsMostRecentHeldNotes()
     engine.setParameters(parameters);
     processSamples(engine, 1);
 
+    auto held = heldSnapshots(engine);
+    if (held.size() != 2
+        || hasHeldNote(engine, 60)
+        || !hasHeldNote(engine, 64)
+        || !hasHeldNote(engine, 67)
+        || activeSnapshotCount(engine) <= 2)
+    {
+        return false;
+    }
+
+    processSamples(engine, 64);
     auto has60 = false;
     auto has64 = false;
     auto has67 = false;
-    for (int i = 0; i < 32; ++i)
+    for (const auto& snapshot : heldSnapshots(engine))
     {
-        const auto* voice = engine.getVoice(i);
-        if (voice == nullptr)
-            continue;
-
-        const auto snapshot = voice->snapshot();
-        if (snapshot.state == synth::VoiceState::Idle)
-            continue;
-
         has60 = has60 || snapshot.midiNote == 60;
         has64 = has64 || snapshot.midiNote == 64;
         has67 = has67 || snapshot.midiNote == 67;
     }
-
     return activeSnapshotCount(engine) == 2
         && !has60
         && has64
@@ -1183,6 +1228,17 @@ bool testUnisonModeCollapsesHeldPolyChord()
     engine.setParameters(parameters);
     processSamples(engine, 1);
 
+    auto held = heldSnapshots(engine);
+    if (held.size() != 1
+        || held.front().midiNote != 67
+        || std::abs(held.front().voiceBi) >= 0.0001f
+        || std::abs(held.front().unisonBi) >= 0.0001f
+        || activeSnapshotCount(engine) <= 1)
+    {
+        return false;
+    }
+
+    processSamples(engine, 64);
     const auto remaining = firstActiveSnapshot(engine);
     return activeSnapshotCount(engine) == 1
         && remaining.state == synth::VoiceState::Held
@@ -1644,6 +1700,35 @@ bool testExpandedFxModulesAreFiniteAndAudible()
     return maxDifference > 0.01f && peak <= 1.0f;
 }
 
+bool testCompressorRatioUsesDbDomain()
+{
+    synth::FxChain fx;
+    fx.prepare(48000.0, 1);
+
+    synth::SynthParameters parameters;
+    parameters.fx.enabled = true;
+    parameters.fx.saturationEnabled = false;
+    parameters.fx.phaserEnabled = false;
+    parameters.fx.chorusEnabled = false;
+    parameters.fx.eqEnabled = false;
+    parameters.fx.delayEnabled = false;
+    parameters.fx.reverbEnabled = false;
+    parameters.fx.compressorEnabled = true;
+    parameters.fx.compressorThresholdDb = -18.0f;
+    parameters.fx.compressorRatio = 4.0f;
+    parameters.fx.compressorMakeupDb = 0.0f;
+    parameters.fx.compressorMix = 1.0f;
+
+    synth::FxStereoFrame output {};
+    for (int sample = 0; sample < 4096; ++sample)
+        output = fx.process({ 1.0f, 1.0f }, parameters);
+
+    const auto expectedGain = synth::decibelsToGain(-13.5f);
+    return std::isfinite(output.left)
+        && std::abs(output.left - expectedGain) < 0.03f
+        && output.left < 0.28f;
+}
+
 bool testExpandedFxNonTailModulesDoNotReportTail()
 {
     synth::SynthParameters parameters;
@@ -1713,6 +1798,18 @@ int main()
     if (!testOscillatorTuning())
     {
         std::cerr << "Oscillator tuning test failed.\n";
+        return 1;
+    }
+
+    if (!testMidiNoteLookupCoversModulatedPitchRange())
+    {
+        std::cerr << "MIDI note lookup range test failed.\n";
+        return 1;
+    }
+
+    if (!testDecibelGainLookupCoversAmpModulationRange())
+    {
+        std::cerr << "Decibel gain lookup range test failed.\n";
         return 1;
     }
 
@@ -1941,6 +2038,12 @@ int main()
     if (!testExpandedFxModulesAreFiniteAndAudible())
     {
         std::cerr << "Expanded FX finite/audible test failed.\n";
+        return 1;
+    }
+
+    if (!testCompressorRatioUsesDbDomain())
+    {
+        std::cerr << "Compressor dB-ratio test failed.\n";
         return 1;
     }
 

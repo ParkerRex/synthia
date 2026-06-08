@@ -76,6 +76,8 @@ private:
     float eqLowStateLeft = 0.0f;
     float eqLowStateRight = 0.0f;
     float compressorEnvelope = 0.0f;
+    float compressorAttackCoefficient = 0.0f;
+    float compressorReleaseCoefficient = 0.0f;
     float chorusPhase = 0.0f;
     bool reverbWasActive = false;
     int lastReverbCombCount = 0;

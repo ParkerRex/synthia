@@ -15,6 +15,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(SYLENTH_AI_ENABLE_TESTS "Build sylenth-ai tests" ON)
 option(SYLENTH_AI_ENABLE_COPY_AFTER_BUILD "Copy plugin bundles after build" OFF)
+option(SYLENTH_AI_ENABLE_ASAN "Build with AddressSanitizer enabled" OFF)
+option(SYLENTH_AI_ENABLE_UBSAN "Build with UndefinedBehaviorSanitizer enabled" OFF)
 set(SYLENTH_AI_JUCE_GIT_TAG "8.0.13" CACHE STRING "JUCE git tag used when SYLENTH_AI_JUCE_PATH is not set")
 set(SYLENTH_AI_JUCE_PATH "" CACHE PATH "Optional local JUCE checkout")
 
@@ -24,6 +26,16 @@ endif()
 
 if(DEFINED SYNTH_ENABLE_COPY_AFTER_BUILD)
     set(SYLENTH_AI_ENABLE_COPY_AFTER_BUILD "${SYNTH_ENABLE_COPY_AFTER_BUILD}" CACHE BOOL "Copy plugin bundles after build" FORCE)
+endif()
+
+if(SYLENTH_AI_ENABLE_ASAN)
+    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address)
+endif()
+
+if(SYLENTH_AI_ENABLE_UBSAN)
+    add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=undefined)
 endif()
 
 if(DEFINED SYNTH_JUCE_GIT_TAG AND SYLENTH_AI_JUCE_GIT_TAG STREQUAL "8.0.13")
@@ -109,6 +121,7 @@ target_compile_definitions(SylenthAIPlugin
     PUBLIC
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
+        JUCE_DISABLE_CAUTIOUS_PARAMETER_ID_CHECKING=1
         JUCE_VST3_CAN_REPLACE_VST2=0
         SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
         SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
@@ -141,6 +154,7 @@ target_compile_definitions(SylenthAIRender
     PRIVATE
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
+        JUCE_DISABLE_CAUTIOUS_PARAMETER_ID_CHECKING=1
         SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
         SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
@@ -164,6 +178,7 @@ if(SYLENTH_AI_ENABLE_TESTS)
         PRIVATE
             JUCE_WEB_BROWSER=0
             JUCE_USE_CURL=0
+            JUCE_DISABLE_CAUTIOUS_PARAMETER_ID_CHECKING=1
             SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
             SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
@@ -187,6 +202,7 @@ if(SYLENTH_AI_ENABLE_TESTS)
         PRIVATE
             JUCE_WEB_BROWSER=0
             JUCE_USE_CURL=0
+            JUCE_DISABLE_CAUTIOUS_PARAMETER_ID_CHECKING=1
             SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
             SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
@@ -210,6 +226,7 @@ if(SYLENTH_AI_ENABLE_TESTS)
         PRIVATE
             JUCE_WEB_BROWSER=0
             JUCE_USE_CURL=0
+            JUCE_DISABLE_CAUTIOUS_PARAMETER_ID_CHECKING=1
             SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
             SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
@@ -233,6 +250,7 @@ if(SYLENTH_AI_ENABLE_TESTS)
         PRIVATE
             JUCE_WEB_BROWSER=0
             JUCE_USE_CURL=0
+            JUCE_DISABLE_CAUTIOUS_PARAMETER_ID_CHECKING=1
             SYLENTH_AI_PROJECT_VERSION="${PROJECT_VERSION}"
             SYNTH_PROJECT_VERSION="${PROJECT_VERSION}")
 
