@@ -53,7 +53,7 @@ constexpr int layerBarHeight  = 80;
 constexpr int tabBarHeight    = 36;
 constexpr int footerHeight    = 26;
 
-const juce::Identifier readoutParameterIdProperty { "sylenthReadoutParameterId" };
+const juce::Identifier readoutParameterIdProperty { "synthiaReadoutParameterId" };
 
 juce::Font uiFont(float size = 13.0f, bool bold = false)
 {
@@ -2156,7 +2156,7 @@ public:
         setEditorText(categoryEditor, item != nullptr ? item->category : "User");
         setEditorText(tagsEditor, item != nullptr ? item->tags.joinIntoString(", ") : "user");
         setEditorText(descriptionEditor, item != nullptr ? item->description
-                                                         : "User preset saved from the sylenth-ai editor.");
+                                                         : "User preset saved from the Synthia editor.");
     }
 
     synth::PresetWriteOptions writeOptions(synth::PresetWriteMode mode) const
@@ -3294,7 +3294,7 @@ SynthAudioProcessorEditor::~SynthAudioProcessorEditor()
 
 void SynthAudioProcessorEditor::buildHeader()
 {
-    titleLabel.setText("SYLENTH-AI", juce::dontSendNotification);
+    titleLabel.setText("SYNTHIA", juce::dontSendNotification);
     titleLabel.setColour(juce::Label::textColourId, text);
     titleLabel.setFont(uiFont(18.0f, true));
     addAndMakeVisible(titleLabel);
@@ -4121,7 +4121,7 @@ void SynthAudioProcessorEditor::savePresetAs()
     const auto suggestedFile = audioProcessor.getUserPresetDirectory()
         .getChildFile(fileSafeName(presetName) + ".json");
 
-    fileChooser = std::make_unique<juce::FileChooser>("Save sylenth-ai preset", suggestedFile, "*.json");
+    fileChooser = std::make_unique<juce::FileChooser>("Save Synthia preset", suggestedFile, "*.json");
     juce::Component::SafePointer<SynthAudioProcessorEditor> safeEditor { this };
     fileChooser->launchAsync(juce::FileBrowserComponent::saveMode
                              | juce::FileBrowserComponent::canSelectFiles

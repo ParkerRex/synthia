@@ -18,7 +18,7 @@ class StateRoundTripProcessor final : public juce::AudioProcessor
 {
 public:
     StateRoundTripProcessor()
-        : parameters(*this, nullptr, "SYLENTH_AI_STATE", synth::createParameterLayout())
+        : parameters(*this, nullptr, "SYNTHIA_STATE", synth::createParameterLayout())
     {
     }
 
@@ -127,7 +127,7 @@ bool checkStateRoundTrip()
         return false;
 
     const auto restoredState = juce::ValueTree::fromXml(*xml);
-    if (!restoredState.isValid() || !restoredState.hasType("SYLENTH_AI_STATE"))
+    if (!restoredState.isValid() || !restoredState.hasType("SYNTHIA_STATE"))
         return false;
 
     StateRoundTripProcessor destination;
@@ -657,7 +657,7 @@ bool checkMidiControllerMap()
     }
 
     const auto mapDirectory = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("sylenth-ai-midi-controller-map-contract");
+        .getChildFile("synthia-midi-controller-map-contract");
     mapDirectory.deleteRecursively();
 
     const auto mapFile = mapDirectory.getChildFile("MidiControllerMap.json");
@@ -809,7 +809,7 @@ bool checkPresetManagerLoadAndSave()
     }
 
     const auto scanInputFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("sylenth-ai-preset-scan-input");
+        .getChildFile("synthia-preset-scan-input");
     scanInputFile.replaceWithText("not a directory");
     const auto scannedFile = synth::scanPresetDirectory(scanInputFile.getFullPathName().toStdString(), false);
     scanInputFile.deleteFile();
@@ -820,7 +820,7 @@ bool checkPresetManagerLoadAndSave()
     }
 
     const auto tempFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("sylenth-ai-preset-manager-test.json");
+        .getChildFile("synthia-preset-manager-test.json");
     tempFile.deleteFile();
 
     std::string error;
@@ -881,7 +881,7 @@ bool checkPresetManagerLoadAndSave()
     tempFile.deleteFile();
 
     const auto metadataFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("sylenth-ai-preset-metadata-test.json");
+        .getChildFile("synthia-preset-metadata-test.json");
     metadataFile.deleteFile();
     synth::PresetWriteOptions writeOptions;
     writeOptions.mode = synth::PresetWriteMode::CreateNew;
@@ -979,7 +979,7 @@ bool checkPresetManagerLoadAndSave()
     }
 
     const auto browserDirectory = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("sylenth-ai-preset-browser-contract");
+        .getChildFile("synthia-preset-browser-contract");
     browserDirectory.deleteRecursively();
     if (!browserDirectory.createDirectory())
     {
@@ -1087,7 +1087,7 @@ bool checkPresetManagerLoadAndSave()
     browserDirectory.deleteRecursively();
 
     const auto extensionlessFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
-        .getChildFile("sylenth-ai-preset-manager-extension-test");
+        .getChildFile("synthia-preset-manager-extension-test");
     const auto extensionlessJsonFile = extensionlessFile.withFileExtension(".json");
     extensionlessFile.deleteFile();
     extensionlessJsonFile.deleteFile();

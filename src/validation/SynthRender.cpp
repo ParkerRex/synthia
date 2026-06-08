@@ -267,20 +267,20 @@ Options parseOptions(int argc, char* argv[])
         else if (arg == "--help" || arg == "-h")
         {
             std::cout << "Usage:\n";
-            std::cout << "  SylenthAIRender --smoke --output <path>\n";
-            std::cout << "  SylenthAIRender --list-parameters --output <path>\n";
-            std::cout << "  SylenthAIRender --validate-presets <dir> --output <path>\n";
-            std::cout << "  SylenthAIRender --voice-test --output <path>\n";
-            std::cout << "  SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output <path>\n";
-            std::cout << "  SylenthAIRender --filter-test --output <path>\n";
-            std::cout << "  SylenthAIRender --modulation-test --fixture <path> --output <path>\n";
-            std::cout << "  SylenthAIRender --modulation-route-render-test --fixture <path> --output <path>\n";
-            std::cout << "  SylenthAIRender --offline-realtime-compare-test --preset <json> --fixture <path> --output <path>\n";
-            std::cout << "  SylenthAIRender --randomize-test --seeds 1,42,12345 --fixture <path> --output <path>\n";
-            std::cout << "  SylenthAIRender --suite core --output-dir <dir>\n";
-            std::cout << "  SylenthAIRender --suite patch-recreation --output-dir <dir>\n";
-            std::cout << "  SylenthAIRender --preset <json> --fixture <path> --dry --output <wav> --report <json>\n";
-            std::cout << "  SylenthAIRender --preset <json> --fixture <path> --wet --output <wav> --report <json>\n";
+            std::cout << "  SynthiaRender --smoke --output <path>\n";
+            std::cout << "  SynthiaRender --list-parameters --output <path>\n";
+            std::cout << "  SynthiaRender --validate-presets <dir> --output <path>\n";
+            std::cout << "  SynthiaRender --voice-test --output <path>\n";
+            std::cout << "  SynthiaRender --osc-test --notes C1,C3,C5,C7 --output <path>\n";
+            std::cout << "  SynthiaRender --filter-test --output <path>\n";
+            std::cout << "  SynthiaRender --modulation-test --fixture <path> --output <path>\n";
+            std::cout << "  SynthiaRender --modulation-route-render-test --fixture <path> --output <path>\n";
+            std::cout << "  SynthiaRender --offline-realtime-compare-test --preset <json> --fixture <path> --output <path>\n";
+            std::cout << "  SynthiaRender --randomize-test --seeds 1,42,12345 --fixture <path> --output <path>\n";
+            std::cout << "  SynthiaRender --suite core --output-dir <dir>\n";
+            std::cout << "  SynthiaRender --suite patch-recreation --output-dir <dir>\n";
+            std::cout << "  SynthiaRender --preset <json> --fixture <path> --dry --output <wav> --report <json>\n";
+            std::cout << "  SynthiaRender --preset <json> --fixture <path> --wet --output <wav> --report <json>\n";
             std::exit(0);
         }
     }
@@ -1165,7 +1165,7 @@ class RenderParameterOwner final : public juce::AudioProcessor
 {
 public:
     RenderParameterOwner()
-        : parameters(*this, nullptr, "SYLENTH_AI_STATE", synth::createParameterLayout())
+        : parameters(*this, nullptr, "SYNTHIA_STATE", synth::createParameterLayout())
     {
     }
 

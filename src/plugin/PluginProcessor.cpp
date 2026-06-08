@@ -106,7 +106,7 @@ SynthAudioProcessor::PresetListItem makeInvalidPresetListItem(const synth::Prese
 SynthAudioProcessor::SynthAudioProcessor()
     : AudioProcessor(BusesProperties()
           .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      parameters(*this, nullptr, "SYLENTH_AI_STATE", synth::createParameterLayout())
+      parameters(*this, nullptr, "SYNTHIA_STATE", synth::createParameterLayout())
 {
     for (auto& parameterIndex : midiControllerParameterIndices)
         parameterIndex.store(-1, std::memory_order_relaxed);
@@ -724,8 +724,6 @@ std::vector<SynthAudioProcessor::PresetListItem> SynthAudioProcessor::getPresetL
     appendInvalid(synth::factoryPresetDirectory(), synth::PresetSource::Factory);
     append(synth::scanPresetDirectory(synth::defaultUserPresetDirectory(), synth::PresetSource::User, favoriteKeys));
     appendInvalid(synth::defaultUserPresetDirectory(), synth::PresetSource::User);
-    append(synth::scanPresetDirectory(synth::legacyUserPresetDirectory(), synth::PresetSource::LegacyUser, favoriteKeys));
-    appendInvalid(synth::legacyUserPresetDirectory(), synth::PresetSource::LegacyUser);
     return items;
 }
 
@@ -1411,7 +1409,7 @@ void SynthAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary(data, sizeInBytes))
     {
-        if (xml->hasTagName("SYLENTH_AI_STATE") || xml->hasTagName("SYNTH_STATE"))
+        if (xml->hasTagName("SYNTHIA_STATE"))
         {
             auto state = juce::ValueTree::fromXml(*xml);
             if (state.isValid())

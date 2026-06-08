@@ -24,12 +24,8 @@
 #include <dlfcn.h>
 #endif
 
-#ifndef SYLENTH_AI_PROJECT_VERSION
-#ifdef SYNTH_PROJECT_VERSION
-#define SYLENTH_AI_PROJECT_VERSION SYNTH_PROJECT_VERSION
-#else
-#define SYLENTH_AI_PROJECT_VERSION "0.1.0"
-#endif
+#ifndef SYNTHIA_PROJECT_VERSION
+#define SYNTHIA_PROJECT_VERSION "0.1.0"
 #endif
 
 namespace synth
@@ -168,7 +164,7 @@ bool setKnownParameterValue(juce::ValueTree& state, const char* id, float physic
 void stampPreparedState(juce::ValueTree& state, const std::string& displayName)
 {
     state.setProperty("schema_version", 1, nullptr);
-    state.setProperty("plugin_version", SYLENTH_AI_PROJECT_VERSION, nullptr);
+    state.setProperty("plugin_version", SYNTHIA_PROJECT_VERSION, nullptr);
     state.setProperty("current_preset", juce::String(displayName), nullptr);
     state.setProperty("current_preset_path", "", nullptr);
 }
@@ -960,13 +956,7 @@ std::filesystem::path factoryPresetDirectory()
 std::filesystem::path defaultUserPresetDirectory()
 {
     const auto music = juce::File::getSpecialLocation(juce::File::userMusicDirectory);
-    return std::filesystem::path { music.getFullPathName().toStdString() } / "ParkerX" / "sylenth-ai" / "Presets";
-}
-
-std::filesystem::path legacyUserPresetDirectory()
-{
-    const auto music = juce::File::getSpecialLocation(juce::File::userMusicDirectory);
-    return std::filesystem::path { music.getFullPathName().toStdString() } / "ParkerX" / "Synth" / "Presets";
+    return std::filesystem::path { music.getFullPathName().toStdString() } / "ParkerX" / "Synthia" / "Presets";
 }
 
 std::filesystem::path defaultPresetFavoritesFile()
@@ -1190,7 +1180,7 @@ PresetLoadResult preparePresetState(juce::AudioProcessorValueTreeState& paramete
     result.displayName = propertyString(*object, "display_name");
     result.message = "Loaded preset: " + result.displayName;
     state.setProperty("schema_version", 1, nullptr);
-    state.setProperty("plugin_version", SYLENTH_AI_PROJECT_VERSION, nullptr);
+    state.setProperty("plugin_version", SYNTHIA_PROJECT_VERSION, nullptr);
     state.setProperty("current_preset", juce::String(result.displayName), nullptr);
     result.fingerprint = fingerprintPresetState(state);
     result.state = state;
@@ -1320,7 +1310,7 @@ PresetLoadResult preparePresetCompareSlotState(juce::AudioProcessorValueTreeStat
     auto state = mergeParameterStateWithDefaults(parameters, slot.state);
     const auto displayName = slot.label.empty() ? std::string("Compare Slot") : slot.label;
     state.setProperty("schema_version", 1, nullptr);
-    state.setProperty("plugin_version", SYLENTH_AI_PROJECT_VERSION, nullptr);
+    state.setProperty("plugin_version", SYNTHIA_PROJECT_VERSION, nullptr);
     state.setProperty("current_preset", juce::String(displayName), nullptr);
     state.setProperty("current_preset_path", "", nullptr);
 
@@ -1398,13 +1388,13 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
 
     auto root = std::make_unique<juce::DynamicObject>();
     root->setProperty("schema_version", 1);
-    root->setProperty("plugin_min_version", SYLENTH_AI_PROJECT_VERSION);
+    root->setProperty("plugin_min_version", SYNTHIA_PROJECT_VERSION);
     root->setProperty("id", juce::String(presetIdFromDisplayName(safeName)));
     root->setProperty("display_name", juce::String(safeName));
     root->setProperty("author", juce::String(options.metadata.author.empty() ? "User"
                                                                              : options.metadata.author));
     root->setProperty("description", juce::String(options.metadata.description.empty()
-        ? "User preset saved from the sylenth-ai editor."
+        ? "User preset saved from the Synthia editor."
         : options.metadata.description));
     const auto tagsToWrite = options.metadata.tags.empty()
         ? std::vector<std::string> { "user" }
@@ -1423,7 +1413,7 @@ bool writeCurrentPreset(const juce::AudioProcessorValueTreeState& parameters,
     root->setProperty("macros", currentMacroArray(parameters));
 
     auto metadata = std::make_unique<juce::DynamicObject>();
-    metadata->setProperty("program", "sylenth_lab_rebuild");
+    metadata->setProperty("program", "synthia_lab_rebuild");
     auto browser = std::make_unique<juce::DynamicObject>();
     browser->setProperty("bank", juce::String(options.metadata.bank.empty() ? "User"
                                                                             : options.metadata.bank));

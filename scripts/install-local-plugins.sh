@@ -3,8 +3,8 @@ set -euo pipefail
 
 build_dir="${1:-build}"
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-artifact_root="$root_dir/$build_dir/SylenthAIPlugin_artefacts"
-product_bundle="sylenth-ai"
+artifact_root="$root_dir/$build_dir/SynthiaPlugin_artefacts"
+product_bundle="Synthia"
 
 fail() {
   printf 'error: %s\n' "$*" >&2
@@ -54,8 +54,8 @@ sign_installed_bundle() {
   local label="$1"
   local bundle="$2"
 
-  if [[ "${SYLENTH_AI_SKIP_ADHOC_SIGN:-${SYNTH_SKIP_ADHOC_SIGN:-0}}" == "1" ]]; then
-    printf '%s codesign: skipped by SYLENTH_AI_SKIP_ADHOC_SIGN=1\n' "$label"
+  if [[ "${SYNTHIA_SKIP_ADHOC_SIGN:-0}" == "1" ]]; then
+    printf '%s codesign: skipped by SYNTHIA_SKIP_ADHOC_SIGN=1\n' "$label"
     return
   fi
 
@@ -77,4 +77,4 @@ sign_installed_bundle "VST3" "$vst3_dest/$product_bundle.vst3"
 printf 'installed AU: %s/%s.component\n' "$au_dest" "$product_bundle"
 printf 'installed VST3: %s/%s.vst3\n' "$vst3_dest" "$product_bundle"
 printf 'rescan plug-ins in Ableton before validation.\n'
-printf 'AU validation command: auval -v aumu SyAI PkRx\n'
+printf 'AU validation command: auval -v aumu SynA PkRx\n'

@@ -3,8 +3,8 @@ set -euo pipefail
 
 build_dir="${1:-build}"
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-artifact_root="$root_dir/$build_dir/SylenthAIPlugin_artefacts"
-product_bundle="sylenth-ai"
+artifact_root="$root_dir/$build_dir/SynthiaPlugin_artefacts"
+product_bundle="Synthia"
 
 fail() {
   printf 'error: %s\n' "$*" >&2

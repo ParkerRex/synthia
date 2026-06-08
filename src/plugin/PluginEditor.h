@@ -9,7 +9,7 @@
 #include <optional>
 #include <vector>
 
-// Modern Sylenth-style control surface for sylenth-ai.
+// Modern Sylenth-style control surface for synthia.
 //
 // The editor is a dense, grouped-module shell rather than a long scrolling form:
 //   * a header with preset navigation, an output meter, live diagnostics, and panic;

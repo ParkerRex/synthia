@@ -78,7 +78,7 @@ struct PresetWriteMetadata
 {
     std::string displayName;
     std::string author = "User";
-    std::string description = "User preset saved from the sylenth-ai editor.";
+    std::string description = "User preset saved from the Synthia editor.";
     std::vector<std::string> tags { "user" };
     std::string bank = "User";
     std::string category = "User";
@@ -114,7 +114,6 @@ std::vector<PresetSummary> filterPresetSummaries(const std::vector<PresetSummary
 PresetBrowserCatalog buildPresetBrowserCatalog(const std::vector<PresetSummary>& presets);
 std::filesystem::path factoryPresetDirectory();
 std::filesystem::path defaultUserPresetDirectory();
-std::filesystem::path legacyUserPresetDirectory();
 std::filesystem::path defaultPresetFavoritesFile();
 std::string presetIdFromDisplayName(const std::string& displayName);
 std::string presetSourceId(PresetSource source);

@@ -35,7 +35,7 @@ std::filesystem::path defaultMidiControllerMapFile()
 {
     const auto music = juce::File::getSpecialLocation(juce::File::userMusicDirectory);
     return std::filesystem::path { music.getFullPathName().toStdString() }
-           / "ParkerX" / "sylenth-ai" / "MidiControllerMap.json";
+           / "ParkerX" / "Synthia" / "MidiControllerMap.json";
 }
 
 std::vector<MidiControllerAssignment> normalizeMidiControllerAssignments(

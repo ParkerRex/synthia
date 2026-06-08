@@ -44,12 +44,12 @@ CLANG_TIDY_BIN="$(find_clang_tidy)" || {
 
 if [[ ! -f "${BUILD_DIR}/compile_commands.json" ]]; then
     echo "Missing ${BUILD_DIR}/compile_commands.json." >&2
-    echo "Run: cmake -S . -B ${BUILD_DIR#${ROOT_DIR}/} -DSYLENTH_AI_ENABLE_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON" >&2
+    echo "Run: cmake -S . -B ${BUILD_DIR#${ROOT_DIR}/} -DSYNTHIA_ENABLE_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON" >&2
     exit 1
 fi
 
 TIDY_COMPILE_DB_DIR="${BUILD_DIR}/clang-tidy-compile-db"
-TIDY_ARCH="${SYLENTH_AI_TIDY_ARCH:-$(uname -m)}"
+TIDY_ARCH="${SYNTHIA_TIDY_ARCH:-$(uname -m)}"
 TIDY_SDK_ROOT="${SDKROOT:-$(xcrun --show-sdk-path 2>/dev/null || true)}"
 TIDY_LIBCXX_INCLUDE=""
 if [[ -n "${TIDY_SDK_ROOT}" && -d "${TIDY_SDK_ROOT}/usr/include/c++/v1" ]]; then

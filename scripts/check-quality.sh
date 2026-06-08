@@ -56,15 +56,15 @@ if [[ "${RUN_FORMAT}" -eq 1 ]]; then
 fi
 
 cmake -S . -B "${BUILD_DIR}" \
-    -DSYLENTH_AI_ENABLE_TESTS=ON \
+    -DSYNTHIA_ENABLE_TESTS=ON \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DCMAKE_BUILD_TYPE=Debug
 cmake --build "${BUILD_DIR}" --config Debug
 ctest --test-dir "${BUILD_DIR}" -C Debug --output-on-failure
 
-RENDER_EXE="${BUILD_DIR}/SylenthAIRender"
-if [[ ! -x "${RENDER_EXE}" && -x "${BUILD_DIR}/Debug/SylenthAIRender" ]]; then
-    RENDER_EXE="${BUILD_DIR}/Debug/SylenthAIRender"
+RENDER_EXE="${BUILD_DIR}/SynthiaRender"
+if [[ ! -x "${RENDER_EXE}" && -x "${BUILD_DIR}/Debug/SynthiaRender" ]]; then
+    RENDER_EXE="${BUILD_DIR}/Debug/SynthiaRender"
 fi
 "${RENDER_EXE}" --suite core --output-dir "${BUILD_DIR}/reports/core"
 
