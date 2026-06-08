@@ -4,7 +4,7 @@ status: completed
 created_at: 2026-06-05
 completed_at: 2026-06-05
 summary: Align the project, build, plugin, preset, script, docs, and remote identity with the renamed sylenth-ai project.
-post_build_recap: Renamed host-facing CMake/product identity to sylenth-ai, added SYLENTH_AI_* build options with SYNTH_* compatibility aliases, changed bundle artifacts to SylenthAIPlugin_artefacts and sylenth-ai.component/vst3/app, moved new user preset writes to ~/Music/ParkerX/sylenth-ai/Presets while scanning the old Synth path, updated docs/scripts/host validation, and set origin to ParkerRex/sylenth-ai.
+post_build_recap: Renamed host-facing CMake/product identity to sylenth-ai, added SYLENTH_AI_* build options with SYNTH_* compatibility aliases, changed bundle artifacts to SylenthAIPlugin_artefacts and sylenth-ai.component/vst3/app, moved new user preset writes to ~/Music/ParkerX/sylenth-ai/Presets while scanning the old Synth path, updated docs/scripts/host validation, and set origin to ParkerRex/synthia.
 read_when:
   - Validating host scan, bundle names, install scripts, or CMake target names after the project rename.
   - Debugging preset paths after the rename.
@@ -31,7 +31,7 @@ The repo path and product direction changed from `synth`/`Synth` to `sylenth-ai`
 - [x] Move new user preset writes to `~/Music/ParkerX/sylenth-ai/Presets`.
 - [x] Preserve reads from legacy `~/Music/ParkerX/Synth/Presets`.
 - [x] Update docs, host-validation notes, README, and AGENTS.
-- [x] Update local `origin` remote to `https://github.com/ParkerRex/sylenth-ai.git`.
+- [x] Update local `origin` remote to `https://github.com/ParkerRex/synthia.git`.
 - [x] Validate CMake configure and generated target names.
 
 ## Decision Log

@@ -134,7 +134,7 @@ Use this when continuing development on another Mac, especially one with Ableton
 Clone the private repo:
 
 ```bash
-git clone https://github.com/ParkerRex/sylenth-ai.git
+git clone https://github.com/ParkerRex/synthia.git sylenth-ai
 cd sylenth-ai
 ```
 
