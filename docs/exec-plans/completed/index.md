@@ -14,6 +14,7 @@
 - `2026-06-05-build-sylenth-layer-b-and-four-osc-rendering.md`
 - `2026-06-05-build-arp-step-chord-workflow.md`
 - `2026-06-05-handoff-modern-sylenth-ui-shell.md`
+- `2026-06-08-rename-product-identity-to-synthia.md`
 - `2026-06-05-rename-project-identity-to-sylenth-ai.md`
 - `2026-06-06-build-preset-browser-and-bank-workflow.md`
 - `2026-06-06-build-fx-rack-expansion.md`

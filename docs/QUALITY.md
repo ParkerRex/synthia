@@ -17,7 +17,7 @@ The default gate runs:
 - CMake configure with tests and `compile_commands.json`
 - Debug build
 - CTest
-- `SylenthAIRender --suite core`
+- `SynthiaRender --suite core`
 
 Build artifacts and reports stay under `build/`.
 
@@ -26,13 +26,13 @@ Build artifacts and reports stay under `build/`.
 Use sanitizer builds for focused memory/undefined-behavior sweeps:
 
 ```bash
-cmake -S . -B build-asan -DSYLENTH_AI_ENABLE_TESTS=ON -DSYLENTH_AI_ENABLE_ASAN=ON
+cmake -S . -B build-asan -DSYNTHIA_ENABLE_TESTS=ON -DSYNTHIA_ENABLE_ASAN=ON
 cmake --build build-asan --config Debug
 ctest --test-dir build-asan --output-on-failure
 ```
 
 ```bash
-cmake -S . -B build-ubsan -DSYLENTH_AI_ENABLE_TESTS=ON -DSYLENTH_AI_ENABLE_UBSAN=ON
+cmake -S . -B build-ubsan -DSYNTHIA_ENABLE_TESTS=ON -DSYNTHIA_ENABLE_UBSAN=ON
 cmake --build build-ubsan --config Debug
 ctest --test-dir build-ubsan --output-on-failure
 ```
@@ -107,7 +107,7 @@ scripts/check-quality.sh --with-tidy
 or:
 
 ```bash
-cmake -S . -B build -DSYLENTH_AI_ENABLE_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake -S . -B build -DSYNTHIA_ENABLE_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 scripts/check-cpp-tidy.sh
 ```
 

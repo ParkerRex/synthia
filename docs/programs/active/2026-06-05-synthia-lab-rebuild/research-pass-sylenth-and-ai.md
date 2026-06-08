@@ -4,7 +4,7 @@ Stable inputs for this Program:
 
 - `Sylenth1Manual.pdf`: local manual source for Phase 1 architecture, preset workflow, polyphony/voices display, MIDI control, arp, FX, and CPU guidance.
 - `research/sylenth1-screenshots/SOURCE_INDEX.md`: 25-image screenshot source map for Phase 1 UI density, grouping, preset views, routing views, and panel-level evidence.
-- `docs/modern-sylenth-baseline.md`: current feature matrix and Phase 1/2/3 decision baseline.
+- `docs/modern-synthia-baseline.md`: current feature matrix and Phase 1/2/3 decision baseline.
 - `Serum_Manual.pdf`: supporting UX reference for modulation inspection, source tiles, halos, matrix sync, preset notes/author, and LFO graph interaction.
 - `SPEC.md`: current product contract.
 - `CONTEXT.md`: current phase vocabulary and decision lanes.

@@ -1,6 +1,6 @@
 # Research Source Map
 
-This file records source material and confidence levels for the sylenth-ai spec. It is evidence support, not a replacement for `../../SPEC.md`.
+This file records source material and confidence levels for the synthia spec. It is evidence support, not a replacement for `../../SPEC.md`.
 
 ## Current Verified Sources
 
@@ -21,7 +21,7 @@ Observed:
 
 - `../../Sylenth1Manual.pdf` is the local manual source for the Phase 1 rebuild. It documents Sylenth1's A/B parts, oscillator/filter/envelope/modulation/LFO behavior, polyphony and voices display, preset/program workflow, arpeggiator, master FX, sync behavior, MIDI control, and CPU guidance.
 - `../../research/sylenth1-screenshots/SOURCE_INDEX.md` maps 25 local Sylenth UI screenshots to source pages and image URLs. These screenshots are accepted Phase 1 evidence for UI density, section grouping, preset views, skin/visual variation, arpeggiator/effects panels, routing diagrams, filter controls, oscillator/mix panels, top-panel workflow, and factory-bank browsing views.
-- `../modern-sylenth-baseline.md` translates the manual and screenshot corpus into the current feature matrix, roadmap, and validation requirements.
+- `../modern-synthia-baseline.md` translates the manual and screenshot corpus into the current feature matrix, roadmap, and validation requirements.
 
 Inferred:
 

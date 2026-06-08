@@ -24,22 +24,22 @@ Current factory presets:
 
 Current user preset location:
 
-- `~/Music/ParkerX/sylenth-ai/Presets`
+- `~/Music/ParkerX/synthia/Presets`
 
-The preset browser also scans the legacy `~/Music/ParkerX/Synth/Presets` path so local presets saved before the project rename remain visible. New user preset writes go to the `sylenth-ai` path.
+The preset browser also scans the legacy `~/Music/ParkerX/Synth/Presets` path so local presets saved before the project rename remain visible. New user preset writes go to the `synthia` path.
 
 The editor scans factory presets from bundled plugin resources when running from an installed AU, VST3, or Standalone bundle, falling back to the source `presets/factory` directory for development tools. User presets are scanned from the user preset location. Factory presets are treated as read-only; editor Save As and Duplicate write schema-valid user JSON presets.
 
 Current validation command:
 
 ```bash
-./build/SylenthAIRender --validate-presets presets/factory --output build/reports/presets.json
+./build/SynthiaRender --validate-presets presets/factory --output build/reports/presets.json
 ```
 
 Current patch recreation command:
 
 ```bash
-./build/SylenthAIRender --suite patch-recreation --output-dir build/reports/patch-recreation
+./build/SynthiaRender --suite patch-recreation --output-dir build/reports/patch-recreation
 ```
 
 ## Required Top-Level Fields
@@ -56,7 +56,7 @@ Current patch recreation command:
 - `macros`: list of macro objects.
 - `metadata`: optional object.
 
-User preset writes include `metadata.program = "sylenth_lab_rebuild"` and browser metadata under `metadata.browser`.
+User preset writes include `metadata.program = "synthia_lab_rebuild"` and browser metadata under `metadata.browser`.
 
 Phase 2 and Phase 3 may extend `metadata` with generation provenance, prompt text, seed, model/version identifiers, reference-analysis summaries, and reversible edit history. Those fields must not be required for normal audio rendering.
 
@@ -77,7 +77,7 @@ Preset JSON may provide browser metadata as:
 
 ```json
 "metadata": {
-  "program": "sylenth_lab_rebuild",
+  "program": "synthia_lab_rebuild",
   "browser": {
     "bank": "Factory",
     "category": "Plucks",
@@ -90,7 +90,7 @@ If `metadata.browser` is absent, scan summaries fall back to source-derived bank
 
 Favorites are stored outside preset JSON in:
 
-- `~/Music/ParkerX/sylenth-ai/PresetFavorites.json`
+- `~/Music/ParkerX/synthia/PresetFavorites.json`
 
 The sidecar shape is:
 
@@ -99,7 +99,7 @@ The sidecar shape is:
   "schema_version": 1,
   "favorite_keys": [
     "factory:pluck-core-01",
-    "user:browser-favorite-test:/Users/example/Music/ParkerX/sylenth-ai/Presets/browser-favorite-test.json"
+    "user:browser-favorite-test:/Users/example/Music/ParkerX/synthia/Presets/browser-favorite-test.json"
   ]
 }
 ```
@@ -112,7 +112,7 @@ MIDI controller assignments are global user-library state, not preset sound stat
 
 The current user MIDI map file is:
 
-- `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json`
+- `~/Music/ParkerX/synthia/MidiControllerMap.json`
 
 The sidecar shape is:
 

@@ -1,6 +1,6 @@
 # Program Contract
 
-This contract is adapted from the Worker Program lane for this sylenth-ai project.
+This contract is adapted from the Worker Program lane for this synthia project.
 
 ## Required Program Folder
 

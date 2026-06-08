@@ -15,7 +15,7 @@ read_when:
 
 # Synth Pluck Core Foundation
 
-This Program is a historical initiative document for the earlier pluck-core scaffold. It is superseded by `docs/programs/active/2026-06-05-sylenth-lab-rebuild/program.md`.
+This Program is a historical initiative document for the earlier pluck-core scaffold. It is superseded by `docs/programs/active/2026-06-05-synthia-lab-rebuild/program.md`.
 
 This Program must be maintained in accordance with `docs/programs/PROGRAMS.md`.
 

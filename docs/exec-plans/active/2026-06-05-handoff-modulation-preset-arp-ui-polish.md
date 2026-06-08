@@ -9,8 +9,8 @@ read_when:
   - Preparing modulation, preset browser, arpeggiator, or FX rack UI work for Claude Code.
   - Checking UI handoff dependencies after route, browser, arp, or FX models land.
   - Reviewing Claude Code UI output.
-program_id: sylenth-lab-rebuild
-planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
+program_id: synthia-lab-rebuild
+planning_brief: docs/programs/active/2026-06-05-synthia-lab-rebuild/planning-brief-1.md
 handoff_target: Claude Code
 handoff_status: bronze_visual_pass_merged_deeper_polish_open
 ---
@@ -40,12 +40,12 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [x] 2026-06-06 EDT: Handed preset/browser, arp/chord, and FX polish to Claude Code with screenshot references; stopped the run after it stayed in research mode and produced no patch.
 - [x] 2026-06-06 EDT: Applied bounded local UI polish in `PluginEditor.cpp`: preset popup sections, ordered FX rack stage titles/badges, reserved title/badge spacing, and framed arp/chord grids.
 - [x] 2026-06-06 EDT: Captured native standalone screenshot evidence at `build/reports/ui/preset-arp-fx-polish-sound.png`, `build/reports/ui/preset-arp-fx-polish-sound-paged.png`, and `build/reports/ui/preset-arp-fx-polish-effects.png`.
-- [x] 2026-06-06 EDT: Passed `git diff --check`, standalone rebuild, CTest, and `SylenthAIRender --suite core` for the UI polish slice.
+- [x] 2026-06-06 EDT: Passed `git diff --check`, standalone rebuild, CTest, and `SynthiaRender --suite core` for the UI polish slice.
 - [x] 2026-06-06 EDT: Route model handoff dependency landed in `ModulationRouteModel`: source catalog, destination catalog, active route summaries, and legacy cutoff-depth visibility. Drag/drop write adapters, per-route bypass/remove, and expanded destinations remain out of scope.
 - [x] 2026-06-06 EDT: Handed a narrow modulation-inspection prompt to Claude Code with Sylenth screenshot references; stopped the run after it stayed in analysis/build-check mode without editing files.
 - [x] 2026-06-06 EDT: Implemented a bounded read-only modulation overview in `PluginEditor.*` using `synth::modulationSourceCatalog()` and `SynthAudioProcessor::getModulationRouteView()`.
 - [x] 2026-06-06 EDT: Captured native standalone Modulation tab screenshot evidence at `build/reports/ui/modulation-inspection-ui-polish.png`.
-- [x] 2026-06-06 EDT: Passed `git diff --check`, standalone rebuild, CTest, and `SylenthAIRender --suite core` for the modulation inspection UI slice.
+- [x] 2026-06-06 EDT: Passed `git diff --check`, standalone rebuild, CTest, and `SynthiaRender --suite core` for the modulation inspection UI slice.
 - [x] 2026-06-06 EDT: Ran an adversarial read-only pass; fixed hidden-tab route refresh churn and scaler-only source activity counts before commit.
 - [x] 2026-06-06 EDT: Handed a narrow preset-browser drawer prompt to Claude Code; stopped the run after it remained in research mode without editing files.
 - [x] 2026-06-06 EDT: Implemented a compact APVTS-safe preset browser drawer in `PluginEditor.*` with search, source filters, favorites-only, category filtering, row load, and sidecar favorite toggles over `getPresetList()`.
@@ -53,17 +53,17 @@ Phase 1 needs the workflows that made Sylenth fast, plus modern modulation/prese
 - [x] 2026-06-06 EDT: Ran an adversarial read-only pass; fixed favorite-cell double-click loading and added active-preset row selection/highlighting before commit.
 - [x] 2026-06-06 EDT: Polished the four model-ready surfaces in `PluginEditor.*` (no new model/DSP): FX-rack and TransMod panels now render a per-module power dot plus dimmed header/badge driven by the existing `*_enabled` atomics; arp/chord top controls disambiguated to `Chord Enabled` / `Chord Voice Count` vs the arp `Enabled`; preset-browser favorite cell uses a filled/hollow star affordance; modulation overview shows an active-route count in its header.
 - [x] 2026-06-06 EDT: Kept realtime boundaries intact — panel enable state is a UI-thread atomic read, repainted only on change for the *visible* page via the existing 15 Hz timer (no per-frame churn, hidden tabs stay idle, Sound page render path unchanged).
-- [x] 2026-06-06 EDT: Validated the polish slice: `git diff --check` clean, Debug build clean (no warnings), CTest 5/5, `SylenthAIRender --suite core` wrote 11 reports.
+- [x] 2026-06-06 EDT: Validated the polish slice: `git diff --check` clean, Debug build clean (no warnings), CTest 5/5, `SynthiaRender --suite core` wrote 11 reports.
 - [x] 2026-06-06 EDT: Captured native standalone screenshot evidence at `build/reports/ui/polish-sound-page.png` (preset stars), `build/reports/ui/polish-fx-rack.png` (FX power dimming), `build/reports/ui/polish-modulation-page.png` (TransMod dimming + overview count), and `build/reports/ui/polish-arp-chord.png` (disambiguated arp/chord labels).
 - [x] 2026-06-06 EDT: Ran an adversarial read-only pass on the polish diff; corrected a misleading chord-prefix comment and confirmed the enable-atomic pointer outlives every panel (APVTS owned by the processor, panels destroyed with the editor first).
 - [x] 2026-06-06 EDT: Attempted to hand the preset workflow controls to Claude Code with `claude -p --output-format stream-json --verbose`; the CLI reported the session limit was hit until 8:20pm America/New_York, so implementation continued locally.
 - [x] 2026-06-06 EDT: Implemented model-backed preset workflow controls in `PluginEditor.*` and `PluginProcessor.*`: a header dirty-state pill, a Sound-page `PRESET WORKFLOW` panel, Init/Random/Reset commands, and local A/B Store/Load controls over real processor APIs.
 - [x] 2026-06-06 EDT: Captured native standalone screenshot evidence at `build/reports/ui/preset-workflow-ui-tall.png`, `build/reports/ui/preset-workflow-ui-workflow.png`, `build/reports/ui/preset-workflow-ui-compact-workflow.png`, and `build/reports/ui/preset-workflow-ui-after-a-store.png`.
-- [x] 2026-06-06 EDT: Passed `git diff --check`, Debug build, CTest 8/8, and `SylenthAIRender --suite core --output-dir build/reports/core` for the preset workflow UI-control slice.
+- [x] 2026-06-06 EDT: Passed `git diff --check`, Debug build, CTest 8/8, and `SynthiaRender --suite core --output-dir build/reports/core` for the preset workflow UI-control slice.
 - [x] 2026-06-06 EDT: Ran manual control smoke in the standalone: clicked `A Store`, confirmed status changed to `Captured compare A`, and confirmed `A Load` became actionable.
 - [x] 2026-06-06 EDT: Added a Sound-page `PRESET SAVE` panel with metadata fields and explicit `Save New` / `Overwrite` actions over the real `PresetWriteOptions` create-new/overwrite model.
 - [x] 2026-06-06 EDT: Captured standalone screenshot evidence at `build/reports/ui/preset-safe-save-metadata-ui-workflow.png` and `build/reports/ui/preset-safe-save-metadata-ui-compact.png`.
-- [x] 2026-06-07 EDT: PR #46 merged the bronze Sylenth visual pass and authorized visual-parity docs. Post-merge `master` validation passed (`git diff --check`, Debug build, CTest 9/9, and `SylenthAIRender --suite core` with 14 reports).
+- [x] 2026-06-07 EDT: PR #46 merged the bronze Sylenth visual pass and authorized visual-parity docs. Post-merge `master` validation passed (`git diff --check`, Debug build, CTest 9/9, and `SynthiaRender --suite core` with 14 reports).
 - [ ] Additional Claude passes are still expected for preset browser integration, arp/step/chord density, modulation/effects screenshot rhythm, and compact one-screen polish.
 
 ## Surprises & Discoveries
@@ -112,7 +112,7 @@ Partial handoff is allowed only if the handoff prompt clearly limits scope to co
 
 Primary references:
 
-- `docs/modern-sylenth-baseline.md`
+- `docs/modern-synthia-baseline.md`
 - `Sylenth1Manual.pdf`
 - `Serum_Manual.pdf`
 - `research/sylenth1-screenshots/SOURCE_INDEX.md`
@@ -174,17 +174,17 @@ Milestone 4 records screenshot/manual QA and updates this plan's progress.
 
 Work from the repo root:
 
-    cd /Users/parkerrex/Developer/sylenth-ai
+    cd /Users/parkerrex/Developer/synthia
 
 Before each partial handoff, verify the relevant model exists:
 
-    rg -n "mod_route|browser|favorite|arp\\.|fx\\." src docs/PRESET_SCHEMA.md docs/modern-sylenth-baseline.md
+    rg -n "mod_route|browser|favorite|arp\\.|fx\\." src docs/PRESET_SCHEMA.md docs/modern-synthia-baseline.md
 
 After Claude Code returns a patch, run:
 
     cmake --build build --config Debug
     ctest --test-dir build --output-on-failure
-    ./build/SylenthAIRender --suite core --output-dir build/reports/core
+    ./build/SynthiaRender --suite core --output-dir build/reports/core
 
 Then record screenshots/manual QA for the handed-off surface.
 
@@ -201,10 +201,10 @@ Acceptance requires:
 
 ### Test Commands
 
-    cd /Users/parkerrex/Developer/sylenth-ai
+    cd /Users/parkerrex/Developer/synthia
     cmake --build build --config Debug
     ctest --test-dir build --output-on-failure
-    ./build/SylenthAIRender --suite core --output-dir build/reports/core
+    ./build/SynthiaRender --suite core --output-dir build/reports/core
 
 Manual verification: open the standalone target or plugin UI, exercise the handed-off surface, and record screenshots/notes in this plan or a linked QA note.
 

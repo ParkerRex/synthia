@@ -4,7 +4,7 @@ Validation must prove the instrument behaves correctly as a plugin and as a soun
 
 ## Roadmap Validation Phases
 
-Phase 1 validation proves the Sylenth rebuild: AU/VST3 scan/load/play in Ableton, host state restore, automation, preset browsing, A/B architecture, oscillator/filter/envelope/modulation behavior, arpeggiator timing, FX tails, UI open/close while playing, and screenshot/manual QA against `docs/modern-sylenth-baseline.md`.
+Phase 1 validation proves the Sylenth rebuild: AU/VST3 scan/load/play in Ableton, host state restore, automation, preset browsing, A/B architecture, oscillator/filter/envelope/modulation behavior, arpeggiator timing, FX tails, UI open/close while playing, and screenshot/manual QA against `docs/modern-synthia-baseline.md`.
 
 Phase 2 validation proves AI-assisted generation: randomize/generate commands must produce finite audio, valid preset state, bounded parameter values, deterministic or intentionally seeded results, and editable arp/chord/modulation data rather than opaque output.
 
@@ -13,24 +13,24 @@ Phase 3 validation proves conversational editing: text prompts and reference-sou
 Current scaffold commands:
 
 ```bash
-cmake -S . -B build -DSYLENTH_AI_ENABLE_TESTS=ON
+cmake -S . -B build -DSYNTHIA_ENABLE_TESTS=ON
 cmake --build build --config Debug
 ctest --test-dir build --output-on-failure
-./build/SylenthAIRender --smoke --output build/reports/smoke.json
-./build/SylenthAIRender --list-parameters --output build/reports/parameters.json
-./build/SylenthAIRender --validate-presets presets/factory --output build/reports/presets.json
-./build/SylenthAIRender --voice-test --output build/reports/voice-core.json
-./build/SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
-./build/SylenthAIRender --filter-test --output build/reports/filter.json
-./build/SylenthAIRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
-./build/SylenthAIRender --modulation-route-render-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation-route-render.json
-./build/SylenthAIRender --offline-realtime-compare-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/offline-realtime-compare.json
+./build/SynthiaRender --smoke --output build/reports/smoke.json
+./build/SynthiaRender --list-parameters --output build/reports/parameters.json
+./build/SynthiaRender --validate-presets presets/factory --output build/reports/presets.json
+./build/SynthiaRender --voice-test --output build/reports/voice-core.json
+./build/SynthiaRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
+./build/SynthiaRender --filter-test --output build/reports/filter.json
+./build/SynthiaRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
+./build/SynthiaRender --modulation-route-render-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation-route-render.json
+./build/SynthiaRender --offline-realtime-compare-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/offline-realtime-compare.json
 scripts/compare-ableton-bounce-realtime.py --self-test --output build/reports/ableton/bounce-compare/strong-compare-self-test.json
-./build/SylenthAIRender --randomize-test --seeds 1,42,12345,67890 --fixture fixtures/midi/overlap-pluck.mid --output build/reports/randomize.json
-./build/SylenthAIRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
-./build/SylenthAIRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --wet --output build/renders/pluck-core-01-wet.wav --report build/reports/pluck-core-01-wet.json
-./build/SylenthAIRender --suite core --output-dir build/reports/core
-./build/SylenthAIRender --suite patch-recreation --output-dir build/reports/patch-recreation
+./build/SynthiaRender --randomize-test --seeds 1,42,12345,67890 --fixture fixtures/midi/overlap-pluck.mid --output build/reports/randomize.json
+./build/SynthiaRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --dry --output build/renders/pluck-core-01-dry.wav --report build/reports/pluck-core-01-dry.json
+./build/SynthiaRender --preset presets/factory/pluck-core-01.json --fixture fixtures/midi/overlap-pluck.mid --wet --output build/renders/pluck-core-01-wet.wav --report build/reports/pluck-core-01-wet.json
+./build/SynthiaRender --suite core --output-dir build/reports/core
+./build/SynthiaRender --suite patch-recreation --output-dir build/reports/patch-recreation
 ```
 
 The current smoke render is intentionally note-less and proves initialization, finite output, report writing, and command shape.
@@ -74,21 +74,21 @@ The current DSP validation proves:
 - direct chord expansion, overlapping chord-output release ownership, chord parameter-change note-off symmetry, arp up-mode timing, host-tempo step duration, gate-off timing, octave wrapping, step pitch and velocity scaling, tie/hold behavior, arp enable/disable while input notes are held, hold-disable latch clearing, and panic clearing generated notes.
 - voice-mode and polyphony cap changes keep the most recent held notes and drain surplus voices through a bounded de-click fade instead of hard-resetting them.
 - top-level `mod_slots` preset schema objects are applied by render loading, including schema-only modulation fixtures that omit flat APVTS-style `transmod.*` parameters.
-- modulation route model catalogs and derived route rows are covered by `SylenthAIContractTest`, including source/scaler IDs, destination IDs, active route filtering, and legacy `transmod.N.depth` cutoff contribution.
-- `SylenthAIRender --modulation-route-render-test` compiles a route write through `ModulationRouteModel`, applies it to `transmod.3.*`, proves the rendered audio changes, then applies a clear-slot edit and proves the render returns to baseline within deterministic tolerances.
-- preset browser metadata validation, saved user preset browser metadata, factory/user/legacy source summaries, sidecar favorite add/remove behavior, search/category/tag/favorite filtering, and browser catalog facets are covered by `SylenthAIContractTest`.
-- APVTS automation-readiness is covered by `SylenthAIContractTest`: every registry parameter must be exposed by APVTS, remain host-automatable when marked automatable, match its declared float/bool/choice type, and accept host-notifying default writes. Ableton AU/VST3 automation record/playback is covered by the 2026-06-07 host proof in `docs/host-validation/ableton-smoke.md`.
-- MIDI controller-map persistence is covered by `SylenthAIContractTest`; learned CC capture, persistence, value application, and Forget behavior in AU and VST3 are covered by the current Ableton host proof in `docs/host-validation/ableton-smoke.md`.
+- modulation route model catalogs and derived route rows are covered by `SynthiaContractTest`, including source/scaler IDs, destination IDs, active route filtering, and legacy `transmod.N.depth` cutoff contribution.
+- `SynthiaRender --modulation-route-render-test` compiles a route write through `ModulationRouteModel`, applies it to `transmod.3.*`, proves the rendered audio changes, then applies a clear-slot edit and proves the render returns to baseline within deterministic tolerances.
+- preset browser metadata validation, saved user preset browser metadata, factory/user/legacy source summaries, sidecar favorite add/remove behavior, search/category/tag/favorite filtering, and browser catalog facets are covered by `SynthiaContractTest`.
+- APVTS automation-readiness is covered by `SynthiaContractTest`: every registry parameter must be exposed by APVTS, remain host-automatable when marked automatable, match its declared float/bool/choice type, and accept host-notifying default writes. Ableton AU/VST3 automation record/playback is covered by the 2026-06-07 host proof in `docs/host-validation/ableton-smoke.md`.
+- MIDI controller-map persistence is covered by `SynthiaContractTest`; learned CC capture, persistence, value application, and Forget behavior in AU and VST3 are covered by the current Ableton host proof in `docs/host-validation/ableton-smoke.md`.
 - FX bypass stays null-equivalent to dry rendering when globally bypassed, disabled expanded-rack modules are dry-equivalent, phaser/EQ/compressor/distortion-mode processing is finite and measurably audible when enabled, tempo-synced delay reports exact sample timing at test tempo, FX tail length is reported from the active time-based FX parameters, and wet output remains finite, non-clipping, and measurably different from its dry reference.
-- `SylenthAIRender --offline-realtime-compare-test` renders `FX Space 01` in realtime Normal quality and offline High quality, verifies both renders are finite and non-clipping, and records a bounded meaningful audio difference caused by the quality-mode switch. Ableton offline bounce versus realtime resampling is covered by the 2026-06-07 host proof in `docs/host-validation/ableton-smoke.md` and the stronger `scripts/compare-ableton-bounce-realtime.py` content-match report.
-- `SylenthAIRender --randomize-test` prepares seedable bounded randomized APVTS state through `PresetManager`, renders each seed through the standalone engine as prepared, rejects malformed seed lists, and checks finite non-silent non-clipping output.
-- `SylenthAIRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, modulation route render, offline/realtime compare, randomize render, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
-- `SylenthAIRender --suite patch-recreation` renders `Pluck Core 01`, `Supersaw Stack 01`, `Bass Wub 01`, `Pad Wide 01`, `Arp Motion 01`, and `FX Space 01` against the overlap-pluck fixture, writes WAV/report artifacts for each, and checks finite non-clipping output plus meaningful wet-versus-dry FX differences. The arp/chord patch also asserts that `SynthRender` applies preset-loaded `arp.*` and `chord.*` state.
-- `SylenthAIRenderCoreSuite` runs the core suite under CTest.
-- `SylenthAIRandomizeRenderTest` runs the randomized preset render proof under CTest.
-- `SylenthAIModulationRouteRenderTest` runs the modulation route write/render/clear proof under CTest.
-- `SylenthAIOfflineRealtimeCompareTest` runs the standalone realtime/offline quality-mode comparison under CTest.
-- `SylenthAIPatchRecreationSuite` runs the patch-recreation suite under CTest.
+- `SynthiaRender --offline-realtime-compare-test` renders `FX Space 01` in realtime Normal quality and offline High quality, verifies both renders are finite and non-clipping, and records a bounded meaningful audio difference caused by the quality-mode switch. Ableton offline bounce versus realtime resampling is covered by the 2026-06-07 host proof in `docs/host-validation/ableton-smoke.md` and the stronger `scripts/compare-ableton-bounce-realtime.py` content-match report.
+- `SynthiaRender --randomize-test` prepares seedable bounded randomized APVTS state through `PresetManager`, renders each seed through the standalone engine as prepared, rejects malformed seed lists, and checks finite non-silent non-clipping output.
+- `SynthiaRender --suite core` runs the standalone smoke, parameter, preset, voice, oscillator, filter, modulation, modulation route render, offline/realtime compare, randomize render, dry pluck, wet pluck, LFO ablation, and determinism reports in one command.
+- `SynthiaRender --suite patch-recreation` renders `Pluck Core 01`, `Supersaw Stack 01`, `Bass Wub 01`, `Pad Wide 01`, `Arp Motion 01`, and `FX Space 01` against the overlap-pluck fixture, writes WAV/report artifacts for each, and checks finite non-clipping output plus meaningful wet-versus-dry FX differences. The arp/chord patch also asserts that `SynthRender` applies preset-loaded `arp.*` and `chord.*` state.
+- `SynthiaRenderCoreSuite` runs the core suite under CTest.
+- `SynthiaRandomizeRenderTest` runs the randomized preset render proof under CTest.
+- `SynthiaModulationRouteRenderTest` runs the modulation route write/render/clear proof under CTest.
+- `SynthiaOfflineRealtimeCompareTest` runs the standalone realtime/offline quality-mode comparison under CTest.
+- `SynthiaPatchRecreationSuite` runs the patch-recreation suite under CTest.
 
 Preset render validation is expected to fail if the preset file is missing, the preset JSON is invalid, the MIDI fixture is missing, the fixture is not a valid MIDI file, or the fixture has no note events.
 

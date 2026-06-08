@@ -11,7 +11,7 @@ post_build_recap: |
   display, blue-LCD arp/step/chord grids, and vertical LED output meter while preserving real bindings.
   Earlier passes also moved the Sound page toward the synthesis hero, denser module grid, and honest Osc A1
   Tone naming. No DSP, parameters, schema, processor APIs, copied source assets, screenshot backplates, or fake
-  controls were added. Validated with git diff --check, Debug build, CTest 9/9, and SylenthAIRender --suite core
+  controls were added. Validated with git diff --check, Debug build, CTest 9/9, and SynthiaRender --suite core
   with 14 reports plus Sound/Modulation/Effects/Browser/compact screenshots under build/reports/ui/.
   PR #46 merged the bronze pass and the authorized visual-parity docs. The surface is closer to Sylenth,
   but additional Claude visual passes are expected for top-strip/LCD fidelity, one-screen density, browser
@@ -20,8 +20,8 @@ read_when:
   - Preparing the next Claude Code UI pass after the roadmap truth audit.
   - Making the editor look and scan more like the supplied Sylenth screenshots.
   - Checking which visual changes are safe before modulation write adapters, preset dirty/randomize/reset, or per-layer filter parity exist.
-program_id: sylenth-lab-rebuild
-planning_brief: docs/programs/active/2026-06-05-sylenth-lab-rebuild/planning-brief-1.md
+program_id: synthia-lab-rebuild
+planning_brief: docs/programs/active/2026-06-05-synthia-lab-rebuild/planning-brief-1.md
 handoff_target: Claude Code
 handoff_status: bronze_visual_pass_merged_more_fidelity_passes_expected
 ---
@@ -34,7 +34,7 @@ This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
 ## Purpose / Big Picture
 
-The current editor is a working model-backed shell, but it still reads like an internal scaffold more than a mature Sylenth synthesizer. This slice should use `Sylenth1Manual.pdf`, the 25-image screenshot corpus, and `docs/modern-sylenth-baseline.md` to reorganize and restyle the existing UI toward faithful Sylenth visual parity: dense module panels, top strip, A/B part workflow, preset/LCD rhythm, knob treatment, warm panel contrast, and compact hardware-like control grouping.
+The current editor is a working model-backed shell, but it still reads like an internal scaffold more than a mature Sylenth synthesizer. This slice should use `Sylenth1Manual.pdf`, the 25-image screenshot corpus, and `docs/modern-synthia-baseline.md` to reorganize and restyle the existing UI toward faithful Sylenth visual parity: dense module panels, top strip, A/B part workflow, preset/LCD rhythm, knob treatment, warm panel contrast, and compact hardware-like control grouping.
 
 The goal is not to add backend features. The goal is to make the current real features look coherent: A/B layers, A1/A2/B1/B2 oscillator slots, shared filter/envelopes/LFO/ramp/macros, preset browser drawer, arp/step/chord, fixed FX rack, read-only modulation overview, MIDI Learn, meters, panic, diagnostics, and patch-load/voice feedback.
 
@@ -44,19 +44,19 @@ The goal is not to add backend features. The goal is to make the current real fe
 - [x] 2026-06-06 EDT: Confirmed enough model-backed UI state exists for a visual IA pass: layer/slot rendering, preset browser, arp/step/chord, FX rack, read-only modulation overview, and global MIDI Learn.
 - [x] 2026-06-06 EDT: Handed off to Claude Code.
 - [x] 2026-06-06 EDT: Implemented the bounded visual IA pass in `src/plugin/PluginEditor.{h,cpp}` only: synthesis-first Sound page, functional-zone header ticks, clarified `Osc A1 Tone` naming, denser knob cells, knob end ticks, slimmer brand, shorter layer bar, selected-part accent. No DSP/parameters/schema/processor APIs added; no fake controls.
-- [x] 2026-06-06 EDT: Validated `git diff --check`, Debug build, CTest (5/5), and `SylenthAIRender --suite core` (11 reports); captured Sound/Modulation/Effects/Browser/compact screenshots under `build/reports/ui/`.
+- [x] 2026-06-06 EDT: Validated `git diff --check`, Debug build, CTest (5/5), and `SynthiaRender --suite core` (11 reports); captured Sound/Modulation/Effects/Browser/compact screenshots under `build/reports/ui/`.
 - [x] 2026-06-07 EDT: Visual fidelity follow-up on branch `ui-polish-sylenth-fidelity` (UI-only, `PluginEditor.{h,cpp}`): Sylenth radial-tick rotary knobs, vertical ADSR `EnvelopePanel` (Amp/Mod env) with a derived read-only contour, `Osc A1 | Amp Env | Osc A2` + `Filter | Mod Env | LFO` Sylenth grid rows, caption-bar gradient/divider on every module, and taller knob cells. No DSP/parameters/schema/processor APIs added; no fake controls.
-- [x] 2026-06-07 EDT: Validated `git diff --check` (clean), Debug build (clean), CTest (9/9), and `SylenthAIRender --suite core` (14 reports); captured `sylenth-fidelity-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`.
+- [x] 2026-06-07 EDT: Validated `git diff --check` (clean), Debug build (clean), CTest (9/9), and `SynthiaRender --suite core` (14 reports); captured `sylenth-fidelity-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`.
 - [x] 2026-06-07 EDT: Warm bronze Sylenth re-skin on branch `ui-polish-sylenth-bronze` (merged to master, per maintainer direction to adopt the approved Sylenth visual target): bronze metal palette + side rails, chrome/charcoal knobs with cream tick rings and white pointers, amber-lit LED toggles, beveled module caption bars, recessed value readouts, a blue LCD preset display (real preset name/source/bank/category + dirty), blue-LCD arp/step/chord grids, and a vertical LED output meter in the layer bar. Still UI-only in `PluginEditor.{h,cpp}`; no DSP/parameters/schema/processor APIs and no fake controls.
-- [x] 2026-06-07 EDT: Validated the bronze pass: `git diff --check` clean, Debug build clean (no warnings), CTest 9/9, `SylenthAIRender --suite core` 14 reports; captured `sylenth-bronze-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`.
+- [x] 2026-06-07 EDT: Validated the bronze pass: `git diff --check` clean, Debug build clean (no warnings), CTest 9/9, `SynthiaRender --suite core` 14 reports; captured `sylenth-bronze-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`.
 - [x] 2026-06-07 EDT: PR #46 merged to `master` with `2416664 feat(editor): warm bronze Sylenth skin, blue LCD, and LED meter` and `9e64b73 docs: adopt Sylenth visual-parity direction`.
-- [x] 2026-06-07 EDT: Post-merge `master` validation passed: `git diff --check`, `cmake --build build --config Debug`, `ctest --test-dir build --output-on-failure` (9/9), and `./build/SylenthAIRender --suite core --output-dir build/reports/core` (14 reports).
+- [x] 2026-06-07 EDT: Post-merge `master` validation passed: `git diff --check`, `cmake --build build --config Debug`, `ctest --test-dir build --output-on-failure` (9/9), and `./build/SynthiaRender --suite core --output-dir build/reports/core` (14 reports).
 - [x] 2026-06-07 EDT: Top-strip / LCD / density / Browser fidelity pass on branch `ui-polish-sylenth-mainscreen` (UI-only, `PluginEditor.{h,cpp}`): added a dedicated `Browser` page and moved the preset workflow/metadata/browser/MIDI panels onto it so the Sound page holds the synthesis engine near one screen; rebuilt the blue LCD as a monospaced preset/program/diagnostics hub; unified the header+part strip and lit the active `PART` green; recessed knob value boxes. No DSP/parameters/schema/processor APIs and no fake controls; bronze palette preserved.
-- [x] 2026-06-07 EDT: Validated this pass: `git diff --check` clean, Debug build clean, CTest 9/9, `SylenthAIRender --suite core` 14 reports, plus an adversarial multi-agent review of the diff; captured `sylenth-onescreen-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`. Committed `e12d2be`.
+- [x] 2026-06-07 EDT: Validated this pass: `git diff --check` clean, Debug build clean, CTest 9/9, `SynthiaRender --suite core` 14 reports, plus an adversarial multi-agent review of the diff; captured `sylenth-onescreen-{sound,modulation,effects,browser,compact}.png` under `build/reports/ui/`. Committed `e12d2be`.
 - [x] 2026-06-07 EDT: Sylenth skin fidelity pass (maintainer feedback that it still did not look like Sylenth): native-JUCE knob/faceplate/caption/top-strip/palette rework toward the hardware faceplate (dark pointer knobs without the amber arc, tightly-packed squared raised plates, engraved captions, dark charcoal top strip). Re-validated and screenshots refreshed.
-- [x] 2026-06-07 EDT: Per-module oscillator faithfulness (maintainer direction to get it as close as possible): bespoke `OscillatorPanel` with Sylenth's PITCH sub-box + knob row + INV/WAVE/VOICES/RETRIG row, all real `layer.N.osc.M.*` bindings (13/13 verified). Knobs capped to hardware size; top row tightened. CTest 9/9, `SylenthAIRender --suite core` 14 reports; screenshots refreshed.
-- [x] 2026-06-07 EDT: Bespoke `FilterPanel` (continuing "make the UI better"): Sylenth FILTER module — a TYPE selector over a CUTOFF/RESONANCE/DRIVE/KEYTRACK knob row with a QUALITY (oversampling) selector and a caption enable LED — binding the same real `filter.*` parameters. CTest 9/9, `SylenthAIRender --suite core` 14 reports; screenshots refreshed.
-- [x] 2026-06-07 EDT: Touched-parameter LCD readout (Sylenth's "name = value" centre-screen behaviour): a global mouse listener echoes any touched knob/fader/inc-dec's name + live value into the LCD for ~1.4s, restoring value feedback for the label-only oscillator/filter knobs. Every slider sets a `name` + unit formatter; no new state or params. Verified end-to-end with a real CGEvent drag ("MAIN = 1.2 dB"). CTest 9/9, `SylenthAIRender --suite core` 14 reports.
+- [x] 2026-06-07 EDT: Per-module oscillator faithfulness (maintainer direction to get it as close as possible): bespoke `OscillatorPanel` with Sylenth's PITCH sub-box + knob row + INV/WAVE/VOICES/RETRIG row, all real `layer.N.osc.M.*` bindings (13/13 verified). Knobs capped to hardware size; top row tightened. CTest 9/9, `SynthiaRender --suite core` 14 reports; screenshots refreshed.
+- [x] 2026-06-07 EDT: Bespoke `FilterPanel` (continuing "make the UI better"): Sylenth FILTER module — a TYPE selector over a CUTOFF/RESONANCE/DRIVE/KEYTRACK knob row with a QUALITY (oversampling) selector and a caption enable LED — binding the same real `filter.*` parameters. CTest 9/9, `SynthiaRender --suite core` 14 reports; screenshots refreshed.
+- [x] 2026-06-07 EDT: Touched-parameter LCD readout (Sylenth's "name = value" centre-screen behaviour): a global mouse listener echoes any touched knob/fader/inc-dec's name + live value into the LCD for ~1.4s, restoring value feedback for the label-only oscillator/filter knobs. Every slider sets a `name` + unit formatter; no new state or params. Verified end-to-end with a real CGEvent drag ("MAIN = 1.2 dB"). CTest 9/9, `SynthiaRender --suite core` 14 reports.
 - [ ] Parker/Claude review of remaining visual fidelity gaps (next levers: bespoke MOD ENV/LFO module layouts, L/R meter ladder, wood backplate).
 
 ## Surprises & Discoveries
@@ -65,7 +65,7 @@ The goal is not to add backend features. The goal is to make the current real fe
 
 What the Sylenth1 screenshots imply about hierarchy, density, grouping, and panel rhythm:
 
-- **One integrated top strip, not a marketing band.** `splice-top-panel.png` and the official UI put polyphony, voices, part select, solo, sync, and MIDI learn in a single dense performance strip. The current editor spends ~132px of header on a `SYLENTH-AI` / `CORE OSC ENGINE` brand block and splits performance state across two stacked bars.
+- **One integrated top strip, not a marketing band.** `splice-top-panel.png` and the official UI put polyphony, voices, part select, solo, sync, and MIDI learn in a single dense performance strip. The current editor spends ~132px of header on a `SYNTHIA` / `CORE OSC ENGINE` brand block and splits performance state across two stacked bars.
 - **Everything-visible module grid.** The official UI shows `OSC A1 | AMP ENV A | OSC A2` across the top, `FILTER + FILTER CONTROL + center LCD + MIXER` in the middle, and `MOD ENV 1/2 + LFO 1/2 + MISC 1/2` across the bottom — all on one fixed surface with no scrolling. The synthesis surface is the hero; utilities (the preset list) are a popover over the center LCD, never a leading panel.
 - **Module = caption bar + tight knob cluster.** Each Sylenth panel is a titled frame with a small caption and a dense row of knobs, each with a short label beneath. Modules read as a rack because each has a clear identity and consistent rhythm.
 - **Restrained warm colour, grouped by zone.** Sylenth is near-monochrome with warm brown/amber panel contrast. Identity comes from grouping, caption bars, labels, knob rhythm, and the central preset/LCD area. The UI should move toward that approved Sylenth target instead of preserving the previous non-Sylenth identity.
@@ -107,11 +107,11 @@ All visible controls remain bound to real APVTS parameters, processor APIs (`req
 - `git diff --check`: clean.
 - `cmake --build build --config Debug`: all targets built (exit 0).
 - `ctest --test-dir build --output-on-failure`: 5/5 passed (smoke, contract, voice-core, dsp-core, render-core-suite).
-- `./build/SylenthAIRender --suite core --output-dir build/reports/core`: wrote 11 reports.
+- `./build/SynthiaRender --suite core --output-dir build/reports/core`: wrote 11 reports.
 
 ### Screenshot evidence
 
-Captured from the standalone (`build/SylenthAIPlugin_artefacts/Standalone/sylenth-ai.app`) at the default 1320×940 and the compact 1080×760 minimum:
+Captured from the standalone (`build/SynthiaPlugin_artefacts/Standalone/synthia.app`) at the default 1320×940 and the compact 1080×760 minimum:
 
 - `build/reports/ui/sylenth-visual-ia-sound.png` — Sound page, synthesis hero with zone ticks.
 - `build/reports/ui/sylenth-visual-ia-modulation.png` — Modulation overview, direct routes, eight TransMod slots.
@@ -138,7 +138,7 @@ UI-only pass to make the surface read like a hardware Sylenth instrument rather 
 - **Sylenth grid rows.** Sound page top row is now `Osc A1 | Amp Env | Osc A2` and the shaping row is `Filter | Mod Env | LFO`, mirroring Sylenth's `OSC A1 | AMP ENV | OSC A2` hierarchy. The legacy `Osc A1 Tone` panel still spans full width below.
 - **Module caption bars.** New `paintCaptionBar` helper gives every panel a soft top-down gradient header and a 1px base divider, so modules read as titled racks. Knob cells are slightly taller (60→64) so knobs read bigger.
 
-Validation: `git diff --check` clean; Debug build clean; CTest 9/9; `SylenthAIRender --suite core` wrote 14 reports. Screenshots: `build/reports/ui/sylenth-fidelity-{sound,modulation,effects,browser,compact}.png` (default 1320×940 and compact 1080×760).
+Validation: `git diff --check` clean; Debug build clean; CTest 9/9; `SynthiaRender --suite core` wrote 14 reports. Screenshots: `build/reports/ui/sylenth-fidelity-{sound,modulation,effects,browser,compact}.png` (default 1320×940 and compact 1080×760).
 
 Residual UI gaps unchanged and still backend/scope-bound: writable modulation (drag/drop, halos, matrix, hover, per-route bypass/remove); LFO2 and editable LFO movement graph; filter response graph with modulation overlays (the envelope contour here is read-only, not drag-editable); per-control MIDI context menus; per-layer Filter A/B and master-stage parity; richer scanned-preset detail; reliable JUCE viewport scroll automation (browser shot used a CGEvent wheel helper over the page gutter).
 
@@ -149,7 +149,7 @@ Post-merge validation passed on `master`:
 - `git diff --check`: clean.
 - `cmake --build build --config Debug`: passed.
 - `ctest --test-dir build --output-on-failure`: 9/9 passed.
-- `./build/SylenthAIRender --suite core --output-dir build/reports/core`: wrote 14 reports.
+- `./build/SynthiaRender --suite core --output-dir build/reports/core`: wrote 14 reports.
 
 Screenshot set reviewed:
 
@@ -186,7 +186,7 @@ What changed:
 - **Integrated top strip.** Unified the header and part/layer bar into one continuous brushed-metal performance strip (a soft inset seam instead of a hard toolbar divider), trimmed chrome heights (header 66→60, layer bar 86→80, tabs 40→36), and relabelled the layer selector as `PART` with a green-lit active part and a green Part-Select underline.
 - **Module rhythm.** Recessed value boxes beneath the rotary knobs (dark field tint, no outline) for the Sylenth tucked-value look.
 
-Validation: `git diff --check` clean; `cmake --build build --config Debug` clean; `ctest --test-dir build --output-on-failure` 9/9; `./build/SylenthAIRender --suite core --output-dir build/reports/core` wrote 14 reports. The diff was also put through an adversarial multi-agent review (bindings, scope, correctness, layout): no P0/P1, no binding/scope violations, page dispatch and LCD real-state confirmed. Three P2s surfaced — the one introduced by this pass (the MIXER knobs missed the new recessed value-box styling) was fixed; the other two reflect intended/pre-existing behaviour and are recorded under residual gaps.
+Validation: `git diff --check` clean; `cmake --build build --config Debug` clean; `ctest --test-dir build --output-on-failure` 9/9; `./build/SynthiaRender --suite core --output-dir build/reports/core` wrote 14 reports. The diff was also put through an adversarial multi-agent review (bindings, scope, correctness, layout): no P0/P1, no binding/scope violations, page dispatch and LCD real-state confirmed. Three P2s surfaced — the one introduced by this pass (the MIXER knobs missed the new recessed value-box styling) was fixed; the other two reflect intended/pre-existing behaviour and are recorded under residual gaps.
 
 Screenshots (standalone, default 1320×940 and compact 1080×760):
 
@@ -199,7 +199,7 @@ Screenshots (standalone, default 1320×940 and compact 1080×760):
 Residual gaps after this pass:
 
 - The Sound page still scrolls below the synthesis engine to reach `Ramp | Macros` and the arp/step/chord grid at default height; the oscillator-slot panels render as three knob rows, taller than Sylenth's two-row oscillator block. Full all-visible parity would need a denser oscillator cell or a more compact arp grid.
-- The standalone wrapper's `Options` menu bar and the `SYLENTH-AI` wordmark still sit above the strip (host-provided chrome and brand identity, not the instrument surface).
+- The standalone wrapper's `Options` menu bar and the `SYNTHIA` wordmark still sit above the strip (host-provided chrome and brand identity, not the instrument surface).
 - The Browser is an in-window page, not a popover overlay over the synth, and the list is the real scanned preset set rather than a fixed 256-slot bank grid.
 - The output LED meter lives in the Sound-page MIXER (the Sylenth-faithful location), so it is not visible on the Modulation/Effects/Browser pages; the level is still updated every tick.
 - `amp.level_db` is surfaced by two real knobs visible together on the Sound page — the MIXER `MAIN` and the `Amp / Stereo` level. Both are genuine bindings to the same parameter shown in two contexts; left intact to preserve all real bindings rather than dropping a control.
@@ -215,7 +215,7 @@ Direct response to maintainer feedback that the surface still did not read like 
 - **Top strip.** Repainted the performance strip as a dark charcoal band (was warm brown), matching Sylenth's dark polyphony/voices/part/preset bar against the warm panels below.
 - **Palette.** Warmed and lightened the panel tan toward the reference.
 
-Validated: `git diff --check` clean; Debug build clean; CTest 9/9; `SylenthAIRender --suite core` 14 reports. Screenshots refreshed in place at `build/reports/ui/sylenth-onescreen-{sound,modulation,effects,browser,compact}.png`.
+Validated: `git diff --check` clean; Debug build clean; CTest 9/9; `SynthiaRender --suite core` 14 reports. Screenshots refreshed in place at `build/reports/ui/sylenth-onescreen-{sound,modulation,effects,browser,compact}.png`.
 
 Then, per maintainer direction to get it as close as possible, a bespoke `OscillatorPanel` rebuilt both oscillator slots in Sylenth's exact module grammar — a PITCH sub-box (OCTAVE / NOTE inc-dec boxes + a FINE knob), a VOLUME / PHASE / DETUNE / STEREO / PAN knob row, and an INV / WAVE / VOICES / RETRIG row — all bound to the real `layer.N.osc.M.*` parameters (no controls added or dropped; 13/13 bindings verified by review). Knobs are capped to hardware size, OCT/NOTE/VOICES read as compact numeric inc-dec boxes, and the top row was tightened (oscillator + amp/mod envelope heights reduced).
 
@@ -225,12 +225,12 @@ Remaining per-module fidelity levers: the FILTER, MOD ENV, LFO and performance m
 
 Work from:
 
-    cd /Users/parkerrex/Developer/sylenth-ai
+    cd /Users/parkerrex/Developer/synthia
 
 Primary product references:
 
-- `docs/modern-sylenth-baseline.md`
-- `docs/programs/active/2026-06-05-sylenth-lab-rebuild/program.md`
+- `docs/modern-synthia-baseline.md`
+- `docs/programs/active/2026-06-05-synthia-lab-rebuild/program.md`
 - `docs/exec-plans/active/index.md`
 - `docs/PRESET_SCHEMA.md`
 - `docs/ARCHITECTURE.md`
@@ -307,7 +307,7 @@ Known missing backend/model support that must not be faked:
 
 ## Plan of Work
 
-1. Read the roadmap truth first: `docs/modern-sylenth-baseline.md`, this plan, and `docs/exec-plans/active/2026-06-05-handoff-modulation-preset-arp-ui-polish.md`.
+1. Read the roadmap truth first: `docs/modern-synthia-baseline.md`, this plan, and `docs/exec-plans/active/2026-06-05-handoff-modulation-preset-arp-ui-polish.md`.
 2. Inspect the current editor implementation in `src/plugin/PluginEditor.*` and identify which visible controls are already real APVTS bindings or derived diagnostics.
 3. Review the screenshot corpus and write a short visual IA note in this plan's `Progress` or `Surprises & Discoveries`: what the Sylenth screenshots imply about hierarchy, density, grouping, and panel rhythm.
 4. Implement a bounded UI-only patch, preferably confined to `src/plugin/PluginEditor.*`.
@@ -352,11 +352,11 @@ Milestone 4: Handoff closeout.
 
 Work from the repo root:
 
-    cd /Users/parkerrex/Developer/sylenth-ai
+    cd /Users/parkerrex/Developer/synthia
 
 Inspect references:
 
-    sed -n '1,260p' docs/modern-sylenth-baseline.md
+    sed -n '1,260p' docs/modern-synthia-baseline.md
     sed -n '1,220p' docs/exec-plans/active/2026-06-05-handoff-modulation-preset-arp-ui-polish.md
     sed -n '1,180p' research/sylenth1-screenshots/SOURCE_INDEX.md
     rg -n "Panel|addPanel|layer|presetBrowser|modulation|arp|fx|midi" src/plugin/PluginEditor.*
@@ -372,11 +372,11 @@ Validation commands:
     git diff --check
     cmake --build build --config Debug
     ctest --test-dir build --output-on-failure
-    ./build/SylenthAIRender --suite core --output-dir build/reports/core
+    ./build/SynthiaRender --suite core --output-dir build/reports/core
 
 Standalone screenshot target:
 
-    open build/SylenthAIPlugin_artefacts/Standalone/sylenth-ai.app
+    open build/SynthiaPlugin_artefacts/Standalone/synthia.app
 
 Save screenshot evidence under:
 
@@ -395,16 +395,16 @@ Acceptance requires:
 - All visible controls bind to real APVTS parameters, processor APIs, route views, browser APIs, or derived diagnostics.
 - Missing backend features are not represented as working controls.
 - No new DSP, parameter IDs, preset schema, or audio-thread work.
-- `git diff --check`, Debug build, CTest, and `SylenthAIRender --suite core` pass.
+- `git diff --check`, Debug build, CTest, and `SynthiaRender --suite core` pass.
 - No clipped labels, incoherent overlap, broken scrolling, or unclickable controls at the existing compact size.
 
 ### Test Commands
 
-    cd /Users/parkerrex/Developer/sylenth-ai
+    cd /Users/parkerrex/Developer/synthia
     git diff --check
     cmake --build build --config Debug
     ctest --test-dir build --output-on-failure
-    ./build/SylenthAIRender --suite core --output-dir build/reports/core
+    ./build/SynthiaRender --suite core --output-dir build/reports/core
 
 Manual verification: open the standalone app or installed plugin UI, switch through Sound/Modulation/Effects, open the preset browser, toggle relevant module power states, switch Layer A/B, exercise a few controls, and record screenshots/notes in this plan.
 

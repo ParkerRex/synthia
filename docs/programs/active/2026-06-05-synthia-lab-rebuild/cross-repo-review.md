@@ -19,7 +19,7 @@ Files most likely to change in Phase 1:
 - `src/presets/PresetValidator.*`
 - `src/validation/SynthRender.cpp`
 - `tests/smoke/*`
-- `docs/modern-sylenth-baseline.md`
+- `docs/modern-synthia-baseline.md`
 - `docs/ARCHITECTURE.md`
 - `docs/VALIDATION.md`
 - `docs/PRESET_SCHEMA.md`

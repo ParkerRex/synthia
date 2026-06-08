@@ -1,6 +1,6 @@
 # Plans
 
-This file routes long-running implementation work in sylenth-ai.
+This file routes long-running implementation work in synthia.
 
 Use `docs/programs/` for durable multi-slice initiatives that sit above several ExecPlans. Use `docs/exec-plans/` for one bounded implementation slice with its own validation loop.
 
@@ -13,7 +13,7 @@ Use `docs/programs/` for durable multi-slice initiatives that sit above several 
 
 ## Current Program
 
-- `docs/programs/active/2026-06-05-sylenth-lab-rebuild/program.md`
+- `docs/programs/active/2026-06-05-synthia-lab-rebuild/program.md`
 
 ## Current ExecPlans
 

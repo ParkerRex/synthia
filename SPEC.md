@@ -1,4 +1,4 @@
-# sylenth-ai Instrument Specification
+# synthia Instrument Specification
 
 Status: Draft v1 (research turn)
 
@@ -18,11 +18,11 @@ This specification separates product requirements from research confidence:
 - `Inferred` means the statement is a reasoned design conclusion from observed material.
 - `Unknown` means the statement is unresolved and MUST NOT be treated as confirmed behavior.
 
-The Phase 1 target is an approved Sylenth recreation direction for modern hosts, grounded in `Sylenth1Manual.pdf`, `research/sylenth1-screenshots/`, and `docs/modern-sylenth-baseline.md`. Older Strobe/pluck research remains supporting background for the current engine, not the product destination.
+The Phase 1 target is an approved Sylenth recreation direction for modern hosts, grounded in `Sylenth1Manual.pdf`, `research/sylenth1-screenshots/`, and `docs/modern-synthia-baseline.md`. Older Strobe/pluck research remains supporting background for the current engine, not the product destination.
 
 ## 1. Problem Statement
 
-sylenth-ai is a software instrument for producers, sound designers, and coding agents in a lab context. The product mission is to rebuild the Sylenth1 virtual analog workflow that producers still love, make it run well on today's macOS/Ableton systems, and then add AI-native workflows that legacy VSTs never had.
+synthia is a software instrument for producers, sound designers, and coding agents in a lab context. The product mission is to rebuild the Sylenth1 virtual analog workflow that producers still love, make it run well on today's macOS/Ableton systems, and then add AI-native workflows that legacy VSTs never had.
 
 The instrument solves these problems:
 
@@ -33,9 +33,9 @@ The instrument solves these problems:
 
 The product boundary:
 
-- sylenth-ai owns synthesis, modulation, preset state, host integration, rendering behavior, validation tools, UI/UX, AI-assisted generation, and conversational control.
-- sylenth-ai does not own DAW arrangement, mastering chains, external sample libraries, or user-provided copyrighted reference audio outside local analysis and preset-generation workflows.
-- sylenth-ai MAY include onboard FX and arpeggiator/chord-generation features, but the core synth MUST remain strong enough to validate without hiding weak oscillator/filter/envelope behavior behind effects.
+- synthia owns synthesis, modulation, preset state, host integration, rendering behavior, validation tools, UI/UX, AI-assisted generation, and conversational control.
+- synthia does not own DAW arrangement, mastering chains, external sample libraries, or user-provided copyrighted reference audio outside local analysis and preset-generation workflows.
+- synthia MAY include onboard FX and arpeggiator/chord-generation features, but the core synth MUST remain strong enough to validate without hiding weak oscillator/filter/envelope behavior behind effects.
 
 Success means:
 
@@ -72,7 +72,7 @@ Success means:
 
 - Bit-identical binary emulation of any third-party plugin.
 - Requiring a licensed Sylenth install at runtime.
-- Shipping third-party factory presets, samples, marks, logos, screenshots, manual content, or product assets as sylenth-ai-owned content without explicit legal approval.
+- Shipping third-party factory presets, samples, marks, logos, screenshots, manual content, or product assets as synthia-owned content without explicit legal approval.
 - Turning the product into a generic wavetable workstation before the Phase 1 Sylenth rebuild is complete.
 - VST2 support in the first release.
 - AAX support in the first release.
@@ -530,7 +530,7 @@ Rules:
 
 ### 4.2 Stable Identifiers and Normalization Rules
 
-- Product working name: `sylenth-ai`.
+- Product working name: `synthia`.
 - Factory preset IDs MUST be lower-kebab-case.
 - Parameter IDs MUST be stable after public release and MUST NOT encode UI placement.
 - Internal research preset names MAY reference research targets, but shipped display names MUST avoid unlicensed third-party names and marks.
@@ -983,13 +983,13 @@ Required metadata:
 
 Required build options:
 
-- `SYLENTH_AI_BUILD_AU`
-- `SYLENTH_AI_BUILD_VST3`
-- `SYLENTH_AI_BUILD_STANDALONE`
-- `SYLENTH_AI_ENABLE_TESTS`
-- `SYLENTH_AI_ENABLE_DEBUG_DIAGNOSTICS`
-- `SYLENTH_AI_ENABLE_COPY_AFTER_BUILD`
-- `SYLENTH_AI_STRICT_RELEASE_NAMES`
+- `SYNTHIA_BUILD_AU`
+- `SYNTHIA_BUILD_VST3`
+- `SYNTHIA_BUILD_STANDALONE`
+- `SYNTHIA_ENABLE_TESTS`
+- `SYNTHIA_ENABLE_DEBUG_DIAGNOSTICS`
+- `SYNTHIA_ENABLE_COPY_AFTER_BUILD`
+- `SYNTHIA_STRICT_RELEASE_NAMES`
 
 Defaults:
 

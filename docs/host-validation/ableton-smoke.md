@@ -1,6 +1,6 @@
 # Ableton Smoke Validation
 
-Use this file when validating sylenth-ai on a Mac with Ableton installed. Commit filled-in notes only when they are useful project evidence; otherwise keep local scratch notes under `build/`.
+Use this file when validating synthia on a Mac with Ableton installed. Commit filled-in notes only when they are useful project evidence; otherwise keep local scratch notes under `build/`.
 
 Local install, uninstall, ad-hoc signing, AU validation, and Ableton rescan troubleshooting are documented in `docs/host-validation/local-install-troubleshooting.md`.
 
@@ -8,7 +8,7 @@ Local install, uninstall, ad-hoc signing, AU validation, and Ableton rescan trou
 
 Completed current-build proof:
 
-- Release build, CTest, core suite, bundle checks, local install, and `auval -v aumu SyAI PkRx`.
+- Release build, CTest, core suite, bundle checks, local install, and `auval -v aumu SynA PkRx`.
 - AU and VST3 scan/create/play plus AU and VST3 host state restore.
 - VST3 transport run/stop, VST3 offline bounce artifact creation, and AU transport run/stop.
 - AU and VST3 hosted editor open/close/reopen while transport runs.
@@ -26,7 +26,7 @@ Completed current-build proof:
 - AU and VST3 parameter automation record/playback.
 - Bounded Ableton offline bounce versus realtime resampling comparison.
 - Stronger Ableton offline bounce versus realtime content comparison with envelope alignment, per-channel filtered-band thresholds, and negative controls.
-- Standalone rendered modulation route write/clear proof through `SylenthAIRender --modulation-route-render-test`, paired with hosted AU/VST3 `Arp Motion 01` route visibility during playback.
+- Standalone rendered modulation route write/clear proof through `SynthiaRender --modulation-route-render-test`, paired with hosted AU/VST3 `Arp Motion 01` route visibility during playback.
 
 Remaining host-validation gaps:
 
@@ -49,10 +49,10 @@ Residual caveats: no Ableton audio-diff modulation comparison has been captured.
 ## Build Proof
 
 ```bash
-cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYLENTH_AI_ENABLE_TESTS=ON
+cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTHIA_ENABLE_TESTS=ON
 cmake --build build-release --config Release
 ctest --test-dir build-release --output-on-failure
-./build-release/SylenthAIRender --suite core --output-dir build-release/reports/core
+./build-release/SynthiaRender --suite core --output-dir build-release/reports/core
 scripts/check-plugin-bundles.sh build-release
 scripts/install-local-plugins.sh build-release
 ```
@@ -64,11 +64,11 @@ Review-fix validation was run from a Release build on top of `9c27c07` with loca
 ```bash
 /opt/homebrew/bin/cmake --build build-release --config Release
 /opt/homebrew/bin/ctest --test-dir build-release --output-on-failure
-./build-release/SylenthAIRender --validate-presets presets/factory --output build-release/reports/presets-review.json
-./build-release/SylenthAIRender --suite core --output-dir build-release/reports/core
+./build-release/SynthiaRender --validate-presets presets/factory --output build-release/reports/presets-review.json
+./build-release/SynthiaRender --suite core --output-dir build-release/reports/core
 scripts/check-plugin-bundles.sh build-release
 scripts/install-local-plugins.sh build-release Release
-auval -v aumu SyAI PkRx
+auval -v aumu SynA PkRx
 ```
 
 Results:
@@ -76,7 +76,7 @@ Results:
 - Release build, CTest, factory preset validation, and core suite passed.
 - Bundle check passed and verified `Contents/Resources/factory/init.json` and `pluck-core-01.json` in Standalone, AU, and VST3 bundles.
 - Installed AU and VST3 bundles under `~/Library/Audio/Plug-Ins`.
-- `auval -v aumu SyAI PkRx` passed against the installed AU with AU Validation Tool `1.10.0`.
+- `auval -v aumu SynA PkRx` passed against the installed AU with AU Validation Tool `1.10.0`.
 - No `vst3validator` or `pluginval` executable was available on this machine. At the time of this 2026-06-05 command-only pass, VST3 scan/load/play, automation, state restore, and bounce still required the Ableton manual checklist below.
 
 ## Command Revalidation - 2026-06-06
@@ -84,24 +84,24 @@ Results:
 Current-build validation was run from branch `validate/phase1-ableton` on top of `a1ab086`.
 
 ```bash
-cmake -S . -B build-release-phase1-ableton -DCMAKE_BUILD_TYPE=Release -DSYLENTH_AI_ENABLE_TESTS=ON -DSYLENTH_AI_JUCE_PATH=/Users/parkerrex/Developer/sylenth-ai/build/_deps/juce-src
+cmake -S . -B build-release-phase1-ableton -DCMAKE_BUILD_TYPE=Release -DSYNTHIA_ENABLE_TESTS=ON -DSYNTHIA_JUCE_PATH=/Users/parkerrex/Developer/synthia/build/_deps/juce-src
 cmake --build build-release-phase1-ableton --config Release -j2
 ctest --test-dir build-release-phase1-ableton --output-on-failure
-./build-release-phase1-ableton/SylenthAIRender --suite core --output-dir build-release-phase1-ableton/reports/core
+./build-release-phase1-ableton/SynthiaRender --suite core --output-dir build-release-phase1-ableton/reports/core
 scripts/check-plugin-bundles.sh build-release-phase1-ableton
 scripts/install-local-plugins.sh build-release-phase1-ableton Release
 scripts/uninstall-local-plugins.sh --dry-run
-auval -v aumu SyAI PkRx
+auval -v aumu SynA PkRx
 ```
 
 Results:
 
 - Release configure/build passed with the existing local JUCE source path; a fresh build directory was used because `build-release` still had an old absolute source path from before the repo rename.
-- CTest passed `5/5` tests, and `SylenthAIRender --suite core` wrote 11 reports.
-- Bundle check passed for Standalone, AU, and VST3 universal `x86_64 arm64` artifacts with `com.parkerx.sylenth-ai` metadata and bundled factory presets.
-- Local install copied and ad-hoc signed `~/Library/Audio/Plug-Ins/Components/sylenth-ai.component` and `~/Library/Audio/Plug-Ins/VST3/sylenth-ai.vst3`.
-- Uninstall dry-run confirmed it would remove only the installed sylenth-ai AU/VST3 bundles and no legacy `Synth` bundles.
-- `auval -v aumu SyAI PkRx` passed. It repeated the known non-fatal `Delay Feedback` maximum-value retention warning and ended with `AU VALIDATION SUCCEEDED`.
+- CTest passed `5/5` tests, and `SynthiaRender --suite core` wrote 11 reports.
+- Bundle check passed for Standalone, AU, and VST3 universal `x86_64 arm64` artifacts with `com.parkerx.synthia` metadata and bundled factory presets.
+- Local install copied and ad-hoc signed `~/Library/Audio/Plug-Ins/Components/Synthia.component` and `~/Library/Audio/Plug-Ins/VST3/Synthia.vst3`.
+- Uninstall dry-run confirmed it would remove only the installed synthia AU/VST3 bundles and no legacy `Synth` bundles.
+- `auval -v aumu SynA PkRx` passed. It repeated the known non-fatal `Delay Feedback` maximum-value retention warning and ended with `AU VALIDATION SUCCEEDED`.
 - No `vst3validator` or `pluginval` executable was available on this machine.
 
 ## Ableton Current-Build VST3 Smoke - 2026-06-06
@@ -118,11 +118,11 @@ Environment:
 Results:
 
 - Ableton initially showed the old `Synth` browser/device label because the running Live session had not rescanned since the project rename.
-- A normal Preferences > Plug-Ins > Rescan updated `PluginScanner.txt`; Ableton found `sylenth-ai` at `~/Library/Audio/Plug-Ins/VST3/sylenth-ai.vst3` with `device-class-id` ending `?n=sylenth-ai`.
-- Ableton's browser then showed `Plug-Ins > VST3 > ParkerX > sylenth-ai`.
-- Double-clicking the browser entry created the current VST3. Ableton logged `Vst3: Going to create: sylenth-ai`, loaded ParkerX `sylenth-ai` v0.1.0 with class id `{ABCDEF01-9182-FAEB-506B-527853794149}`, reported 2427 parameters, and logged `Vst3: Created: sylenth-ai`.
+- A normal Preferences > Plug-Ins > Rescan updated `PluginScanner.txt`; Ableton found `synthia` at `~/Library/Audio/Plug-Ins/VST3/Synthia.vst3` with `device-class-id` ending `?n=synthia`.
+- Ableton's browser then showed `Plug-Ins > VST3 > ParkerX > synthia`.
+- Double-clicking the browser entry created the current VST3. Ableton logged `Vst3: Going to create: synthia`, loaded ParkerX `synthia` v0.1.0 with class id `{ABCDEF01-9182-FAEB-506B-527853794149}`, reported 2427 parameters, and logged `Vst3: Created: synthia`.
 - Playback against the existing MIDI clip ran with the created VST3 device present and Ableton track meters active.
-- Correction from the 2026-06-06 transport/device pass: earlier screenshots from this smoke pass also showed a visible `sylenth-ai` standalone app window. That standalone window is not hosted-editor proof. Hosted editor open/close remains unproven in Ableton and stays in the remaining host-validation gaps.
+- Correction from the 2026-06-06 transport/device pass: earlier screenshots from this smoke pass also showed a visible `synthia` standalone app window. That standalone window is not hosted-editor proof. Hosted editor open/close remains unproven in Ableton and stays in the remaining host-validation gaps.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 
@@ -153,10 +153,10 @@ Environment:
 
 Results:
 
-- Ableton browser showed `Audio Units > ParkerX > sylenth-ai`; double-clicking the AU entry logged `Au: Going to create: sylenth-ai` at 02:29:54 and `Au: Created: sylenth-ai` at 02:29:56.
-- Saving, quitting Ableton, and reopening the test set logged `Audio Unit: Going to restore: sylenth-ai` and `Audio Unit: Restored: sylenth-ai` at 02:30:57.
-- A fresh VST3 instance was created after the AU restore pass. Ableton logged `Vst3: Going to create: sylenth-ai`, loaded ParkerX `sylenth-ai` v0.1.0, reported 2427 parameters, and logged `Vst3: Created: sylenth-ai` at 02:32:29.
-- Saving, quitting Ableton, and reopening the test set again logged `Vst3: Going to restore: sylenth-ai`, loaded ParkerX `sylenth-ai` v0.1.0, reported 2427 parameters, and logged `Vst3: Restored: sylenth-ai` at 02:33:18.
+- Ableton browser showed `Audio Units > ParkerX > synthia`; double-clicking the AU entry logged `Au: Going to create: synthia` at 02:29:54 and `Au: Created: synthia` at 02:29:56.
+- Saving, quitting Ableton, and reopening the test set logged `Audio Unit: Going to restore: synthia` and `Audio Unit: Restored: synthia` at 02:30:57.
+- A fresh VST3 instance was created after the AU restore pass. Ableton logged `Vst3: Going to create: synthia`, loaded ParkerX `synthia` v0.1.0, reported 2427 parameters, and logged `Vst3: Created: synthia` at 02:32:29.
+- Saving, quitting Ableton, and reopening the test set again logged `Vst3: Going to restore: synthia`, loaded ParkerX `synthia` v0.1.0, reported 2427 parameters, and logged `Vst3: Restored: synthia` at 02:33:18.
 - Post-restore transport playback from the clip start showed the Ableton transport running, the restored device present, active track meters, and 44100 Hz / 512-sample audio state.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
@@ -189,11 +189,11 @@ Environment:
 
 Results:
 
-- The test set restored the current VST3 again at 02:43:21. Ableton logged ParkerX `sylenth-ai` v0.1.0, 2427 parameters, and `Vst3: Restored: sylenth-ai`.
-- The separate standalone `sylenth-ai` process was closed before the clean transport screenshots; only Ableton Live was running for the host proof.
+- The test set restored the current VST3 again at 02:43:21. Ableton logged ParkerX `synthia` v0.1.0, 2427 parameters, and `Vst3: Restored: synthia`.
+- The separate standalone `synthia` process was closed before the clean transport screenshots; only Ableton Live was running for the host proof.
 - Keyboard transport start ran the restored VST3 clip with active track/device meters and 44100 Hz / 512-sample audio state visible.
 - Keyboard transport stop halted playback with the restored VST3 device still present and no crash or visible host error.
-- Attempting to open the hosted editor from the visible Ableton device controls did not create a hosted `sylenth-ai` window or process. Hosted UI open/close while transport runs remains unproven.
+- Attempting to open the hosted editor from the visible Ableton device controls did not create a hosted `synthia` window or process. Hosted UI open/close while transport runs remains unproven.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
 
@@ -232,9 +232,9 @@ Results:
 
 Evidence artifacts are local build artifacts under `build/reports/ableton/bounce/`:
 
-- `sylenth-ai-ableton-bounce-2026-06-06.wav`
-- `sylenth-ai-ableton-bounce-2026-06-06.mp3`
-- `sylenth-ai-ableton-bounce-2026-06-06.metrics.json`
+- `synthia-ableton-bounce-2026-06-06.wav`
+- `synthia-ableton-bounce-2026-06-06.mp3`
+- `synthia-ableton-bounce-2026-06-06.metrics.json`
 
 Export-setting screenshots are local build artifacts under `build/reports/ableton/`:
 
@@ -265,12 +265,12 @@ Environment:
 
 Results:
 
-- Ableton browser path `Audio Units > ParkerX > sylenth-ai` exposed the current AU entry. Moving selection to the AU child and pressing Return created the AU.
-- Ableton logged `Au: Going to create: sylenth-ai` at `2026-06-06T03:34:09.979570` and `Au: Created: sylenth-ai` at `2026-06-06T03:34:10.005956`.
-- AU creation opened a `sylenth-ai/1-sylenth-ai` editor window owned by Live. A process check during playback showed Ableton Live and no standalone `sylenth-ai` process.
+- Ableton browser path `Audio Units > ParkerX > synthia` exposed the current AU entry. Moving selection to the AU child and pressing Return created the AU.
+- Ableton logged `Au: Going to create: synthia` at `2026-06-06T03:34:09.979570` and `Au: Created: synthia` at `2026-06-06T03:34:10.005956`.
+- AU creation opened a `synthia/1-synthia` editor window owned by Live. A process check during playback showed Ableton Live and no standalone `synthia` process.
 - Transport start ran the MIDI clip with the AU editor showing active voices, moving peak level, MIDI count, 44100 Hz sample rate, 512-sample block size, and active Live meters.
 - Transport stop halted playback with voices returning to `0`, peak returning to `-inf`, and no visible host crash.
-- Live also logged `Vst3: couldn't get controller state of sylenth-ai: not implemented` at `2026-06-06T03:34:10.014440`. Keep that VST3 controller-state warning on the host-state watchlist; it did not block this AU transport smoke.
+- Live also logged `Vst3: couldn't get controller state of synthia: not implemented` at `2026-06-06T03:34:10.014440`. Keep that VST3 controller-state warning on the host-state watchlist; it did not block this AU transport smoke.
 - This proves current-build AU create/play/stop behavior with a hosted editor window visible. At the time, it did not prove automation, learned CC mapping, preset/modulation exercise, offline-versus-realtime comparison, sample-rate/buffer changes, all-notes-off, panic, or explicit hosted editor close/reopen while transport was running. Follow-on validation later proved hosted AU editor open/close/reopen while transport runs, hosted AU/VST3 all-notes-off/all-sound-off/Panic clearing, hosted AU/VST3 sample-rate/buffer change handling, and hosted VST3 preset editor-state inspection.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
@@ -299,15 +299,15 @@ Environment:
 - Ableton version: Live 11 Suite `11.0.12 (2021-11-04_b232c5df34)`
 - Live set: `/Users/parkerrex/Desktop/testing-synth Project/testing-synth.als`
 - plugin format tested in this pass: AU
-- Ableton state at start: hosted `sylenth-ai/1-sylenth-ai` AU editor window visible, AU device active, no standalone `sylenth-ai` process
+- Ableton state at start: hosted `synthia/1-synthia` AU editor window visible, AU device active, no standalone `synthia` process
 
 Results:
 
 - Transport was started with the hosted AU editor visible; the editor remained open while Live playback continued.
-- Closing button 1 of the hosted `sylenth-ai/1-sylenth-ai` window succeeded while transport was running. The only remaining Live window was `testing-synth  [testing-synth]`.
-- After closing the hosted editor, Live continued running without a visible crash, and the process check showed Ableton Live plus Ableton Index, with no standalone `sylenth-ai` process.
+- Closing button 1 of the hosted `synthia/1-synthia` window succeeded while transport was running. The only remaining Live window was `testing-synth  [testing-synth]`.
+- After closing the hosted editor, Live continued running without a visible crash, and the process check showed Ableton Live plus Ableton Index, with no standalone `synthia` process.
 - Reopen attempts did not restore the hosted editor: the AU device header plug-in edit button, corrected-coordinate double click, right-side device controls, `View > Plug-In Windows`, `Cmd+Option+P`, `Cmd+Option+Control+P`, Key Map assignment attempt, and a stopped-transport retry all left only the main Ableton set window visible.
-- The latest Ableton log entries for `sylenth-ai` remained the 03:34 AU creation lines and the existing VST3 controller-state watchpoint; the reopen attempts did not add a new visible `sylenth-ai` Live log entry.
+- The latest Ableton log entries for `synthia` remained the 03:34 AU creation lines and the existing VST3 controller-state watchpoint; the reopen attempts did not add a new visible `synthia` Live log entry.
 - Superseding correction from the hosted AU editor reopen control pass below: the failed reopen conclusion was caused by imprecise Ableton UI targeting. A precise CoreGraphics click on the actual device-header wrench reopened the hosted AU editor with the original resizable editor build, including while transport was running. No source change was required.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
@@ -341,11 +341,11 @@ Environment:
 Results:
 
 - The fixed-size editor experiment was reverted before this control pass. `src/plugin/PluginEditor.cpp` again uses `setResizable(true, true)`, `setResizeLimits(1080, 760, 1800, 1320)`, and `setSize(1320, 940)`.
-- Release build, CTest, bundle checks, local install, and `auval -v aumu SyAI PkRx` passed after the revert.
-- Fresh Ableton launch plus browser search loaded the AU row for `sylenth-ai` and opened the hosted `sylenth-ai/1-sylenth-ai` editor window.
+- Release build, CTest, bundle checks, local install, and `auval -v aumu SynA PkRx` passed after the revert.
+- Fresh Ableton launch plus browser search loaded the AU row for `synthia` and opened the hosted `synthia/1-synthia` editor window.
 - With the editor closed, Ableton transport was started from the main Live window. The AU device stayed active while transport ran.
 - A CoreGraphics click at screen point `{750, 1105}` hit the actual Ableton device-header wrench and opened the hosted AU editor while transport was running.
-- Closing button 1 of the hosted `sylenth-ai/1-sylenth-ai` editor left only the main `Untitled` Live window. Repeating the same CoreGraphics wrench click reopened `sylenth-ai/1-sylenth-ai` while transport was still running.
+- Closing button 1 of the hosted `synthia/1-synthia` editor left only the main `Untitled` Live window. Repeating the same CoreGraphics wrench click reopened `synthia/1-synthia` while transport was still running.
 - The durable result is that hosted AU editor open/close/reopen while transport runs is proven for the original resizable editor. The previous failed reopen attempt was an automation-targeting error, not a plugin lifecycle bug.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
@@ -381,13 +381,13 @@ Environment:
 
 Results:
 
-- Ableton browser search exposed two `sylenth-ai` rows. The top VST3 row did not instantiate by Return or double-click in this UI state, but dragging the selected top row into the MIDI track device area loaded the VST3.
-- Ableton logged `Vst3: Going to create: sylenth-ai` at `2026-06-06T04:53:46.797564` and `Vst3: Created: sylenth-ai` at `2026-06-06T04:53:46.892768`.
-- Live also logged `Vst3: couldn't get controller state of sylenth-ai: not implemented` at `2026-06-06T04:53:46.940881`. Keep this on the VST3 host-state watchlist; it did not block VST3 create or hosted editor lifecycle behavior.
-- VST3 creation opened a `sylenth-ai/1-sylenth-ai` editor window owned by Live. No standalone `sylenth-ai` process was used for this proof.
+- Ableton browser search exposed two `synthia` rows. The top VST3 row did not instantiate by Return or double-click in this UI state, but dragging the selected top row into the MIDI track device area loaded the VST3.
+- Ableton logged `Vst3: Going to create: synthia` at `2026-06-06T04:53:46.797564` and `Vst3: Created: synthia` at `2026-06-06T04:53:46.892768`.
+- Live also logged `Vst3: couldn't get controller state of synthia: not implemented` at `2026-06-06T04:53:46.940881`. Keep this on the VST3 host-state watchlist; it did not block VST3 create or hosted editor lifecycle behavior.
+- VST3 creation opened a `synthia/1-synthia` editor window owned by Live. No standalone `synthia` process was used for this proof.
 - Closing button 1 of the hosted editor left only the main `Untitled` Live window.
 - With transport running, a CoreGraphics click at screen point `{750, 1105}` hit the Ableton device-header wrench and opened the hosted VST3 editor.
-- Closing button 1 again left only the main `Untitled` Live window; repeating the same CoreGraphics wrench click reopened `sylenth-ai/1-sylenth-ai` while transport was still running.
+- Closing button 1 again left only the main `Untitled` Live window; repeating the same CoreGraphics wrench click reopened `synthia/1-synthia` while transport was still running.
 - The durable result is that hosted VST3 editor open/close/reopen while transport runs is proven. This completes the current hosted editor lifecycle gap for both AU and VST3.
 
 Evidence screenshots are local build artifacts under `build/reports/ableton/`:
@@ -422,12 +422,12 @@ Environment:
 
 Results:
 
-- A temporary CoreMIDI source named `SylenthAI Codex CC Source` was created before Ableton launch.
-- Ableton logged `MidiInDevice [Name="SylenthAI Codex CC Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
-- The current `sylenth-ai` VST3 was loaded by dragging the top browser result into the MIDI track device area. Ableton logged `Vst3: Going to create: sylenth-ai` and `Vst3: Created: sylenth-ai`.
-- `All Ins` did not pass the first validation source into the plugin. Explicitly selecting `SylenthAI Codex CC Source` on track 1 made the hosted plugin footer MIDI count advance and moved the Ableton meters.
+- A temporary CoreMIDI source named `Synthia Codex CC Source` was created before Ableton launch.
+- Ableton logged `MidiInDevice [Name="Synthia Codex CC Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
+- The current `synthia` VST3 was loaded by dragging the top browser result into the MIDI track device area. Ableton logged `Vst3: Going to create: synthia` and `Vst3: Created: synthia`.
+- `All Ins` did not pass the first validation source into the plugin. Explicitly selecting `Synthia Codex CC Source` on track 1 made the hosted plugin footer MIDI count advance and moved the Ableton meters.
 - In the hosted editor, the MIDI CONTROL panel selected `FILTER / Resonance`, armed Learn, captured incoming CC71, and displayed `Mapped CC71 to filter.resonance`.
-- The user-level sidecar was absent before this proof, then the plugin wrote `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json` with:
+- The user-level sidecar was absent before this proof, then the plugin wrote `~/Music/ParkerX/synthia/MidiControllerMap.json` with:
 
 ```json
 {"schema_version": 1, "mappings": [{"cc": 71, "parameter_id": "filter.resonance"}]}
@@ -468,10 +468,10 @@ Environment:
 
 Results:
 
-- The validation pass seeded `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json` with `CC71 -> filter.resonance` before plugin construction.
-- A temporary CoreMIDI source named `SylenthAI Codex Value Source` was created before Ableton launch.
-- Ableton logged `MidiInDevice [Name="SylenthAI Codex Value Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
-- The current `sylenth-ai` VST3 was loaded by dragging the top browser result into the MIDI track device area. Ableton logged `Vst3: Going to create: sylenth-ai` and `Vst3: Created: sylenth-ai`.
+- The validation pass seeded `~/Music/ParkerX/synthia/MidiControllerMap.json` with `CC71 -> filter.resonance` before plugin construction.
+- A temporary CoreMIDI source named `Synthia Codex Value Source` was created before Ableton launch.
+- Ableton logged `MidiInDevice [Name="Synthia Codex Value Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
+- The current `synthia` VST3 was loaded by dragging the top browser result into the MIDI track device area. Ableton logged `Vst3: Going to create: synthia` and `Vst3: Created: synthia`.
 - The hosted MIDI CONTROL panel displayed `Loaded 1 MIDI CC mappings` and `CC71 -> filter.resonance`.
 - With the hosted editor scrolled to the Filter section, CC71 value `0` showed continuous `Resonance 0.00`, CC71 value `127` showed `Resonance 1.00`, and CC71 value `0` returned the readout to `Resonance 0.00`.
 - The proof sidecar was copied to `build/reports/ableton/midi-controller-map-vst3-value-proof.json`, then the temporary user-level sidecar was removed to avoid polluting future validation.
@@ -506,10 +506,10 @@ Environment:
 
 Results:
 
-- The validation pass seeded `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json` with `CC73 -> filter.mode` before plugin construction.
-- A temporary CoreMIDI source named `SylenthAI Codex Stepped Source` was created before Ableton launch.
-- Ableton logged `MidiInDevice [Name="SylenthAI Codex Stepped Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
-- The current `sylenth-ai` VST3 was loaded by dragging the top browser result into the MIDI track device area. Ableton logged `Vst3: Going to create: sylenth-ai` and `Vst3: Created: sylenth-ai`.
+- The validation pass seeded `~/Music/ParkerX/synthia/MidiControllerMap.json` with `CC73 -> filter.mode` before plugin construction.
+- A temporary CoreMIDI source named `Synthia Codex Stepped Source` was created before Ableton launch.
+- Ableton logged `MidiInDevice [Name="Synthia Codex Stepped Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
+- The current `synthia` VST3 was loaded by dragging the top browser result into the MIDI track device area. Ableton logged `Vst3: Going to create: synthia` and `Vst3: Created: synthia`.
 - The hosted MIDI CONTROL panel displayed `Loaded 1 MIDI CC mappings` and `CC73 -> filter.mode`.
 - With the hosted editor scrolled to the Filter section, CC73 value `127` changed Filter Mode to `Notch4`, then CC73 value `0` changed it to `L2`.
 - Reopening the hosted editor reset the view to the MIDI CONTROL panel. The panel selected `FILTER / Filter Mode`, then Forget displayed `Forgot MIDI CC for filter.mode` and `No MIDI CC mappings`.
@@ -553,10 +553,10 @@ Environment:
 
 Results:
 
-- The validation pass seeded `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json` with `CC72 -> filter.resonance` before plugin construction.
-- A temporary CoreMIDI source named `SylenthAI Codex AU Value Source` was created before Ableton launch.
-- Ableton logged `MidiInDevice [Name="SylenthAI Codex AU Value Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
-- The current `sylenth-ai` AU was loaded from `Audio Units > ParkerX > sylenth-ai` into a fresh `Untitled` set. Ableton logged `Au: Going to create: sylenth-ai` at `2026-06-06T14:44:51.525961` and `Au: Created: sylenth-ai` at `2026-06-06T14:44:51.698979`.
+- The validation pass seeded `~/Music/ParkerX/synthia/MidiControllerMap.json` with `CC72 -> filter.resonance` before plugin construction.
+- A temporary CoreMIDI source named `Synthia Codex AU Value Source` was created before Ableton launch.
+- Ableton logged `MidiInDevice [Name="Synthia Codex AU Value Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
+- The current `synthia` AU was loaded from `Audio Units > ParkerX > synthia` into a fresh `Untitled` set. Ableton logged `Au: Going to create: synthia` at `2026-06-06T14:44:51.525961` and `Au: Created: synthia` at `2026-06-06T14:44:51.698979`.
 - The hosted MIDI CONTROL panel displayed `Loaded 1 MIDI CC mappings` and `CC72 -> filter.resonance`.
 - With the hosted editor scrolled to the Filter section, the initial state showed `Resonance 0.00`, CC72 value `127` changed the readout to `Resonance 1.00`, and CC72 value `0` returned it to `Resonance 0.00`.
 - The temporary user-level sidecar was copied to ignored local evidence, then removed to avoid polluting future validation.
@@ -592,10 +592,10 @@ Environment:
 
 Results:
 
-- The validation pass started with no `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json`.
-- A temporary CoreMIDI source named `SylenthAI Codex AU Learn Source` was created before Ableton launch.
-- Ableton logged `MidiInDevice [Name="SylenthAI Codex AU Learn Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
-- The current `sylenth-ai` AU was loaded from `Audio Units > ParkerX > sylenth-ai` into a fresh `Untitled` set. Ableton logged `Au: Going to create: sylenth-ai` at `2026-06-06T15:09:19.460935` and `Au: Created: sylenth-ai` at `2026-06-06T15:09:19.475730`.
+- The validation pass started with no `~/Music/ParkerX/synthia/MidiControllerMap.json`.
+- A temporary CoreMIDI source named `Synthia Codex AU Learn Source` was created before Ableton launch.
+- Ableton logged `MidiInDevice [Name="Synthia Codex AU Learn Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
+- The current `synthia` AU was loaded from `Audio Units > ParkerX > synthia` into a fresh `Untitled` set. Ableton logged `Au: Going to create: synthia` at `2026-06-06T15:09:19.460935` and `Au: Created: synthia` at `2026-06-06T15:09:19.475730`.
 - The hosted MIDI CONTROL panel started with `MIDI learn ready`, `No MIDI CC mappings`, and footer `MIDI 0`.
 - The panel selected `FILTER / Resonance`, armed Learn, then captured CC74 value `99` from the temporary source.
 - The hosted panel displayed `Mapped CC74 to filter.resonance` and `CC74 -> filter.resonance`, with footer `MIDI 1`.
@@ -632,20 +632,20 @@ Environment:
 
 Build/install validation before host proof:
 
-- `cmake -S . -B build-release-host-matrix -DCMAKE_BUILD_TYPE=Release -DSYLENTH_AI_ENABLE_TESTS=ON -DSYLENTH_AI_JUCE_PATH=/Users/parkerrex/Developer/sylenth-ai/build/_deps/juce-src`
+- `cmake -S . -B build-release-host-matrix -DCMAKE_BUILD_TYPE=Release -DSYNTHIA_ENABLE_TESTS=ON -DSYNTHIA_JUCE_PATH=/Users/parkerrex/Developer/synthia/build/_deps/juce-src`
 - `cmake --build build-release-host-matrix --config Release -j2`
 - `ctest --test-dir build-release-host-matrix --output-on-failure`
-- `./build-release-host-matrix/SylenthAIRender --suite core --output-dir build-release-host-matrix/reports/core`
+- `./build-release-host-matrix/SynthiaRender --suite core --output-dir build-release-host-matrix/reports/core`
 - `scripts/check-plugin-bundles.sh build-release-host-matrix`
 - `scripts/install-local-plugins.sh build-release-host-matrix Release`
-- `auval -v aumu SyAI PkRx`
+- `auval -v aumu SynA PkRx`
 
 Results:
 
-- The validation pass seeded `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json` with `CC72 -> filter.resonance` before plugin construction.
-- A temporary CoreMIDI source named `SylenthAI Codex AU Forget Source` was created before Ableton launch.
-- Ableton logged `MidiInDevice [Name="SylenthAI Codex AU Forget Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
-- The current `sylenth-ai` AU was loaded from `Audio Units > ParkerX > sylenth-ai` into a fresh `Untitled` set. Ableton logged `Au: Going to create: sylenth-ai` at `2026-06-06T21:05:08.955600` and `Au: Created: sylenth-ai` at `2026-06-06T21:05:10.064453`.
+- The validation pass seeded `~/Music/ParkerX/synthia/MidiControllerMap.json` with `CC72 -> filter.resonance` before plugin construction.
+- A temporary CoreMIDI source named `Synthia Codex AU Forget Source` was created before Ableton launch.
+- Ableton logged `MidiInDevice [Name="Synthia Codex AU Forget Source", Track=true, Sync=false, Remote=false, MPE=false]` during startup.
+- The current `synthia` AU was loaded from `Audio Units > ParkerX > synthia` into a fresh `Untitled` set. Ableton logged `Au: Going to create: synthia` at `2026-06-06T21:05:08.955600` and `Au: Created: synthia` at `2026-06-06T21:05:10.064453`.
 - Before Forget, sending CC72 value `127` changed the hosted Filter section readout to `Resonance 1.00`, and sending CC72 value `0` returned it to `Resonance 0.00`.
 - The hosted MIDI CONTROL panel displayed `Loaded 1 MIDI CC mappings` and `CC72 -> filter.resonance`.
 - The panel selected `FILTER / Resonance`, then Forget displayed `Forgot MIDI CC for filter.resonance` and `No MIDI CC mappings`.
@@ -682,22 +682,22 @@ Environment:
 - Live set: restored `testing-synth [testing-synth]` validation set
 - plugin format tested in this pass: VST3
 - build under test: installed local current-build VST3 from `build-release-host-matrix`; no plugin source changes were made during this proof
-- MIDI source: temporary CoreMIDI source `SylenthAI Codex Panic Source`
+- MIDI source: temporary CoreMIDI source `Synthia Codex Panic Source`
 
 Build/install validation before host proof:
 
 - `cmake --build build-release-host-matrix --config Release -j2`
 - `ctest --test-dir build-release-host-matrix --output-on-failure`
-- `./build-release-host-matrix/SylenthAIRender --suite core --output-dir build-release-host-matrix/reports/core`
+- `./build-release-host-matrix/SynthiaRender --suite core --output-dir build-release-host-matrix/reports/core`
 - `scripts/check-plugin-bundles.sh build-release-host-matrix`
 - `scripts/install-local-plugins.sh build-release-host-matrix Release`
-- `auval -v aumu SyAI PkRx`
+- `auval -v aumu SynA PkRx`
 
 Results:
 
 - Release build, CTest, core suite, bundle check, local install, and `auval` passed before the host proof.
-- Ableton restored the installed VST3 and logged ParkerX `sylenth-ai` v0.1.0.
-- Ableton exposed `SylenthAI Codex Panic Source` as a track-enabled MIDI input.
+- Ableton restored the installed VST3 and logged ParkerX `synthia` v0.1.0.
+- Ableton exposed `Synthia Codex Panic Source` as a track-enabled MIDI input.
 - With two sustained notes held from the temporary source, the hosted editor showed `Voices 2/8`, MIDI input count advancing, active Ableton meters, and a finite output peak.
 - Sending MIDI CC123 all-notes-off cleared the hosted editor to `Voices 0/8`.
 - Holding two fresh notes and sending MIDI CC120 all-sound-off cleared the hosted editor to `Voices 0/8`.
@@ -733,12 +733,12 @@ Environment:
 - Live set: restored `testing-synth [testing-synth]` validation set
 - plugin format tested in this pass: AU
 - build under test: installed local current-build AU from `build-release-host-matrix`; no plugin source changes were made during this proof
-- MIDI source: temporary CoreMIDI source `SylenthAI Codex Panic Source`
+- MIDI source: temporary CoreMIDI source `Synthia Codex Panic Source`
 
 Results:
 
-- Ableton loaded the current AU from `Audio Units > ParkerX > sylenth-ai` and logged `Au: Going to create: sylenth-ai` then `Au: Created: sylenth-ai`.
-- Ableton exposed `SylenthAI Codex Panic Source` as a track-enabled MIDI input.
+- Ableton loaded the current AU from `Audio Units > ParkerX > synthia` and logged `Au: Going to create: synthia` then `Au: Created: synthia`.
+- Ableton exposed `Synthia Codex Panic Source` as a track-enabled MIDI input.
 - With two sustained notes held from the temporary source, the hosted AU editor showed `Voices 2/8`, MIDI input count advancing, active Ableton meters, and a finite output peak.
 - Sending MIDI CC123 all-notes-off cleared the hosted AU editor to `Voices 0/8`.
 - Holding two fresh notes and sending MIDI CC120 all-sound-off cleared the hosted AU editor to `Voices 0/8`.
@@ -814,7 +814,7 @@ Environment:
 
 Results:
 
-- Loaded a fresh VST3 instance from `Plug-Ins > VST3 > ParkerX > sylenth-ai` onto track 2; Ableton logged `Vst3: Going to create: sylenth-ai` and `Vst3: Created: sylenth-ai`.
+- Loaded a fresh VST3 instance from `Plug-Ins > VST3 > ParkerX > synthia` onto track 2; Ableton logged `Vst3: Going to create: synthia` and `Vst3: Created: synthia`.
 - Baseline hosted VST3 diagnostics showed `SR 44100 Hz` and `Block 512`.
 - Ableton Preferences > Audio changed the host sample rate from `44100` to `48000`.
 - Ableton Preferences > Audio changed the host buffer size from `512 Samples` to `256 Samples`.
@@ -868,7 +868,7 @@ Evidence screenshots and local proof artifacts are ignored build outputs under `
 - `preset-modulation-arp-motion-modulation-page.png`
 - `preset-modulation-arp-motion-effects-page.png`
 
-Supporting standalone preset render validation also passed: `./build/SylenthAIRender --suite patch-recreation --output-dir build/reports/patch-recreation-ableton-preset-proof` wrote six reports under `build/reports/patch-recreation-ableton-preset-proof/`.
+Supporting standalone preset render validation also passed: `./build/SynthiaRender --suite patch-recreation --output-dir build/reports/patch-recreation-ableton-preset-proof` wrote six reports under `build/reports/patch-recreation-ableton-preset-proof/`.
 
 Remaining host-validation gaps after this VST3 editor-state proof:
 
@@ -893,10 +893,10 @@ Results:
 - Launching the track 2 validation MIDI clip after the preset load drove the hosted VST3: the editor showed `1/8` voices, `Peak -15.9 dB`, `MIDI 212`, and active Live track/master meters.
 - Opening the VST3 Modulation page during the same playback showed `ACTIVE ROUTES (2)` with `Ramp -> Filter Cutoff x Velocity +12.0 st` and `LFO 1 -> Amp Level x Macro Motion +3.0 dB`, while the editor showed `2/8` voices, `Peak -17.4 dB`, and `MIDI 832`.
 - Stopping transport returned the hosted VST3 to `0/8` voices.
-- Hosted AU on track 1 opened as `sylenth-ai/1-sylenth-ai`; its preset menu listed `Factory / Arps - Arp Motion 01 [arp, chord]`.
+- Hosted AU on track 1 opened as `synthia/1-synthia`; its preset menu listed `Factory / Arps - Arp Motion 01 [arp, chord]`.
 - Selecting and loading `Arp Motion 01` changed the AU editor from Init to the factory patch and the footer reported `Loaded preset: Arp Motion 01`.
 - Track 1 AU playback after preset load remained open in this pass; the existing track 1 slot did not provide the same validation MIDI clip. The later AU preset playback proof below closes that gap with a temporary CoreMIDI source.
-- This pass proves VST3 loaded-preset playback and route visibility during playback. Rendered route behavior remains covered by the standalone `SylenthAIRender --modulation-route-render-test`, not by an Ableton audio-diff capture.
+- This pass proves VST3 loaded-preset playback and route visibility during playback. Rendered route behavior remains covered by the standalone `SynthiaRender --modulation-route-render-test`, not by an Ableton audio-diff capture.
 
 Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
 
@@ -922,7 +922,7 @@ Environment:
 - Live set: restored `testing-synth [testing-synth]` validation set
 - plugin format tested in this pass: AU
 - build under test: installed local current-build AU from `build-release-host-matrix`; no plugin source changes were made during this proof
-- MIDI source: temporary CoreMIDI source `SylenthAI Codex AU Playback Source 2`
+- MIDI source: temporary CoreMIDI source `Synthia Codex AU Playback Source 2`
 
 Results:
 
@@ -931,7 +931,7 @@ Results:
 - A temporary CoreMIDI source repeatedly sent note-ons into the hosted AU, then sent note-offs plus CC123 all-notes-off before exiting.
 - During the note stream, the hosted AU editor showed `2/8` voices, `Peak -21.0 dB`, `MIDI 683`, and active Live track/master meters.
 - After the same source pass, the hosted AU Modulation page showed `ACTIVE ROUTES (2)` with the Ramp and LFO routes and the MIDI counter advanced to `687`.
-- This pass proves AU loaded-preset playback. Rendered route behavior remains covered by the standalone `SylenthAIRender --modulation-route-render-test`, not by an Ableton audio-diff capture.
+- This pass proves AU loaded-preset playback. Rendered route behavior remains covered by the standalone `SynthiaRender --modulation-route-render-test`, not by an Ableton audio-diff capture.
 
 Evidence screenshots and local proof artifacts are ignored build outputs under `build/reports/ableton/`:
 
@@ -958,11 +958,11 @@ Environment:
 
 Results:
 
-- Arrangement automation mode was enabled in Ableton and `Layer A Level` was recorded on the hosted AU track `1-sylenth-ai`.
-- A disposable Ableton set copy was written under ignored build evidence, then parsed as XML. The AU device is `AuPluginDevice` with source `query:Plugins#Audio%20Units:ParkerX:sylenth-ai`; `Layer A Level` maps to automation target `23778`.
+- Arrangement automation mode was enabled in Ableton and `Layer A Level` was recorded on the hosted AU track `1-synthia`.
+- A disposable Ableton set copy was written under ignored build evidence, then parsed as XML. The AU device is `AuPluginDevice` with source `query:Plugins#Audio%20Units:ParkerX:synthia`; `Layer A Level` maps to automation target `23778`.
 - The AU envelope contains 7 automation events, with values changing from `0.8328332901` to `0.9639999866`.
-- The same workflow was repeated on hosted VST3 track `2-sylenth-ai`.
-- The VST3 device appears as `PluginDevice` in the Ableton set XML, with source context `query:Plugins#VST3:ParkerX:sylenth-ai`; `Layer A Level` maps to automation target `24168`.
+- The same workflow was repeated on hosted VST3 track `2-synthia`.
+- The VST3 device appears as `PluginDevice` in the Ableton set XML, with source context `query:Plugins#VST3:ParkerX:synthia`; `Layer A Level` maps to automation target `24168`.
 - The VST3 envelope contains 12 automation events, with values changing from `0.8000000119` to `0.9759999514`.
 - A generated proof report at `build/reports/ableton/automation/automation-envelope-proof.json` records both tracks, both plugin formats, event counts, value ranges, source paths, and `passed: true`.
 - Replaying the VST3 automation showed `Layer A Level` moving from `0.00` early in playback to `10.56`, with the hosted editor showing active voices, output level, MIDI count, and Live meters.
@@ -1073,8 +1073,8 @@ Remaining host-validation gaps:
 - [x] Enable Audio Units.
 - [x] Enable VST3.
 - [x] Rescan plug-ins after install.
-- [x] Confirm `sylenth-ai` appeared as AU in the 2026-06-05 early smoke pass.
-- [x] Confirm `sylenth-ai` appeared as VST3 in the 2026-06-05 early smoke pass.
+- [x] Confirm `synthia` appeared as AU in the 2026-06-05 early smoke pass.
+- [x] Confirm `synthia` appeared as VST3 in the 2026-06-05 early smoke pass.
 
 ## Historical AU Smoke - 2026-06-05
 
@@ -1114,7 +1114,7 @@ not completed in this early host smoke pass.
 Notes:
 
 ```text
-VST3 should appear under Plug-Ins > VST3 > ParkerX > sylenth-ai after adding the user
+VST3 should appear under Plug-Ins > VST3 > ParkerX > synthia after adding the user
 VST3 folder, rescanning, and ad-hoc signing the installed bundle. VST3 loaded
 on a MIDI track, opened the placeholder editor, played the test MIDI notes with
 audible output, and still loaded after Ableton quit/reopen of the saved set.

@@ -7,10 +7,10 @@ Use this note for local Ableton validation builds. It is not a distribution or n
 From the repo root:
 
 ```bash
-/opt/homebrew/bin/cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYLENTH_AI_ENABLE_TESTS=ON
+/opt/homebrew/bin/cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTHIA_ENABLE_TESTS=ON
 /opt/homebrew/bin/cmake --build build-release --config Release
 /opt/homebrew/bin/ctest --test-dir build-release --output-on-failure
-./build-release/SylenthAIRender --suite core --output-dir build-release/reports/core
+./build-release/SynthiaRender --suite core --output-dir build-release/reports/core
 scripts/check-plugin-bundles.sh build-release
 ```
 
@@ -26,19 +26,19 @@ scripts/install-local-plugins.sh build-release
 
 Installed paths:
 
-- AU: `~/Library/Audio/Plug-Ins/Components/sylenth-ai.component`
-- VST3: `~/Library/Audio/Plug-Ins/VST3/sylenth-ai.vst3`
+- AU: `~/Library/Audio/Plug-Ins/Components/Synthia.component`
+- VST3: `~/Library/Audio/Plug-Ins/VST3/Synthia.vst3`
 
 The install script ad-hoc signs the copied bundles for local host scanning when `codesign` is available. To skip that during debugging:
 
 ```bash
-SYLENTH_AI_SKIP_ADHOC_SIGN=1 scripts/install-local-plugins.sh build-release
+SYNTHIA_SKIP_ADHOC_SIGN=1 scripts/install-local-plugins.sh build-release
 ```
 
 Run AU validation after install:
 
 ```bash
-auval -v aumu SyAI PkRx
+auval -v aumu SynA PkRx
 ```
 
 ## Uninstall
@@ -49,7 +49,7 @@ Preview removal:
 scripts/uninstall-local-plugins.sh --dry-run
 ```
 
-Remove only sylenth-ai's per-user AU and VST3 bundles:
+Remove only Synthia's per-user AU and VST3 bundles:
 
 ```bash
 scripts/uninstall-local-plugins.sh
@@ -65,9 +65,9 @@ After install or uninstall:
 2. Go to Plug-Ins.
 3. Enable Audio Units and VST3.
 4. Rescan plug-ins.
-5. Confirm `sylenth-ai` appears under both AU and VST3 when installed.
+5. Confirm `Synthia` appears under both AU and VST3 when installed.
 
-If sylenth-ai does not appear after a normal rescan, quit Ableton and inspect Ableton's plugin scan logs before deleting any cache files.
+If Synthia does not appear after a normal rescan, quit Ableton and inspect Ableton's plugin scan logs before deleting any cache files.
 
 Common user cache locations to inspect or move aside for a targeted rescan:
 

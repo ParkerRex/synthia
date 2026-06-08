@@ -1,6 +1,6 @@
 # Active ExecPlans
 
-Current Program: `docs/programs/active/2026-06-05-sylenth-lab-rebuild/program.md`
+Current Program: `docs/programs/active/2026-06-05-synthia-lab-rebuild/program.md`
 
 Active child plans:
 
@@ -15,6 +15,7 @@ Product-order Codex slice: no non-UI Phase 1 Ableton host-matrix item remains op
 
 Completed child plans:
 
+- `../completed/2026-06-08-rename-product-identity-to-synthia.md`
 - `../completed/2026-06-06-build-modulation-write-adapter-and-route-schema.md`
 - `../completed/2026-06-06-build-patch-cost-and-voice-math-model.md`
 - `../completed/2026-06-06-build-preset-command-model.md`
@@ -29,7 +30,7 @@ Completed child plans:
 - `../completed/2026-06-05-build-sylenth-layer-b-and-four-osc-rendering.md`
 - `../completed/2026-06-05-build-arp-step-chord-workflow.md`
 - `../completed/2026-06-05-handoff-modern-sylenth-ui-shell.md`
-- `../completed/2026-06-05-rename-project-identity-to-sylenth-ai.md`
+- `../completed/2026-06-05-rename-project-identity-to-synthia.md`
 - `../completed/2026-06-06-build-preset-browser-and-bank-workflow.md`
 - `../completed/2026-06-06-build-fx-rack-expansion.md`
 - `../completed/2026-06-06-build-modulation-route-model.md`

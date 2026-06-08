@@ -2,9 +2,9 @@
 
 This is the first execution brief for the Sylenth Lab Rebuild Program.
 
-Program ID: `sylenth-lab-rebuild`
+Program ID: `synthia-lab-rebuild`
 
-Program path: `docs/programs/active/2026-06-05-sylenth-lab-rebuild/program.md`
+Program path: `docs/programs/active/2026-06-05-synthia-lab-rebuild/program.md`
 
 Current product order:
 

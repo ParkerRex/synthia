@@ -1,16 +1,16 @@
-# sylenth-ai Context
+# synthia Context
 
-sylenth-ai is a lab-built macOS/Ableton software instrument. Phase 1 rebuilds the Sylenth1 vintage VST experience for today's AU/VST3 hosts. Phase 2 adds AI-assisted sound and arpeggio generation. Phase 3 adds conversational VST control and reference-sound recreation.
+synthia is a lab-built macOS/Ableton software instrument. Phase 1 rebuilds the Sylenth1 vintage VST experience for today's AU/VST3 hosts. Phase 2 adds AI-assisted sound and arpeggio generation. Phase 3 adds conversational VST control and reference-sound recreation.
 
 ## Core Vocabulary
 
-- `sylenth-ai`: working project and plugin identity for the lab rebuild.
+- `synthia`: working project and plugin identity for the lab rebuild.
 - `Spec`: `SPEC.md`, the durable product contract.
 - `Lab`: the product context for rebuilding a vintage VST workflow and extending it with modern AI-native capabilities.
 - `Phase 1`: recreate the Sylenth-style instrument workflow and sound-design surface as a modern macOS/Ableton AU/VST3.
 - `Phase 2`: AI-assisted sound, patch, chord movement, and arpeggio generation, with generated output stored as normal editable synth state.
 - `Phase 3`: conversational control where text prompts or reference sounds produce reversible synth, modulation, arp, and FX edits.
-- `Modern Sylenth baseline`: `docs/modern-sylenth-baseline.md`, backed by `Sylenth1Manual.pdf` and `research/sylenth1-screenshots/`.
+- `Modern Sylenth baseline`: `docs/modern-synthia-baseline.md`, backed by `Sylenth1Manual.pdf` and `research/sylenth1-screenshots/`.
 - `Historical Strobe research`: older supporting engine research that helped bootstrap the current pluck core. It is not the product destination.
 - `Dry core`: oscillator, mixer, filter, amp, envelopes, LFO, ramp, glide, modulation, and voice spread with FX bypassed.
 - `Pluck profile`: the factory sound-design target defined in `SPEC.md` Appendix A.
@@ -40,7 +40,7 @@ The implementation posture:
 ## Decision Lanes
 
 - Hard product behavior: update `SPEC.md`.
-- Phase roadmap and Sylenth feature baseline: update `docs/modern-sylenth-baseline.md`.
+- Phase roadmap and Sylenth feature baseline: update `docs/modern-synthia-baseline.md`.
 - Engineering rationale and surfaces: update `docs/ARCHITECTURE.md`.
 - Evidence, citations, historical confidence: update `docs/research/source-map.md`.
 - Evidence, safety, and naming constraints: update `SPEC.md`, `docs/research/source-map.md`, or the relevant implementation doc.

@@ -1,6 +1,6 @@
 # Architecture
 
-sylenth-ai is planned as a JUCE/CMake C++ instrument with AU, VST3, and standalone targets.
+synthia is planned as a JUCE/CMake C++ instrument with AU, VST3, and standalone targets.
 
 ## Product Phases
 
@@ -12,14 +12,14 @@ Phase 3 adds conversational VST control. Text requests and reference-sound analy
 
 Current scaffold:
 
-- `CMakeLists.txt` configures JUCE `8.0.13` through CMake `FetchContent`, unless `SYLENTH_AI_JUCE_PATH` points at a local checkout.
-- `SylenthAIPlugin` builds shared plugin code plus AU, VST3, and Standalone formats with host-facing product name `sylenth-ai`.
-- `SylenthAIRender` is the command-line validation executable.
-- `SylenthAISmokeTest` is the first CTest target.
-- `SylenthAIContractTest` validates parameter registry, layer/oscillator-slot defaults, preset files, MIDI controller-map persistence, and APVTS state round-trip.
-- `SylenthAIVoiceCoreTest` validates envelope, LFO reset, voice allocation, and engine note release.
-- `SylenthAIDspCoreTest` validates oscillator, filter, arp/chord scheduling, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, layer slot rendering, and FX bypass, delay/tail, panic-clear, and reverb-state safety.
-- `SylenthAIRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`, including dry and wet factory pluck reports.
+- `CMakeLists.txt` configures JUCE `8.0.13` through CMake `FetchContent`, unless `SYNTHIA_JUCE_PATH` points at a local checkout.
+- `SynthiaPlugin` builds shared plugin code plus AU, VST3, and Standalone formats with host-facing product name `synthia`.
+- `SynthiaRender` is the command-line validation executable.
+- `SynthiaSmokeTest` is the first CTest target.
+- `SynthiaContractTest` validates parameter registry, layer/oscillator-slot defaults, preset files, MIDI controller-map persistence, and APVTS state round-trip.
+- `SynthiaVoiceCoreTest` validates envelope, LFO reset, voice allocation, and engine note release.
+- `SynthiaDspCoreTest` validates oscillator, filter, arp/chord scheduling, ramp, glide, velocity glide, direct routes, TransMod scalers, voice/unison/random/performance modulation sources, layer slot rendering, and FX bypass, delay/tail, panic-clear, and reverb-state safety.
+- `SynthiaRenderCoreSuite` runs the standalone core render harness and writes disposable JSON/WAV artifacts under `build/reports/ctest-core`, including dry and wet factory pluck reports.
 
 ## Component Stack
 
@@ -178,8 +178,8 @@ Current editor and preset status:
 
 - `PluginEditor` is a compact, fixed-shell control surface modeled on the Sylenth workflow: a header (preset prev/next/load/save/duplicate, dirty state, output meter, active/max voices, model-backed patch-load estimate, panic, and an always-visible SR/block/peak/MIDI/invalid/architecture diagnostics footer), a persistent Layer A/B selector exposing the `layer.*` mix state, and a `Sound` / `Modulation` / `Effects` tabbed workspace. The `Sound` tab exposes the live core controls, a scrollable APVTS-bound arp/step/chord sequencer row, a preset workflow panel for Init/Random/Reset plus local A/B compare, a preset metadata/save panel with explicit no-clobber Save New and Overwrite actions, a preset browser drawer, and a compact global MIDI Learn panel; `Modulation` holds the destination-grouped direct routes plus the eight TransMod slots and a read-only route overview; `Effects` exposes the fixed-order rack modules with master/quality. Controls should move toward Sylenth-faithful knobs, panel bars, dense labels, top-strip rhythm, preset/LCD behavior, and A/B part grouping, while every visible control stays bound to real state. Render-boundary honesty is encoded in the UI: Layer A oscillator 1 remains the legacy flat `osc.*` compatibility source and is badged `LIVE`; A2/B1/B2, layer mix controls, arp/step/chord controls, preset workflow controls, and FX rack controls bind to real state.
 - Editor controls are constructed against `ParameterRegistry` IDs and use APVTS attachments for sliders, combo boxes, and toggles so UI edits reach the same host-automatable parameters as presets and host state.
-- `PresetManager` scans bundled factory presets with a source-directory development fallback, scans user presets from `~/Music/ParkerX/sylenth-ai/Presets`, also reads legacy `~/Music/ParkerX/Synth/Presets` presets during the rename transition, validates preset JSON before load, prepares defaults-plus-overrides APVTS state for one-shot replacement, prepares Init and bounded seed-randomized APVTS states for processor preset commands, maps canonical `mod_slots` objects into flat TransMod parameters, writes schema-valid user preset JSON, and exposes browser-facing summaries with source, bank, category, tags, favorite keys, sidecar favorite state, search/filter helpers, and catalog facets.
-- `MidiControllerMap` reads and writes the global user CC sidecar at `~/Music/ParkerX/sylenth-ai/MidiControllerMap.json`. `PluginProcessor` loads it on the message/control path, publishes fixed atomic CC-to-parameter indexes for audio-thread MIDI lookup, captures MIDI Learn events through atomics, and applies mapped CC values to APVTS parameters from its message-thread timer. The audio thread never writes the sidecar, locks the map, or mutates APVTS parameters directly.
+- `PresetManager` scans bundled factory presets with a source-directory development fallback, scans user presets from `~/Music/ParkerX/synthia/Presets`, also reads legacy `~/Music/ParkerX/Synth/Presets` presets during the rename transition, validates preset JSON before load, prepares defaults-plus-overrides APVTS state for one-shot replacement, prepares Init and bounded seed-randomized APVTS states for processor preset commands, maps canonical `mod_slots` objects into flat TransMod parameters, writes schema-valid user preset JSON, and exposes browser-facing summaries with source, bank, category, tags, favorite keys, sidecar favorite state, search/filter helpers, and catalog facets.
+- `MidiControllerMap` reads and writes the global user CC sidecar at `~/Music/ParkerX/synthia/MidiControllerMap.json`. `PluginProcessor` loads it on the message/control path, publishes fixed atomic CC-to-parameter indexes for audio-thread MIDI lookup, captures MIDI Learn events through atomics, and applies mapped CC values to APVTS parameters from its message-thread timer. The audio thread never writes the sidecar, locks the map, or mutates APVTS parameters directly.
 - Processor diagnostics expose sample rate, block size, active voices, model-backed patch cost, MIDI event count, invalid sample count, peak, current preset, and binary architecture to the editor without filesystem or UI work on the audio thread.
 
 Current layer and oscillator-slot status:
@@ -203,7 +203,7 @@ Current voice-core status:
 - `ModulationRouteModel` translates enabled TransMod slots into explicit route summaries with source/scaler IDs, destination IDs, physical depth parameters, and legacy `transmod.N.depth` cutoff-depth visibility. Its write adapter compiles source/destination/depth requests back into existing `transmod.N.*` APVTS parameters, including deterministic clear-slot edits. `SynthAudioProcessor::getModulationRouteView()`, `writeModulationRoute()`, and `clearModulationSlot()` expose this model to the editor without adding hidden UI-only state.
 - `Arpeggiator` keeps fixed-size held-note, step, and chord candidate state. `SynthEngine` also tracks physical MIDI input notes in fixed arrays so held notes can move deterministically between direct and arp routing when `arp.enabled` changes. When `arp.enabled` is true, external MIDI notes become held input state and generated note events feed the existing `VoiceAllocator`. When `chord.enabled` is true with arp off, direct note-on captures the generated chord outputs for that source note and deduplicates overlapping output pitches. Direct note-off releases the captured outputs, and chord parameter changes release stale chord outputs before rebuilding still-held physical input notes under the new chord configuration. The scheduler uses host tempo from `SynthParameters::tempoBpm`, fixed arrays, and no audio-thread allocation.
 - `FxChain` applies a fixed post-voice rack: distortion/saturation, phaser, chorus/flanger-style modulation, simple EQ, tempo-synced delay, simple reverb, and compressor. Delay, chorus, phaser, EQ, and reverb state is prepared or reset outside allocation-sensitive processing; `process` performs no heap allocation. `quality.realtime_mode` and `quality.offline_mode` select conservative processing variations without changing audio-thread resource allocation.
-- `SylenthAIRender` can write oscillator, filter, modulation, voice, preset validation, dry-core factory pluck, wet factory pluck, LFO ablation, determinism, and core-suite summary reports using the requested preset and MIDI fixture.
+- `SynthiaRender` can write oscillator, filter, modulation, voice, preset validation, dry-core factory pluck, wet factory pluck, LFO ablation, determinism, and core-suite summary reports using the requested preset and MIDI fixture.
 
 ## DSP Priorities
 

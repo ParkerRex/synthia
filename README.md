@@ -1,16 +1,16 @@
-# sylenth-ai
+# synthia
 
-![sylenth-ai lab software instrument hero](docs/assets/readme-hero.png)
+![synthia lab software instrument hero](docs/assets/readme-hero.png)
 
-sylenth-ai is a lab-built macOS software instrument project. The product goal is to rebuild everyone's favorite vintage VST, Sylenth1, optimized for today's macOS/Ableton workflow, then extend that foundation with AI-assisted sound design and conversational editing.
+synthia is a lab-built macOS software instrument project. The product goal is to rebuild everyone's favorite vintage VST, Sylenth1, optimized for today's macOS/Ableton workflow, then extend that foundation with AI-assisted sound design and conversational editing.
 
 ## Product Roadmap
 
-Phase 1: recreate the Sylenth experience. The first milestone is a modern AU/VST3 instrument with Sylenth-level immediacy: A/B architecture, fast oscillator/filter/envelope/modulation access, a strong preset workflow, arpeggiator/effects coverage, and Ableton validation. The manual in `Sylenth1Manual.pdf`, the screenshot corpus in `research/sylenth1-screenshots/`, and `docs/modern-sylenth-baseline.md` drive product decisions for this phase.
+Phase 1: recreate the Sylenth experience. The first milestone is a modern AU/VST3 instrument with Sylenth-level immediacy: A/B architecture, fast oscillator/filter/envelope/modulation access, a strong preset workflow, arpeggiator/effects coverage, and Ableton validation. The manual in `Sylenth1Manual.pdf`, the screenshot corpus in `research/sylenth1-screenshots/`, and `docs/modern-synthia-baseline.md` drive product decisions for this phase.
 
 Phase 2: add AI-assisted sound and arpeggio creation. The plugin should be able to randomize and generate useful sounds, chord movement, and arpeggio ideas with the musical intent of tools like Xfer Records' Cthulhu, while keeping all generated state as normal editable presets and parameters.
 
-Phase 3: make the VST conversational. Users should be able to ask for changes in plain language, for example "make the bass wubbier," or provide a reference sound and ask sylenth-ai to recreate the character with editable synth, modulation, arp, and FX settings.
+Phase 3: make the VST conversational. Users should be able to ask for changes in plain language, for example "make the bass wubbier," or provide a reference sound and ask synthia to recreate the character with editable synth, modulation, arp, and FX settings.
 
 ## Current State
 
@@ -34,7 +34,7 @@ Phase 1 host validation in Ableton is underway: current proof covers AU/VST3 sca
 Configure:
 
 ```bash
-cmake -S . -B build -DSYLENTH_AI_ENABLE_TESTS=ON
+cmake -S . -B build -DSYNTHIA_ENABLE_TESTS=ON
 ```
 
 Build:
@@ -51,11 +51,11 @@ ctest --test-dir build --output-on-failure
 
 Build artifacts are written under:
 
-- `build/SylenthAIPlugin_artefacts/Standalone/sylenth-ai.app`
-- `build/SylenthAIPlugin_artefacts/AU/sylenth-ai.component`
-- `build/SylenthAIPlugin_artefacts/VST3/sylenth-ai.vst3`
+- `build/SynthiaPlugin_artefacts/Standalone/synthia.app`
+- `build/SynthiaPlugin_artefacts/AU/synthia.component`
+- `build/SynthiaPlugin_artefacts/VST3/synthia.vst3`
 
-The default build fetches JUCE `8.0.13`. Set `SYLENTH_AI_JUCE_PATH=/path/to/JUCE` during configure to use a local JUCE checkout. The previous `SYNTH_*` CMake options are still accepted as compatibility aliases.
+The default build fetches JUCE `8.0.13`. Set `SYNTHIA_JUCE_PATH=/path/to/JUCE` during configure to use a local JUCE checkout. The previous `SYNTH_*` CMake options are still accepted as compatibility aliases.
 
 ## Validation
 
@@ -77,26 +77,26 @@ Use `--exclude <path>` on the sweep commands when another agent owns a file, for
 Run the full standalone core suite:
 
 ```bash
-./build/SylenthAIRender --suite core --output-dir build/reports/core
+./build/SynthiaRender --suite core --output-dir build/reports/core
 ```
 
 Focused validation commands:
 
 ```bash
-./build/SylenthAIRender --smoke --output build/reports/smoke.json
-./build/SylenthAIRender --list-parameters --output build/reports/parameters.json
-./build/SylenthAIRender --validate-presets presets/factory --output build/reports/presets.json
-./build/SylenthAIRender --voice-test --output build/reports/voice-core.json
-./build/SylenthAIRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
-./build/SylenthAIRender --filter-test --output build/reports/filter.json
-./build/SylenthAIRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
-./build/SylenthAIRender --modulation-route-render-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation-route-render.json
+./build/SynthiaRender --smoke --output build/reports/smoke.json
+./build/SynthiaRender --list-parameters --output build/reports/parameters.json
+./build/SynthiaRender --validate-presets presets/factory --output build/reports/presets.json
+./build/SynthiaRender --voice-test --output build/reports/voice-core.json
+./build/SynthiaRender --osc-test --notes C1,C3,C5,C7 --output build/reports/oscillator.json
+./build/SynthiaRender --filter-test --output build/reports/filter.json
+./build/SynthiaRender --modulation-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation.json
+./build/SynthiaRender --modulation-route-render-test --fixture fixtures/midi/overlap-pluck.mid --output build/reports/modulation-route-render.json
 ```
 
 Render the factory dry-core pluck:
 
 ```bash
-./build/SylenthAIRender \
+./build/SynthiaRender \
   --preset presets/factory/pluck-core-01.json \
   --fixture fixtures/midi/overlap-pluck.mid \
   --dry \
@@ -107,7 +107,7 @@ Render the factory dry-core pluck:
 Render the factory wet pluck:
 
 ```bash
-./build/SylenthAIRender \
+./build/SynthiaRender \
   --preset presets/factory/pluck-core-01.json \
   --fixture fixtures/midi/overlap-pluck.mid \
   --wet \
@@ -134,17 +134,17 @@ Use this when continuing development on another Mac, especially one with Ableton
 Clone the private repo:
 
 ```bash
-git clone https://github.com/ParkerRex/synthia.git sylenth-ai
-cd sylenth-ai
+git clone https://github.com/ParkerRex/synthia.git synthia
+cd synthia
 ```
 
 Build and validate locally:
 
 ```bash
-cmake -S . -B build -DSYLENTH_AI_ENABLE_TESTS=ON
+cmake -S . -B build -DSYNTHIA_ENABLE_TESTS=ON
 cmake --build build --config Debug
 ctest --test-dir build --output-on-failure
-./build/SylenthAIRender --suite core --output-dir build/reports/core
+./build/SynthiaRender --suite core --output-dir build/reports/core
 scripts/check-plugin-bundles.sh build
 ```
 
@@ -185,8 +185,8 @@ In Ableton:
 
 - Enable Audio Units and VST3 in Ableton's Plug-Ins settings.
 - Rescan plug-ins after running `scripts/install-local-plugins.sh build`.
-- Confirm `sylenth-ai` appears in the AU plug-in list.
-- Confirm `sylenth-ai` appears in the VST3 plug-in list.
+- Confirm `synthia` appears in the AU plug-in list.
+- Confirm `synthia` appears in the VST3 plug-in list.
 - Load the AU build on a MIDI track.
 - Load the VST3 build on a separate MIDI track.
 - Play `fixtures/midi/overlap-pluck.mid` or an equivalent overlapping-note pluck pattern.
@@ -212,7 +212,7 @@ If something fails, write it into `docs/host-validation/ableton-smoke.md` with:
 - `CONTEXT.md`: project vocabulary and decision lanes.
 - `docs/ARCHITECTURE.md`: implementation architecture.
 - `docs/VALIDATION.md`: validation strategy and report contract.
-- `docs/modern-sylenth-baseline.md`: Phase 1 Sylenth rebuild baseline and roadmap.
+- `docs/modern-synthia-baseline.md`: Phase 1 Sylenth rebuild baseline and roadmap.
 - `research/sylenth1-screenshots/SOURCE_INDEX.md`: traceable source map for the local Sylenth screenshot corpus.
 - `src/dsp/`: DSP engine, oscillator, filter, envelopes, LFO, ramp, FX, and parameters.
 - `src/voice/`: voice rendering and allocation.

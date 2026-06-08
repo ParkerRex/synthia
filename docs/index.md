@@ -1,6 +1,6 @@
 # Documentation Index
 
-This directory holds implementation-facing documentation for sylenth-ai. `../SPEC.md` remains the source of truth for product requirements.
+This directory holds implementation-facing documentation for synthia. `../SPEC.md` remains the source of truth for product requirements.
 
 ## Start Here
 
@@ -15,7 +15,7 @@ This directory holds implementation-facing documentation for sylenth-ai. `../SPE
 - `PRESET_SCHEMA.md`: preset and host-state shape.
 - `QUALITY.md`: local formatting, linting, realtime-safety, and build-loop quality gates.
 - `VALIDATION.md`: tests, render fixtures, host checks, and acceptance metrics.
-- `modern-sylenth-baseline.md`: Phase 1 Sylenth rebuild baseline, current gaps, and Phase 2/3 AI roadmap.
+- `modern-synthia-baseline.md`: Phase 1 Sylenth rebuild baseline, current gaps, and Phase 2/3 AI roadmap.
 - `PLANS.md`: routing for Programs and ExecPlans.
 - `host-validation/`: Ableton and other host validation notes/templates.
   - `host-validation/local-install-troubleshooting.md`: local AU/VST3 install, uninstall, ad-hoc signing, AU validation, and Ableton rescan troubleshooting.

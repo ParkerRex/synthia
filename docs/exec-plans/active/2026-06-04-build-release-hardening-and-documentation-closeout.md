@@ -6,8 +6,8 @@ completed_at: null
 summary: Close the program with performance validation, lab-authored review, final docs, release checklist, and Program retrospective.
 post_build_recap: null
 read_when:
-  - Preparing sylenth-ai for a public or private release.
-  - Closing the sylenth-ai build Program.
+  - Preparing synthia for a public or private release.
+  - Closing the synthia build Program.
   - Auditing final validation, docs, or rebuild alignment.
 program_id: synth-pluck-core-foundation
 planning_brief: docs/programs/completed/2026-06-04-synth-pluck-core-foundation/planning-brief-1.md
@@ -23,7 +23,7 @@ This ExecPlan must be maintained in accordance with `docs/exec-plans/PLANS.md`.
 
 ## Purpose / Big Picture
 
-After all build slices land, sylenth-ai still needs a final pass that proves the product is ready to hand off. This slice consolidates performance validation, rebuild alignment review, docs, release checklist, packaging proof, known limitations, and Program retrospective.
+After all build slices land, synthia still needs a final pass that proves the product is ready to hand off. This slice consolidates performance validation, rebuild alignment review, docs, release checklist, packaging proof, known limitations, and Program retrospective.
 
 ## Progress
 
@@ -86,14 +86,14 @@ Milestone 4 completes Program and ExecPlan closeout.
 
 Work from the repo root:
 
-    cd /Users/parkerrex/Developer/sylenth-ai
+    cd /Users/parkerrex/Developer/synthia
 
 Run full validation:
 
-    cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYLENTH_AI_ENABLE_TESTS=ON
+    cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTHIA_ENABLE_TESTS=ON
     cmake --build build-release --config Release
     ctest --test-dir build-release --output-on-failure
-    ./build-release/SylenthAIRender --suite core --output-dir build-release/reports/core
+    ./build-release/SynthiaRender --suite core --output-dir build-release/reports/core
     scripts/check-plugin-bundles.sh build-release
 
 Run the Ableton smoke checklist and update the release docs.
@@ -104,11 +104,11 @@ Acceptance requires full validation reports, performance report, Ableton smoke p
 
 ### Test Commands
 
-    cd /Users/parkerrex/Developer/sylenth-ai
-    cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYLENTH_AI_ENABLE_TESTS=ON
+    cd /Users/parkerrex/Developer/synthia
+    cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DSYNTHIA_ENABLE_TESTS=ON
     cmake --build build-release --config Release
     ctest --test-dir build-release --output-on-failure
-    ./build-release/SylenthAIRender --suite core --output-dir build-release/reports/core
+    ./build-release/SynthiaRender --suite core --output-dir build-release/reports/core
     scripts/check-plugin-bundles.sh build-release
 
 Manual verification: complete the Ableton AU/VST3 smoke checklist and record screenshots or notes in the host validation doc.
