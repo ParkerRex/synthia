@@ -30,9 +30,13 @@ private:
     float advancePhase(float& phase, float increment) noexcept;
     static float polyBlep(float phase, float phaseIncrement) noexcept;
     void resetState(float basePhase) noexcept;
+    void updateDetuneRatios(int stackCount, float stackDetune) noexcept;
 
     double sampleRate = 44100.0;
     std::array<float, maxStackCount> phases {};
+    std::array<float, maxStackCount> detuneRatios {};
+    int cachedDetuneStackCount = -1;
+    float cachedDetuneAmount = -1.0f;
     float subPhase = 0.0f;
     float syncMasterPhase = 0.0f;
     unsigned int noiseState = 0x76543210u;

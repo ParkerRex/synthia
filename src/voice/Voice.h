@@ -90,6 +90,7 @@ private:
 
     float processGlide(const SynthParameters& parameters) noexcept;
     float processVelocityGlide(const SynthParameters& parameters) noexcept;
+    void syncModulatorConfig(const SynthParameters& parameters) noexcept;
     void resetLayerOscillators(const SynthParameters& parameters, float fallbackPhase) noexcept;
     LayerOscillatorMix renderLayerOscillators(const SynthParameters& parameters, float effectiveNote,
                                               float pitchModSemitones, float pulseWidthMod,
@@ -130,6 +131,15 @@ private:
         static_cast<std::size_t>(layerCount) * static_cast<std::size_t>(oscillatorSlotsPerLayer);
     std::array<OscillatorStack, layerOscillatorCount> layerOscillators;
     Filter filter;
+    EnvelopeParameters cachedAmpEnv;
+    EnvelopeParameters cachedModEnv;
+    LfoShapeChoice cachedLfoShape = LfoShapeChoice::SawDown;
+    LfoRateMode cachedLfoRateMode = LfoRateMode::Sync;
+    int cachedLfoSyncDivision = 3;
+    float cachedLfoRateHz = 2.0f;
+    float cachedLfoPhaseDegrees = 0.0f;
+    float cachedTempoBpm = 120.0f;
+    bool modulatorConfigInitialized = false;
     ModulationSums lastDirectSums;
     ModulationSums lastTransModSums;
     float lastRampValue = 0.0f;

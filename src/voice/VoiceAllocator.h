@@ -21,6 +21,7 @@ public:
     void allNotesOff() noexcept;
     void panic() noexcept;
     void stopAllWithFade(int fadeSamples) noexcept;
+    void syncVoiceLimit(const SynthParameters& parameters) noexcept;
     void process(int numSamples) noexcept;
     StereoFrame renderSample(const SynthParameters& parameters) noexcept;
 
@@ -41,8 +42,12 @@ private:
     bool retargetActiveNote(int fromNote, int toNote, float velocity, const SynthParameters& parameters) noexcept;
     bool allocationShapeChanged(const SynthParameters& parameters) const noexcept;
     void rememberAllocationShape(const SynthParameters& parameters) noexcept;
+    void markVoiceActive(int voiceIndex) noexcept;
+    void removeActiveVoiceAt(int activeListIndex) noexcept;
 
     std::vector<Voice> voices;
+    std::array<int, maxVoiceSlots> activeVoiceIndices {};
+    int activeVoiceSlotCount = 0;
     Lfo monoLfo;
     bool sustainPedalDown = false;
     std::array<bool, 128> heldNotes {};

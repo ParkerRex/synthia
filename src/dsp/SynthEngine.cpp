@@ -319,6 +319,8 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
         resetVoicesForHeldInputRebuild();
         rebuildArpeggiatorFromInputNotes();
     }
+
+    voices.syncVoiceLimit(parameters);
 }
 
 RenderStats SynthEngine::process(float* left, float* right, int numSamples) noexcept

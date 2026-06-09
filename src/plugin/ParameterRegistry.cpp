@@ -110,7 +110,7 @@ std::vector<ParameterSpec> buildSpecs()
         floatParam("filter.resonance", "Resonance", "filter", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f, 1.0f, 10.0f),
         floatParam("filter.drive", "Filter Drive", "filter", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f, 1.0f, 10.0f),
         floatParam("filter.keytrack", "Filter Keytrack", "filter", "normalized", 0.0f, 1.0f, 0.5f, 0.0001f, 1.0f, 5.0f),
-        choiceParam("filter.oversampling", "Filter Oversampling", "filter", {"Off", "2x", "4x", "8x"}, 1),
+        choiceParam("filter.oversampling", "Filter Oversampling", "filter", {"Off", "2x", "4x", "8x"}, 0),
 
         floatParam("amp.drive", "Amp Drive", "amp", "normalized", 0.0f, 1.0f, 0.0f, 0.0001f, 1.0f, 5.0f),
         floatParam("amp.level_db", "Level", "amp", "dB", -48.0f, 12.0f, -6.0f, 0.01f, 1.0f, 5.0f),

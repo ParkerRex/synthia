@@ -27,9 +27,11 @@ public:
 
 private:
     float valueForPhase(float phaseValue) noexcept;
+    void updatePhaseIncrement() noexcept;
 
     double sampleRate = 44100.0;
     float rateHz = 2.0f;
+    float phaseIncrement = 2.0f / 44100.0f;
     float phase = 0.0f;
     float phaseOffset = 0.0f;
     float value = 0.0f;
@@ -38,4 +40,3 @@ private:
     LfoShape shape = LfoShape::Sine;
 };
 } // namespace synth
-

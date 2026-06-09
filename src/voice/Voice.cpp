@@ -54,6 +54,44 @@ float effectiveLfoRateHz(const SynthParameters& parameters) noexcept
     return std::clamp(parameters.tempoBpm, 20.0f, 300.0f) / (60.0f * beats);
 }
 
+float clampFast(float value, float minimum, float maximum) noexcept
+{
+    if (!std::isfinite(value))
+        return minimum;
+
+    if (value < minimum)
+        return minimum;
+
+    if (value > maximum)
+        return maximum;
+
+    return value;
+}
+
+float clampUnitFast(float value) noexcept
+{
+    return clampFast(value, 0.0f, 1.0f);
+}
+
+int clampIntFast(int value, int minimum, int maximum) noexcept
+{
+    if (value < minimum)
+        return minimum;
+
+    if (value > maximum)
+        return maximum;
+
+    return value;
+}
+
+bool sameEnvelopeParameters(const EnvelopeParameters& before, const EnvelopeParameters& after) noexcept
+{
+    return std::abs(before.attackMs - after.attackMs) <= 0.000001f
+        && std::abs(before.decayMs - after.decayMs) <= 0.000001f
+        && std::abs(before.sustain - after.sustain) <= 0.000001f
+        && std::abs(before.releaseMs - after.releaseMs) <= 0.000001f;
+}
+
 float bipolarIndex(int index, int count) noexcept
 {
     if (count <= 1)
@@ -67,7 +105,7 @@ float unipolarIndex(int index, int count) noexcept
     if (count <= 1)
         return 0.0f;
 
-    return std::clamp(static_cast<float>(index) / static_cast<float>(count - 1), 0.0f, 1.0f);
+    return clampUnitFast(static_cast<float>(index) / static_cast<float>(count - 1));
 }
 
 float sanitize(float value) noexcept
@@ -115,7 +153,7 @@ OscillatorParameters toSlotOscillatorParameters(const LayerOscillatorParameters&
     OscillatorParameters oscillator;
     oscillator.pitchSemitones = static_cast<float>(slot.octave * 12 + slot.note);
     oscillator.fineCents = slot.fineCents;
-    oscillator.stackCount = std::clamp(slot.voices, 1, 8);
+    oscillator.stackCount = clampIntFast(slot.voices, 1, 8);
     oscillator.stackDetune = slot.detune;
     oscillator.pulseWidth = parameters.osc.pulseWidth;
     oscillator.subWave = parameters.osc.subWave;
@@ -301,6 +339,7 @@ void Voice::reset() noexcept
     lastDirectSums = {};
     lastTransModSums = {};
     lastRampValue = 0.0f;
+    modulatorConfigInitialized = false;
 }
 
 void Voice::process(int numSamples) noexcept
@@ -321,11 +360,7 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     if (state == VoiceState::Idle)
         return {};
 
-    ampEnvelope.setSettings(toEnvelopeSettings(parameters.ampEnv));
-    modEnvelope.setSettings(toEnvelopeSettings(parameters.modEnv));
-    lfo.setShape(toLfoShape(parameters.lfo.shape));
-    lfo.setRateHz(effectiveLfoRateHz(parameters));
-    lfo.setPhaseDegrees(parameters.lfo.phaseDegrees);
+    syncModulatorConfig(parameters);
 
     const auto amp = ampEnvelope.process();
     const auto mod = modEnvelope.process();
@@ -374,7 +409,7 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     auto sample = layerMix.sample;
     sample = filter.process(sample, effectiveNote, parameters, cutoffMod);
 
-    const auto ampDrive = clampUnit(parameters.amp.drive + parameters.macro.drive * 0.35f);
+    const auto ampDrive = clampUnitFast(parameters.amp.drive + parameters.macro.drive * 0.35f);
     const auto driveGain = 1.0f + ampDrive * 7.0f;
     const auto driveNormalizer = softSaturate(driveGain);
     sample = driveNormalizer > 0.0f ? softSaturate(sample * driveGain) / driveNormalizer : sample;
@@ -384,7 +419,7 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     const auto voiceSpread = randomOnNote * parameters.amp.panSpread * 0.85f
         + unisonBi * parameters.amp.unisonSpread * 0.7f
         + randomOnNote * parameters.macro.width * 0.25f;
-    const auto pan = std::clamp(parameters.amp.pan + voiceSpread + layerMix.pan + lastTransModSums.pan, -1.0f, 1.0f);
+    const auto pan = clampFast(parameters.amp.pan + voiceSpread + layerMix.pan + lastTransModSums.pan, -1.0f, 1.0f);
     const auto angle = (pan + 1.0f) * 0.5f * halfPi;
 
     auto output = StereoFrame { sanitize(sample * std::cos(angle)), sanitize(sample * std::sin(angle)) };
@@ -402,9 +437,47 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     return output;
 }
 
+void Voice::syncModulatorConfig(const SynthParameters& parameters) noexcept
+{
+    if (!modulatorConfigInitialized || !sameEnvelopeParameters(cachedAmpEnv, parameters.ampEnv))
+    {
+        ampEnvelope.setSettings(toEnvelopeSettings(parameters.ampEnv));
+        cachedAmpEnv = parameters.ampEnv;
+    }
+
+    if (!modulatorConfigInitialized || !sameEnvelopeParameters(cachedModEnv, parameters.modEnv))
+    {
+        modEnvelope.setSettings(toEnvelopeSettings(parameters.modEnv));
+        cachedModEnv = parameters.modEnv;
+    }
+
+    const auto lfoConfigChanged = !modulatorConfigInitialized
+        || cachedLfoShape != parameters.lfo.shape
+        || cachedLfoRateMode != parameters.lfo.rateMode
+        || cachedLfoSyncDivision != parameters.lfo.syncDivision
+        || std::abs(cachedLfoRateHz - parameters.lfo.rateHz) > 0.000001f
+        || std::abs(cachedLfoPhaseDegrees - parameters.lfo.phaseDegrees) > 0.000001f
+        || std::abs(cachedTempoBpm - parameters.tempoBpm) > 0.000001f;
+
+    if (lfoConfigChanged)
+    {
+        lfo.setShape(toLfoShape(parameters.lfo.shape));
+        lfo.setRateHz(effectiveLfoRateHz(parameters));
+        lfo.setPhaseDegrees(parameters.lfo.phaseDegrees);
+        cachedLfoShape = parameters.lfo.shape;
+        cachedLfoRateMode = parameters.lfo.rateMode;
+        cachedLfoSyncDivision = parameters.lfo.syncDivision;
+        cachedLfoRateHz = parameters.lfo.rateHz;
+        cachedLfoPhaseDegrees = parameters.lfo.phaseDegrees;
+        cachedTempoBpm = parameters.tempoBpm;
+    }
+
+    modulatorConfigInitialized = true;
+}
+
 void Voice::resetLayerOscillators(const SynthParameters& parameters, float fallbackPhase) noexcept
 {
-    const auto fallbackNormalizedPhase = (std::clamp(fallbackPhase, -1.0f, 1.0f) + 1.0f) * 0.5f;
+    const auto fallbackNormalizedPhase = (clampFast(fallbackPhase, -1.0f, 1.0f) + 1.0f) * 0.5f;
     for (int layerIndex = 0; layerIndex < layerCount; ++layerIndex)
     {
         const auto& layer = parameters.layers[static_cast<std::size_t>(layerIndex)];
@@ -431,6 +504,31 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
                                                         float analogPitchMod, float unisonBi) noexcept
 {
     const auto soloActive = hasSoloLayer(parameters);
+    LayerOscillatorMix mix;
+    if (layerCount == 2 && oscillatorSlotsPerLayer == 2)
+    {
+        const auto& layerA = parameters.layers[0];
+        const auto& layerB = parameters.layers[1];
+        const auto& legacySlot = layerA.oscillators[0];
+        if (shouldRenderLayer(layerA, soloActive)
+            && shouldRenderOscillatorSlot(legacySlot)
+            && !shouldRenderOscillatorSlot(layerA.oscillators[1])
+            && !shouldRenderLayer(layerB, soloActive))
+        {
+            const auto gain = decibelsToGain(layerA.levelDb) * clampUnitFast(legacySlot.level);
+            mix.sample = oscillator.renderSample(effectiveNote, parameters,
+                                                 pitchModSemitones + analogPitchMod,
+                                                 pulseWidthMod) * gain;
+            if (legacySlot.invert)
+                mix.sample = -mix.sample;
+
+            mix.sample = sanitize(mix.sample);
+            mix.pan = clampFast(layerA.pan + legacySlot.pan + unisonBi * legacySlot.stereo * 0.65f,
+                                -1.0f, 1.0f);
+            return mix;
+        }
+    }
+
     auto activeSlotCount = 0;
     for (const auto& layer : parameters.layers)
     {
@@ -447,7 +545,6 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
     if (activeSlotCount <= 0)
         return {};
 
-    LayerOscillatorMix mix;
     auto panWeight = 0.0f;
     auto weightedPan = 0.0f;
     for (int layerIndex = 0; layerIndex < layerCount; ++layerIndex)
@@ -463,7 +560,7 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
             if (!shouldRenderOscillatorSlot(slot))
                 continue;
 
-            const auto gain = layerGain * clampUnit(slot.level);
+            const auto gain = layerGain * clampUnitFast(slot.level);
             auto slotSample = 0.0f;
             if (isLegacyOscillatorSlot(layerIndex, oscillatorIndex))
             {
@@ -484,8 +581,7 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
                 slotSample = -slotSample;
 
             mix.sample += slotSample * gain;
-            const auto slotPan = std::clamp(layer.pan + slot.pan + unisonBi * slot.stereo * 0.65f,
-                                            -1.0f, 1.0f);
+            const auto slotPan = clampFast(layer.pan + slot.pan + unisonBi * slot.stereo * 0.65f, -1.0f, 1.0f);
             weightedPan += slotPan * std::abs(gain);
             panWeight += std::abs(gain);
         }
@@ -493,7 +589,7 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
 
     mix.sample *= inverseSqrtForCount(activeSlotCount);
     mix.sample = sanitize(mix.sample);
-    mix.pan = panWeight > 0.0f ? std::clamp(weightedPan / panWeight, -1.0f, 1.0f) : 0.0f;
+    mix.pan = panWeight > 0.0f ? clampFast(weightedPan / panWeight, -1.0f, 1.0f) : 0.0f;
     return mix;
 }
 
@@ -507,7 +603,7 @@ float Voice::processGlide(const SynthParameters& parameters) noexcept
 
     const auto phase = glideTotalSamples <= 1
         ? 1.0f
-        : clampUnit(static_cast<float>(glideSamples) / static_cast<float>(glideTotalSamples - 1));
+        : clampUnitFast(static_cast<float>(glideSamples) / static_cast<float>(glideTotalSamples - 1));
     currentMidiNote = startMidiNote + (targetMidiNote - startMidiNote) * phase;
     if (glideSamples < glideTotalSamples - 1)
         ++glideSamples;
@@ -531,7 +627,7 @@ float Voice::processVelocityGlide(const SynthParameters& parameters) noexcept
 
     const auto phase = velocityGlideTotalSamples <= 1
         ? 1.0f
-        : clampUnit(static_cast<float>(velocityGlideSamples) / static_cast<float>(velocityGlideTotalSamples - 1));
+        : clampUnitFast(static_cast<float>(velocityGlideSamples) / static_cast<float>(velocityGlideTotalSamples - 1));
     currentVelocity = startVelocity + (velocity - startVelocity) * phase;
     if (velocityGlideSamples < velocityGlideTotalSamples - 1)
         ++velocityGlideSamples;
@@ -541,7 +637,7 @@ float Voice::processVelocityGlide(const SynthParameters& parameters) noexcept
     if (!std::isfinite(currentVelocity))
         currentVelocity = velocity;
 
-    currentVelocity = clampUnit(currentVelocity);
+    currentVelocity = clampUnitFast(currentVelocity);
     (void) parameters;
     return currentVelocity;
 }
@@ -555,25 +651,25 @@ float Voice::evalModSource(const SynthParameters& parameters, ModSource source, 
         case ModSource::None:
             return 0.0f;
         case ModSource::Lfo:
-            return std::clamp(lfoValue, -1.0f, 1.0f);
+            return clampFast(lfoValue, -1.0f, 1.0f);
         case ModSource::Ramp:
-            return clampUnit(rampValue);
+            return clampUnitFast(rampValue);
         case ModSource::ModEnv:
-            return clampUnit(modEnvValue);
+            return clampUnitFast(modEnvValue);
         case ModSource::AmpEnv:
-            return clampUnit(ampEnvValue);
+            return clampUnitFast(ampEnvValue);
         case ModSource::Keytrack:
-            return std::clamp((effectiveNote - 60.0f) / 36.0f, -1.0f, 1.0f);
+            return clampFast((effectiveNote - 60.0f) / 36.0f, -1.0f, 1.0f);
         case ModSource::Velocity:
-            return clampUnit(velocity);
+            return clampUnitFast(velocity);
         case ModSource::VelocityGlide:
-            return clampUnit(velocityGlideValue);
+            return clampUnitFast(velocityGlideValue);
         case ModSource::PitchBend:
-            return std::clamp(parameters.performance.pitchBend, -1.0f, 1.0f);
+            return clampFast(parameters.performance.pitchBend, -1.0f, 1.0f);
         case ModSource::ModWheel:
-            return clampUnit(parameters.performance.modWheel);
+            return clampUnitFast(parameters.performance.modWheel);
         case ModSource::Aftertouch:
-            return clampUnit(parameters.performance.aftertouch);
+            return clampUnitFast(parameters.performance.aftertouch);
         case ModSource::VoiceUni:
             return unipolarIndex(voiceIndex, voiceCount);
         case ModSource::VoiceBi:
@@ -583,15 +679,15 @@ float Voice::evalModSource(const SynthParameters& parameters, ModSource source, 
         case ModSource::UnisonBi:
             return bipolarIndex(unisonIndex, unisonCount);
         case ModSource::RandomOnNote:
-            return std::clamp(randomOnNote, -1.0f, 1.0f);
+            return clampFast(randomOnNote, -1.0f, 1.0f);
         case ModSource::Macro1:
-            return clampUnit(parameters.macro.motion);
+            return clampUnitFast(parameters.macro.motion);
         case ModSource::Macro2:
-            return clampUnit(parameters.macro.width);
+            return clampUnitFast(parameters.macro.width);
         case ModSource::Macro3:
-            return clampUnit(parameters.macro.drive);
+            return clampUnitFast(parameters.macro.drive);
         case ModSource::Macro4:
-            return clampUnit(parameters.macro.space);
+            return clampUnitFast(parameters.macro.space);
     }
 
     return 0.0f;
@@ -617,19 +713,19 @@ Voice::ModulationSums Voice::evaluateTransMod(const SynthParameters& parameters,
         if (!std::isfinite(amount))
             continue;
 
-        sums.oscPitchSemitones += amount * std::clamp(slot.oscPitchSemitones, -48.0f, 48.0f);
-        sums.pulseWidth += amount * std::clamp(slot.pulseWidth, -1.0f, 1.0f);
+        sums.oscPitchSemitones += amount * clampFast(slot.oscPitchSemitones, -48.0f, 48.0f);
+        sums.pulseWidth += amount * clampFast(slot.pulseWidth, -1.0f, 1.0f);
         sums.filterCutoffSemitones += amount
-            * (std::clamp(slot.filterCutoffSemitones, -72.0f, 72.0f) + std::clamp(slot.depth, -1.0f, 1.0f) * 72.0f);
-        sums.ampLevelDb += amount * std::clamp(slot.ampLevelDb, -48.0f, 48.0f);
-        sums.pan += amount * std::clamp(slot.pan, -1.0f, 1.0f);
+            * (clampFast(slot.filterCutoffSemitones, -72.0f, 72.0f) + clampFast(slot.depth, -1.0f, 1.0f) * 72.0f);
+        sums.ampLevelDb += amount * clampFast(slot.ampLevelDb, -48.0f, 48.0f);
+        sums.pan += amount * clampFast(slot.pan, -1.0f, 1.0f);
     }
 
-    sums.oscPitchSemitones = std::clamp(sanitize(sums.oscPitchSemitones), -96.0f, 96.0f);
-    sums.pulseWidth = std::clamp(sanitize(sums.pulseWidth), -1.0f, 1.0f);
-    sums.filterCutoffSemitones = std::clamp(sanitize(sums.filterCutoffSemitones), -136.0f, 136.0f);
-    sums.ampLevelDb = std::clamp(sanitize(sums.ampLevelDb), -24.0f, 24.0f);
-    sums.pan = std::clamp(sanitize(sums.pan), -2.0f, 2.0f);
+    sums.oscPitchSemitones = clampFast(sanitize(sums.oscPitchSemitones), -96.0f, 96.0f);
+    sums.pulseWidth = clampFast(sanitize(sums.pulseWidth), -1.0f, 1.0f);
+    sums.filterCutoffSemitones = clampFast(sanitize(sums.filterCutoffSemitones), -136.0f, 136.0f);
+    sums.ampLevelDb = clampFast(sanitize(sums.ampLevelDb), -24.0f, 24.0f);
+    sums.pan = clampFast(sanitize(sums.pan), -2.0f, 2.0f);
     return sums;
 }
 

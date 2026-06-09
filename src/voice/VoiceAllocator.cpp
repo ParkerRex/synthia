@@ -121,6 +121,7 @@ int VoiceAllocator::noteOn(int midiNote, float velocity, const SynthParameters& 
         voice.noteOn(midiNote, safeVelocity,
                      nextRandom(), unison, unisonCount, parameters,
                      allowGlide, retriggerModulators);
+        markVoiceActive(voiceIndex);
         if (voiceIndex < static_cast<int>(usedThisNote.size()))
             usedThisNote[static_cast<std::size_t>(voiceIndex)] = true;
         if (firstVoiceIndex < 0)
@@ -217,6 +218,7 @@ void VoiceAllocator::panic() noexcept
     heldOrder.fill(0);
     for (auto& voice : voices)
         voice.reset();
+    activeVoiceSlotCount = 0;
 }
 
 void VoiceAllocator::stopAllWithFade(int fadeSamples) noexcept
@@ -230,19 +232,42 @@ void VoiceAllocator::stopAllWithFade(int fadeSamples) noexcept
         voice.stopWithFade(fadeSamples);
 }
 
+void VoiceAllocator::syncVoiceLimit(const SynthParameters& parameters) noexcept
+{
+    enforceVoiceLimit(parameters);
+}
+
 void VoiceAllocator::process(int numSamples) noexcept
 {
-    for (auto& voice : voices)
+    for (int activeIndex = 0; activeIndex < activeVoiceSlotCount;)
     {
-        if (voice.isActive())
-            voice.process(numSamples);
+        const auto voiceIndex = activeVoiceIndices[static_cast<std::size_t>(activeIndex)];
+        if (voiceIndex < 0 || voiceIndex >= static_cast<int>(voices.size()))
+        {
+            removeActiveVoiceAt(activeIndex);
+            continue;
+        }
+
+        auto& voice = voices[static_cast<std::size_t>(voiceIndex)];
+        if (!voice.isActive())
+        {
+            removeActiveVoiceAt(activeIndex);
+            continue;
+        }
+
+        voice.process(numSamples);
+        if (!voice.isActive())
+        {
+            removeActiveVoiceAt(activeIndex);
+            continue;
+        }
+
+        ++activeIndex;
     }
 }
 
 StereoFrame VoiceAllocator::renderSample(const SynthParameters& parameters) noexcept
 {
-    enforceVoiceLimit(parameters);
-
     const auto useMonoLfo = parameters.lfo.mono
         || parameters.lfo.gateMode == LfoGateMode::Mono
         || parameters.lfo.gateMode == LfoGateMode::Song;
@@ -257,15 +282,34 @@ StereoFrame VoiceAllocator::renderSample(const SynthParameters& parameters) noex
 
     StereoFrame frame;
     auto normalizationPower = 0.0f;
-    for (auto& voice : voices)
+    for (int activeIndex = 0; activeIndex < activeVoiceSlotCount;)
     {
-        if (!voice.isActive())
+        const auto voiceIndex = activeVoiceIndices[static_cast<std::size_t>(activeIndex)];
+        if (voiceIndex < 0 || voiceIndex >= static_cast<int>(voices.size()))
+        {
+            removeActiveVoiceAt(activeIndex);
             continue;
+        }
+
+        auto& voice = voices[static_cast<std::size_t>(voiceIndex)];
+        if (!voice.isActive())
+        {
+            removeActiveVoiceAt(activeIndex);
+            continue;
+        }
 
         normalizationPower += voice.normalizationPowerWeight();
         const auto voiceFrame = voice.renderSample(parameters, useMonoLfo ? &monoValue : nullptr);
         frame.left += voiceFrame.left;
         frame.right += voiceFrame.right;
+
+        if (!voice.isActive())
+        {
+            removeActiveVoiceAt(activeIndex);
+            continue;
+        }
+
+        ++activeIndex;
     }
 
     if (normalizationPower > 1.0f)
@@ -280,9 +324,7 @@ StereoFrame VoiceAllocator::renderSample(const SynthParameters& parameters) noex
 
 int VoiceAllocator::activeVoiceCount() const noexcept
 {
-    return static_cast<int>(std::count_if(voices.begin(), voices.end(), [](const auto& voice) {
-        return voice.isActive();
-    }));
+    return activeVoiceSlotCount;
 }
 
 const Voice* VoiceAllocator::getVoice(int index) const noexcept
@@ -291,6 +333,32 @@ const Voice* VoiceAllocator::getVoice(int index) const noexcept
         return nullptr;
 
     return &voices[static_cast<std::size_t>(index)];
+}
+
+void VoiceAllocator::markVoiceActive(int voiceIndex) noexcept
+{
+    if (voiceIndex < 0 || voiceIndex >= static_cast<int>(voices.size()))
+        return;
+
+    for (int activeIndex = 0; activeIndex < activeVoiceSlotCount; ++activeIndex)
+        if (activeVoiceIndices[static_cast<std::size_t>(activeIndex)] == voiceIndex)
+            return;
+
+    if (activeVoiceSlotCount >= static_cast<int>(activeVoiceIndices.size()))
+        return;
+
+    activeVoiceIndices[static_cast<std::size_t>(activeVoiceSlotCount++)] = voiceIndex;
+}
+
+void VoiceAllocator::removeActiveVoiceAt(int activeListIndex) noexcept
+{
+    if (activeListIndex < 0 || activeListIndex >= activeVoiceSlotCount)
+        return;
+
+    --activeVoiceSlotCount;
+    activeVoiceIndices[static_cast<std::size_t>(activeListIndex)] =
+        activeVoiceIndices[static_cast<std::size_t>(activeVoiceSlotCount)];
+    activeVoiceIndices[static_cast<std::size_t>(activeVoiceSlotCount)] = 0;
 }
 
 float VoiceAllocator::nextRandom() noexcept

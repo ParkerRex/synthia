@@ -38,7 +38,8 @@
       "filter.enabled": false,
       "ramp.enabled": true,
       "ramp.rise_ms": 1.0,
-      "macro.motion": 0.5
+      "macro.motion": 0.5,
+      "quality.realtime_mode": "Normal"
     },
     "mod_slots": [
       {

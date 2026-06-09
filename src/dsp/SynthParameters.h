@@ -213,7 +213,7 @@ struct FilterParameters
     float resonance = 0.0f;
     float drive = 0.0f;
     float keytrack = 0.5f;
-    int oversampling = 1;
+    int oversampling = 0;
 };
 
 struct AmpParameters

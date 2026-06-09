@@ -14,9 +14,28 @@ float softClip(float value) noexcept
     return softSaturate(value);
 }
 
+float clampFast(float value, float minimum, float maximum) noexcept
+{
+    if (!std::isfinite(value))
+        return minimum;
+
+    if (value < minimum)
+        return minimum;
+
+    if (value > maximum)
+        return maximum;
+
+    return value;
+}
+
+float clampUnitFast(float value) noexcept
+{
+    return clampFast(value, 0.0f, 1.0f);
+}
+
 float flushTiny(float value) noexcept
 {
-    return std::abs(value) < 1.0e-20f ? 0.0f : value;
+    return value > -1.0e-20f && value < 1.0e-20f ? 0.0f : value;
 }
 } // namespace
 
@@ -39,21 +58,26 @@ float Filter::process(float input, float midiNote, const SynthParameters& parame
     if (!filter.enabled)
         return input;
 
-    const auto keytrack = std::clamp(filter.keytrack, -1.0f, 2.0f);
+    const auto keytrack = clampFast(filter.keytrack, -1.0f, 2.0f);
     const auto keytrackSemitones = (midiNote - 60.0f) * keytrack;
-    const auto cutoffSemitones = std::clamp(filter.cutoffSemitones + keytrackSemitones + cutoffModSemitones,
+    const auto cutoffSemitones = clampFast(filter.cutoffSemitones + keytrackSemitones + cutoffModSemitones,
                                            0.0f, 136.0f);
     const auto oversampling = oversamplingFactor(filter.oversampling);
     const auto effectiveSampleRate = static_cast<float>(sampleRate) * static_cast<float>(oversampling);
-    const auto cutoffHz = std::clamp(cutoffSemitonesToHz(cutoffSemitones),
-                                     8.0f, 0.45f * effectiveSampleRate);
+    const auto cutoffHz = clampFast(cutoffSemitonesToHz(cutoffSemitones), 8.0f, 0.45f * effectiveSampleRate);
+    const auto safeSampleRate = effectiveSampleRate > 1000.0f ? effectiveSampleRate : 1000.0f;
+    const auto normalizedCutoff = twoPi * cutoffHz / safeSampleRate;
+    const auto coefficient = clampFast(normalizedCutoff / (1.0f + normalizedCutoff), 0.00001f, 0.99f);
+    const auto driveAmount = clampUnitFast(filter.drive);
+    const auto driveGain = 1.0f + driveAmount * 9.0f;
+    const auto feedback = clampUnitFast(filter.resonance) * (3.85f / (1.0f + driveAmount * 1.35f));
 
     auto value = 0.0f;
     for (int i = 0; i < oversampling; ++i)
     {
         const auto t = static_cast<float>(i + 1) / static_cast<float>(oversampling);
         const auto subInput = previousInput + (input - previousInput) * t;
-        value += processCore(subInput, cutoffHz, filter.resonance, filter.drive, filter.mode, effectiveSampleRate);
+        value += processCore(subInput, coefficient, feedback, driveGain, filter.mode);
     }
     previousInput = input;
     value /= static_cast<float>(oversampling);
@@ -63,58 +87,43 @@ float Filter::process(float input, float midiNote, const SynthParameters& parame
 
 float Filter::cutoffSemitonesToHz(float semitones) noexcept
 {
-    return semitonesToHz(std::clamp(semitones, 0.0f, 136.0f));
+    return semitonesToHz(clampFast(semitones, 0.0f, 136.0f));
 }
 
-float Filter::processCore(float input, float cutoffHz, float resonance, float drive,
-                          FilterMode mode, float effectiveSampleRate) noexcept
+float Filter::processCore(float input, float coefficient, float feedback, float driveGain,
+                          FilterMode mode) noexcept
 {
-    const auto safeSampleRate = std::max(1000.0f, effectiveSampleRate);
-    const auto normalizedCutoff = twoPi * cutoffHz / safeSampleRate;
-    const auto g = std::clamp(normalizedCutoff / (1.0f + normalizedCutoff), 0.00001f, 0.99f);
-    const auto driveGain = 1.0f + clampUnit(drive) * 9.0f;
-    const auto feedback = std::clamp(resonance, 0.0f, 1.0f) * (3.85f / (1.0f + clampUnit(drive) * 1.35f));
     const auto drivenInput = softClip((input - feedback * softClip(stage[3])) * driveGain);
 
     auto previous = drivenInput;
     for (auto& onePole : stage)
     {
-        onePole = flushTiny(onePole + g * (softClip(previous) - softClip(onePole)));
+        onePole = flushTiny(onePole + coefficient * (softClip(previous) - softClip(onePole)));
         previous = onePole;
     }
-
-    const auto lp2 = stage[1];
-    const auto lp4 = stage[3];
-    const auto hp2 = input - lp2;
-    const auto hp4 = input - lp4;
-    const auto bp2 = stage[0] - stage[1];
-    const auto bp4 = stage[2] - stage[3];
-    const auto peak2 = lp2 - hp2;
-    const auto notch2 = lp2 + hp2;
-    const auto notch4 = lp4 + hp4;
 
     switch (mode)
     {
         case FilterMode::L2:
-            return lp2;
+            return stage[1];
         case FilterMode::L4:
-            return lp4;
+            return stage[3];
         case FilterMode::B2:
-            return bp2 * 2.0f;
+            return (stage[0] - stage[1]) * 2.0f;
         case FilterMode::B4:
-            return bp4 * 3.0f;
+            return (stage[2] - stage[3]) * 3.0f;
         case FilterMode::H2:
-            return hp2;
+            return input - stage[1];
         case FilterMode::H4:
-            return hp4;
+            return input - stage[3];
         case FilterMode::Peak2:
-            return peak2;
+            return stage[1] - (input - stage[1]);
         case FilterMode::Notch2:
-            return notch2;
+            return stage[1] + (input - stage[1]);
         case FilterMode::Notch4:
-            return notch4;
+            return stage[3] + (input - stage[3]);
     }
 
-    return lp4;
+    return stage[3];
 }
 } // namespace synth

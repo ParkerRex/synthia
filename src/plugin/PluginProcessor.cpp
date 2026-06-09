@@ -569,7 +569,7 @@ synth::SynthParameters SynthAudioProcessor::readParameters(float tempoBpm, bool 
     snapshot.filter.resonance = value(raw.filterResonance, 0.0f);
     snapshot.filter.drive = value(raw.filterDrive, 0.0f);
     snapshot.filter.keytrack = value(raw.filterKeytrack, 0.5f);
-    snapshot.filter.oversampling = static_cast<int>(std::round(value(raw.filterOversampling, 1.0f)));
+    snapshot.filter.oversampling = static_cast<int>(std::round(value(raw.filterOversampling, 0.0f)));
     snapshot.amp.drive = value(raw.ampDrive, 0.0f);
     snapshot.amp.levelDb = value(raw.ampLevelDb, -6.0f);
     snapshot.amp.pan = value(raw.ampPan, 0.0f);

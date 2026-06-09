@@ -1,12 +1,14 @@
 #include "Envelope.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace synth
 {
 void Envelope::prepare(double newSampleRate) noexcept
 {
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
+    updateCachedRates();
     reset();
 }
 
@@ -16,7 +18,16 @@ void Envelope::setSettings(EnvelopeSettings newSettings) noexcept
     newSettings.decayMs = std::max(0.0f, newSettings.decayMs);
     newSettings.sustain = std::clamp(newSettings.sustain, 0.0f, 1.0f);
     newSettings.releaseMs = std::max(0.0f, newSettings.releaseMs);
+    if (std::abs(newSettings.attackMs - settings.attackMs) <= 0.000001f
+        && std::abs(newSettings.decayMs - settings.decayMs) <= 0.000001f
+        && std::abs(newSettings.sustain - settings.sustain) <= 0.000001f
+        && std::abs(newSettings.releaseMs - settings.releaseMs) <= 0.000001f)
+    {
+        return;
+    }
+
     settings = newSettings;
+    updateCachedRates();
 }
 
 void Envelope::reset() noexcept
@@ -54,7 +65,7 @@ float Envelope::process() noexcept
 
     if (stage == EnvelopeStage::Attack)
     {
-        value += 1.0f / samplesForMs(settings.attackMs);
+        value += attackIncrement;
         if (value >= 1.0f)
         {
             value = 1.0f;
@@ -70,7 +81,7 @@ float Envelope::process() noexcept
         }
         else
         {
-            value -= (1.0f - settings.sustain) / samplesForMs(settings.decayMs);
+            value -= decayDecrement;
             if (value <= settings.sustain)
             {
                 value = settings.sustain;
@@ -81,7 +92,7 @@ float Envelope::process() noexcept
     else if (stage == EnvelopeStage::Release)
     {
         releaseSamplesElapsed += 1.0f;
-        const auto progress = std::min(1.0f, releaseSamplesElapsed / samplesForMs(settings.releaseMs));
+        const auto progress = std::min(1.0f, releaseSamplesElapsed / releaseSamples);
         value = releaseStart * (1.0f - progress);
         if (progress >= 1.0f)
         {
@@ -97,5 +108,13 @@ float Envelope::samplesForMs(float ms) const noexcept
 {
     return std::max(1.0f, static_cast<float>(sampleRate) * ms / 1000.0f);
 }
-} // namespace synth
 
+void Envelope::updateCachedRates() noexcept
+{
+    const auto attackSamples = samplesForMs(settings.attackMs);
+    const auto decaySamples = samplesForMs(settings.decayMs);
+    releaseSamples = samplesForMs(settings.releaseMs);
+    attackIncrement = settings.attackMs <= 0.0f ? 1.0f : 1.0f / attackSamples;
+    decayDecrement = settings.decayMs <= 0.0f ? 1.0f : (1.0f - settings.sustain) / decaySamples;
+}
+} // namespace synth

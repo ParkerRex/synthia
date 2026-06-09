@@ -13,22 +13,35 @@ constexpr float twoPi = 6.28318530717958647692f;
 void Lfo::prepare(double newSampleRate) noexcept
 {
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
+    updatePhaseIncrement();
     resetPhase();
 }
 
 void Lfo::setRateHz(float newRateHz) noexcept
 {
-    rateHz = std::clamp(newRateHz, 0.01f, 40.0f);
+    const auto clampedRate = std::clamp(newRateHz, 0.01f, 40.0f);
+    if (std::abs(clampedRate - rateHz) <= 0.000001f)
+        return;
+
+    rateHz = clampedRate;
+    updatePhaseIncrement();
 }
 
 void Lfo::setShape(LfoShape newShape) noexcept
 {
+    if (shape == newShape)
+        return;
+
     shape = newShape;
 }
 
 void Lfo::setPhaseDegrees(float degrees) noexcept
 {
-    phaseOffset = std::fmod(std::max(0.0f, degrees) / 360.0f, 1.0f);
+    const auto newPhaseOffset = std::fmod(std::max(0.0f, degrees) / 360.0f, 1.0f);
+    if (std::abs(newPhaseOffset - phaseOffset) <= 0.000001f)
+        return;
+
+    phaseOffset = newPhaseOffset;
 }
 
 void Lfo::resetPhase() noexcept
@@ -40,7 +53,7 @@ void Lfo::resetPhase() noexcept
 float Lfo::process() noexcept
 {
     const auto previousPhase = phase;
-    phase += rateHz / static_cast<float>(sampleRate);
+    phase += phaseIncrement;
     if (phase >= 1.0f)
         phase -= std::floor(phase);
 
@@ -76,5 +89,9 @@ float Lfo::valueForPhase(float phaseValue) noexcept
 
     return 0.0f;
 }
-} // namespace synth
 
+void Lfo::updatePhaseIncrement() noexcept
+{
+    phaseIncrement = rateHz / static_cast<float>(sampleRate);
+}
+} // namespace synth

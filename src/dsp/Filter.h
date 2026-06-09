@@ -17,8 +17,8 @@ public:
     static float cutoffSemitonesToHz(float semitones) noexcept;
 
 private:
-    float processCore(float input, float cutoffHz, float resonance, float drive,
-                      FilterMode mode, float effectiveSampleRate) noexcept;
+    float processCore(float input, float coefficient, float feedback, float driveGain,
+                      FilterMode mode) noexcept;
 
     double sampleRate = 44100.0;
     std::array<float, 4> stage {};

@@ -35,6 +35,7 @@ public:
 
 private:
     float samplesForMs(float ms) const noexcept;
+    void updateCachedRates() noexcept;
 
     double sampleRate = 44100.0;
     EnvelopeSettings settings;
@@ -42,6 +43,8 @@ private:
     float value = 0.0f;
     float releaseStart = 0.0f;
     float releaseSamplesElapsed = 0.0f;
+    float attackIncrement = 1.0f;
+    float decayDecrement = 1.0f;
+    float releaseSamples = 1.0f;
 };
 } // namespace synth
-

@@ -29,7 +29,8 @@
       "test"
     ],
     "parameters": {
-      "voice.mode": "Poly"
+      "voice.mode": "Poly",
+      "quality.realtime_mode": "Normal"
     },
     "mod_slots": [
       {
