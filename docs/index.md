@@ -12,6 +12,7 @@ This directory holds implementation-facing documentation for synthia. `../SPEC.m
 ## Engineering Docs
 
 - `ARCHITECTURE.md`: component model, planned code layout, realtime boundaries.
+- `BUILD_RELEASE.md`: optimized macOS bundle builds, local Ableton install, packaging, and release upload handoff.
 - `PRESET_SCHEMA.md`: preset and host-state shape.
 - `QUALITY.md`: local formatting, linting, realtime-safety, and build-loop quality gates.
 - `VALIDATION.md`: tests, render fixtures, host checks, and acceptance metrics.
