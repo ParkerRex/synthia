@@ -11,8 +11,10 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -38,6 +40,12 @@ struct Options
     bool presetRender = false;
     bool dry = false;
     bool wet = false;
+    bool bench = false;
+    std::string benchPreset = "supersaw-stack-01";
+    std::string benchNotes = "A2,E3,A3,C4,E4,A4";
+    double benchSeconds = 8.0;
+    int benchReps = 5;
+    int benchBlock = 512;
     std::string suite;
     std::filesystem::path output = "build/reports/smoke.json";
     std::filesystem::path report = "build/reports/render.json";
@@ -255,6 +263,31 @@ Options parseOptions(int argc, char* argv[])
         else if (arg == "--notes" && i + 1 < argc)
         {
             options.notes = argv[++i];
+        }
+        else if (arg == "--bench")
+        {
+            options.bench = true;
+            options.output = "build/reports/bench.json";
+        }
+        else if (arg == "--bench-preset" && i + 1 < argc)
+        {
+            options.benchPreset = argv[++i];
+        }
+        else if (arg == "--bench-notes" && i + 1 < argc)
+        {
+            options.benchNotes = argv[++i];
+        }
+        else if (arg == "--bench-seconds" && i + 1 < argc)
+        {
+            options.benchSeconds = std::strtod(argv[++i], nullptr);
+        }
+        else if (arg == "--bench-reps" && i + 1 < argc)
+        {
+            options.benchReps = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        }
+        else if (arg == "--bench-block" && i + 1 < argc)
+        {
+            options.benchBlock = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         }
         else if (arg == "--output" && i + 1 < argc)
         {
@@ -3096,6 +3129,150 @@ int writePatchRecreationSuite(const Options& options)
               << outputDir << ".\n";
     return failed == 0 ? 0 : 1;
 }
+std::filesystem::path benchPresetPath(const std::string& idOrPath)
+{
+    if (idOrPath.find('/') != std::string::npos
+        || idOrPath.find(".SynthiaPreset") != std::string::npos)
+    {
+        return idOrPath;
+    }
+
+    return factoryPresetPathForId(idOrPath);
+}
+
+int runPerfBench(const Options& options)
+{
+    const auto presetPath = benchPresetPath(options.benchPreset);
+    synth::SynthParameters parameters;
+    std::string error;
+    if (!loadPresetParameters(presetPath, parameters, error))
+    {
+        std::cerr << "bench: " << error << "\n";
+        return 2;
+    }
+
+    const auto notes = parseNotes(options.benchNotes);
+    if (notes.empty())
+    {
+        std::cerr << "bench: --bench-notes produced no notes\n";
+        return 2;
+    }
+
+    constexpr auto sampleRate = 48000.0;
+    const auto blockSize = std::clamp(options.benchBlock, 16, 4096);
+    const auto benchSeconds = std::clamp(options.benchSeconds, 0.5, 120.0);
+    const auto reps = std::clamp(options.benchReps, 1, 50);
+    const auto totalSamples = static_cast<int>(sampleRate * benchSeconds);
+    const auto warmupSamples = static_cast<int>(sampleRate * 1.5);
+
+    std::vector<float> left(static_cast<std::size_t>(blockSize), 0.0f);
+    std::vector<float> right(static_cast<std::size_t>(blockSize), 0.0f);
+
+    struct RepResult
+    {
+        double wallMs = 0.0;
+        double realtimeMultiple = 0.0;
+        int activeVoices = 0;
+        float peak = 0.0f;
+        int invalidSamples = 0;
+    };
+
+    std::vector<RepResult> repResults;
+    repResults.reserve(static_cast<std::size_t>(reps));
+
+    for (int rep = 0; rep < reps; ++rep)
+    {
+        synth::SynthEngine engine;
+        engine.prepare(sampleRate, blockSize);
+        engine.setParameters(parameters);
+        for (const auto note : notes)
+            engine.noteOn(note, 0.9f);
+
+        for (int rendered = 0; rendered < warmupSamples; rendered += blockSize)
+        {
+            engine.setParameters(parameters);
+            engine.process(left.data(), right.data(),
+                           std::min(blockSize, warmupSamples - rendered));
+        }
+
+        RepResult result;
+        const auto start = std::chrono::steady_clock::now();
+        for (int rendered = 0; rendered < totalSamples; rendered += blockSize)
+        {
+            const auto blockSamples = std::min(blockSize, totalSamples - rendered);
+            engine.setParameters(parameters);
+            const auto stats = engine.process(left.data(), right.data(), blockSamples);
+            result.peak = std::max(result.peak, stats.peak);
+            result.invalidSamples += stats.invalidSamples;
+            result.activeVoices = stats.activeVoices;
+        }
+        const auto end = std::chrono::steady_clock::now();
+
+        const auto wallSeconds = std::chrono::duration<double>(end - start).count();
+        result.wallMs = wallSeconds * 1000.0;
+        result.realtimeMultiple = wallSeconds > 0.0
+            ? (static_cast<double>(totalSamples) / sampleRate) / wallSeconds
+            : 0.0;
+        repResults.push_back(result);
+    }
+
+    auto sortedWallMs = std::vector<double> {};
+    for (const auto& rep : repResults)
+        sortedWallMs.push_back(rep.wallMs);
+    std::sort(sortedWallMs.begin(), sortedWallMs.end());
+    const auto bestWallMs = sortedWallMs.front();
+    const auto medianWallMs = sortedWallMs[sortedWallMs.size() / 2];
+    const auto audioSeconds = static_cast<double>(totalSamples) / sampleRate;
+    const auto bestRealtime = bestWallMs > 0.0 ? audioSeconds * 1000.0 / bestWallMs : 0.0;
+    const auto medianRealtime = medianWallMs > 0.0 ? audioSeconds * 1000.0 / medianWallMs : 0.0;
+
+    const auto& last = repResults.back();
+    auto totalInvalid = 0;
+    for (const auto& rep : repResults)
+        totalInvalid += rep.invalidSamples;
+
+    const auto loadValid = last.activeVoices > 0 && last.peak > 0.0001f;
+    const auto passed = totalInvalid == 0 && loadValid;
+
+    ensureParentDirectory(options.output);
+    std::ofstream out(options.output);
+    out << "{\n";
+    out << "  \"schema_version\": 1,\n";
+    out << "  \"suite\": \"perf-bench\",\n";
+    out << "  \"preset\": \"" << genericString(presetPath) << "\",\n";
+    out << "  \"notes\": \"" << options.benchNotes << "\",\n";
+    out << "  \"sample_rate\": " << static_cast<int>(sampleRate) << ",\n";
+    out << "  \"block_size\": " << blockSize << ",\n";
+    out << "  \"set_parameters_per_block\": true,\n";
+    out << "  \"bench_seconds\": " << benchSeconds << ",\n";
+    out << "  \"warmup_seconds\": 1.5,\n";
+    out << "  \"reps\": " << reps << ",\n";
+    out << "  \"active_voices\": " << last.activeVoices << ",\n";
+    out << "  \"peak\": " << last.peak << ",\n";
+    out << "  \"invalid_samples\": " << totalInvalid << ",\n";
+    out << "  \"rep_wall_ms\": [";
+    for (std::size_t i = 0; i < repResults.size(); ++i)
+        out << (i == 0 ? "" : ", ") << repResults[i].wallMs;
+    out << "],\n";
+    out << "  \"best_wall_ms\": " << bestWallMs << ",\n";
+    out << "  \"median_wall_ms\": " << medianWallMs << ",\n";
+    out << "  \"best_realtime_multiple\": " << bestRealtime << ",\n";
+    out << "  \"median_realtime_multiple\": " << medianRealtime << ",\n";
+    out << "  \"passed\": " << boolString(passed) << "\n";
+    out << "}\n";
+
+    std::cout << "bench preset=" << options.benchPreset
+              << " voices=" << last.activeVoices
+              << " block=" << blockSize
+              << " audio_s=" << audioSeconds
+              << " best_ms=" << bestWallMs
+              << " median_ms=" << medianWallMs
+              << " best_rt=" << bestRealtime << "x"
+              << " median_rt=" << medianRealtime << "x"
+              << (passed ? "" : " INVALID") << "\n";
+
+    return passed ? 0 : 1;
+}
 } // namespace
 
 int main(int argc, char* argv[])
@@ -3192,6 +3369,9 @@ int main(int argc, char* argv[])
         std::cout << "Randomize render validation " << (exitCode == 0 ? "passed." : "failed.") << "\n";
         return exitCode;
     }
+
+    if (options.bench)
+        return runPerfBench(options);
 
     if (options.presetRender)
     {

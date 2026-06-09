@@ -210,6 +210,31 @@ Implemented standalone metrics:
 - `realtime_quality_mode`, `offline_quality_mode`, `quality_modes_differ`, `difference_meaningful`, and `difference_bounded`: standalone realtime/offline quality comparison fields.
 - `max_abs_diff`, `rms_diff`, `peak_delta`: deterministic repeat comparison metrics.
 
+## Headless Performance Bench
+
+`SynthiaRender --bench` renders a sustained chord through the full engine
+(parameter snapshot per block, 512-sample blocks by default) and reports wall
+time plus realtime multiple, for fast DSP perf A/B without a host. Use an
+optimized build; Debug timings are invalid for performance decisions.
+
+```bash
+cmake --build build-perf-release --target SynthiaRender
+./build-perf-release/SynthiaRender --bench
+```
+
+Options: `--bench-preset <id-or-path>`, `--bench-notes <list>`,
+`--bench-seconds <s>`, `--bench-reps <n>`, `--bench-block <samples>`,
+`--output <report.json>`. Rep-to-rep spread is roughly half a percent, so
+changes of about one percent and larger are resolvable. The JSON report
+records wall-ms per rep, best/median realtime multiples, active voices, and a
+peak/invalid-sample sanity check.
+
+The bench complements, not replaces, host validation: confirm wins in Ableton
+with the bar-65 protocol, ideally as a paired same-session A/B (install old
+binary, measure, install new binary, measure) because single cross-session
+CPU windows carry thermal and session-state confounds of a few percentage
+points.
+
 ## Render Artifact Contract
 
 Each validation render should record:
