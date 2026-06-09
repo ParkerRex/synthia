@@ -2,6 +2,14 @@
 
 Use this workflow for Ableton profiling, host validation, and release-candidate bundle packaging.
 
+For the full Ableton CPU profiling loop, use the repo skill at:
+
+```text
+.codex/skills/profile-synthia-ableton/SKILL.md
+```
+
+That skill documents AbletonMCP setup, the upstream MCP source, bar-65 playback, stale plugin-image checks, and the sample-based optimization loop.
+
 ## Build modes
 
 - `Debug`: local debugging only. Do not use this for Ableton CPU numbers.
@@ -25,6 +33,20 @@ lsof -p "$LIVE_PID" 2>/dev/null | rg -i 'Synthia|sylenth' || true
 ```
 
 A valid Ableton profile must use the target validation set, start at bar 65, and show the same inode in both `stat` and `lsof`.
+
+AbletonMCP setup source:
+
+```text
+https://github.com/ahujasid/ableton-mcp
+```
+
+Minimum setup:
+
+1. Run the MCP server with `uvx ableton-mcp`.
+2. Install `AbletonMCP_Remote_Script/__init__.py` as an Ableton MIDI Remote Script.
+3. Restart Ableton.
+4. In `Link, Tempo & MIDI`, set `Control Surface` to `AbletonMCP`, `Input` to `None`, and `Output` to `None`.
+5. Use the skill's socket/session checks before profiling.
 
 ## Release-candidate package build
 

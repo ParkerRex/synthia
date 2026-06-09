@@ -7,6 +7,21 @@ description: Profile and optimize the Synthia JUCE plugin in Ableton Live using 
 
 Use this skill for the Synthia Ableton profiling loop. The goal is real host evidence, not synthetic comfort checks.
 
+## How to use this skill
+
+Use this skill when the task is to build Synthia for Ableton, set up AbletonMCP transport control, prove Ableton loaded the current plugin binary, or profile/optimize the bar-65 multi-instance validation set.
+
+Follow this order:
+
+1. Stop any playback left over from a previous profile.
+2. Set up or verify AbletonMCP.
+3. Build and locally install an optimized Synthia bundle.
+4. Restart or rescan Ableton so it maps the new plugin image.
+5. Verify the installed VST3 inode equals the inode mapped by Ableton.
+6. Position playback at bar 65, beat `256.0`.
+7. Start playback, capture CPU/sample evidence, stop playback.
+8. Optimize only the measured hot path, then rebuild and repeat.
+
 ## What this skill covers
 
 - Build optimized Synthia AU/VST3 bundles for host validation.
@@ -39,6 +54,8 @@ Upstream states the project has two parts:
 - `AbletonMCP_Remote_Script`: Ableton MIDI Remote Script that opens the socket server inside Live.
 - `MCP_Server`: Python MCP server, usually run with `uvx ableton-mcp`.
 
+Use the upstream repo for the remote script file and use the PyPI/uvx package for the MCP server. Do not vendor the upstream MCP repo into Synthia.
+
 Upstream prerequisites:
 
 - Ableton Live 10 or newer.
@@ -53,13 +70,13 @@ brew install uv
 
 ## Set up AbletonMCP in Codex and Ableton
 
-Install or configure the MCP server so Codex has an `AbletonMCP` server entry that runs:
+Install or configure the MCP server so Codex has an `AbletonMCP` server entry whose command is:
 
 ```bash
 uvx ableton-mcp
 ```
 
-If editing a Codex MCP config manually, the server shape should be equivalent to:
+If editing a Codex MCP config manually, the server definition should be equivalent to this command/args/env shape:
 
 ```json
 {
@@ -74,6 +91,19 @@ If editing a Codex MCP config manually, the server shape should be equivalent to
   }
 }
 ```
+
+For Codex CLI TOML configs, the same server normally looks like:
+
+```toml
+[mcp_servers.AbletonMCP]
+command = "uvx"
+args = ["ableton-mcp"]
+
+[mcp_servers.AbletonMCP.env]
+ABLETON_MCP_DISABLE_TELEMETRY = "true"
+```
+
+Restart the Codex session after changing MCP config so the `mcp__AbletonMCP.*` tools are discovered.
 
 Only run one AbletonMCP server instance at a time. Multiple clients or duplicate server processes can fight for the same Ableton socket.
 
@@ -99,15 +129,16 @@ Likely macOS remote-script locations:
 After setup, discover or expose the tools in Codex if needed:
 
 ```text
-tool_search query: AbletonMCP start_playback stop_playback get_session_info set_arrangement_time
+tool_search query: AbletonMCP start_playback stop_playback get_session_info
 ```
 
 Expected tools include:
 
 - `mcp__AbletonMCP.get_session_info`
-- `mcp__AbletonMCP.set_arrangement_time`
 - `mcp__AbletonMCP.start_playback`
 - `mcp__AbletonMCP.stop_playback`
+
+Some AbletonMCP installs also expose an arrangement-time setter. If no time setter is exposed, use the raw socket fallback in the bar-65 section. Do not profile from the current playhead just because transport works.
 
 ## Verify AbletonMCP connectivity
 
@@ -137,6 +168,8 @@ return_track_count: 2
 song_length: 860.0
 ```
 
+The socket check only proves the Ableton remote script is listening. The MCP tool check proves Codex can talk to the MCP server. Require both before relying on automated transport.
+
 If it reports a different set, open the validation set before profiling:
 
 ```text
@@ -165,6 +198,12 @@ Reference doc:
 
 ```text
 docs/BUILD_RELEASE.md
+```
+
+If a build directory fails because its `CMakeCache.txt` belongs to another checkout, keep the old directory intact and pass a fresh explicit build directory:
+
+```bash
+scripts/build-release-bundles.sh --config RelWithDebInfo --build-dir build-perf-release --install-local
 ```
 
 Record the installed VST3 inode after every install:
@@ -199,7 +238,7 @@ start beat == 256.0
 
 Before profiling, position Ableton playback at bar 65. In 4/4 this is beat `256.0` because 64 full bars have elapsed before bar 65.
 
-Prefer the exposed MCP tool when available:
+Use the exposed MCP tool if the current AbletonMCP server provides it:
 
 ```text
 mcp__AbletonMCP.set_arrangement_time({"time": 256.0})
@@ -208,7 +247,7 @@ mcp__AbletonMCP.get_session_info({})
 
 The setter response can be stale. The valid confirmation is `current_song_time: 256.0` from the follow-up session read.
 
-Raw socket fallback:
+Raw socket fallback when the MCP time setter is missing:
 
 ```bash
 python3 - <<'PY'
@@ -242,6 +281,14 @@ Do not profile from the beginning of the arrangement for this validation set.
 7. Extract Synthia plugin frames from the full sample file.
 8. Optimize only the measured hot path.
 9. Rebuild/install, then require Ableton reload before reprofile.
+
+Treat profiles as invalid when any of these are true:
+
+- Ableton maps an older `Synthia.vst3` inode.
+- The build was `Debug`.
+- Playback did not start at beat `256.0`.
+- The set shape does not match the 9-track validation set.
+- The optimization changes voice count, stack count, preset quality, or audible capability to win CPU.
 
 CPU/sample command:
 
