@@ -540,17 +540,37 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
         if (activeSlotCount <= 0)
             return {};
 
+        if (activeSlotCount == 1)
+        {
+            const auto& slot = parameters.oscillatorRender.activeSlots[0];
+            auto& oscillatorStack = slot.legacy
+                ? oscillator
+                : layerOscillators[static_cast<std::size_t>(slot.oscillatorStateIndex)];
+            const auto effectivePitchMod = pitchModSemitones + analogPitchMod;
+            auto slotSample = slot.sawStackOnly
+                ? oscillatorStack.renderSawStack(effectiveNote, slot.oscillator, effectivePitchMod, slot.sawStackGain)
+                : oscillatorStack.renderSample(effectiveNote, slot.oscillator, effectivePitchMod, pulseWidthMod);
+
+            if (slot.invert)
+                slotSample = -slotSample;
+
+            mix.sample = sanitize(slotSample * slot.gain);
+            mix.pan = clampFast(slot.pan + unisonBi * slot.stereo * 0.65f, -1.0f, 1.0f);
+            return mix;
+        }
+
         auto panWeight = 0.0f;
         auto weightedPan = 0.0f;
         for (int slotIndex = 0; slotIndex < activeSlotCount; ++slotIndex)
         {
             const auto& slot = parameters.oscillatorRender.activeSlots[static_cast<std::size_t>(slotIndex)];
-            auto slotSample = slot.legacy
-                ? oscillator.renderSample(effectiveNote, parameters, pitchModSemitones + analogPitchMod, pulseWidthMod)
-                : layerOscillators[static_cast<std::size_t>(slot.oscillatorStateIndex)]
-                    .renderSample(effectiveNote, slot.oscillator,
-                                  pitchModSemitones + analogPitchMod,
-                                  pulseWidthMod);
+            auto& oscillatorStack = slot.legacy
+                ? oscillator
+                : layerOscillators[static_cast<std::size_t>(slot.oscillatorStateIndex)];
+            const auto effectivePitchMod = pitchModSemitones + analogPitchMod;
+            auto slotSample = slot.sawStackOnly
+                ? oscillatorStack.renderSawStack(effectiveNote, slot.oscillator, effectivePitchMod, slot.sawStackGain)
+                : oscillatorStack.renderSample(effectiveNote, slot.oscillator, effectivePitchMod, pulseWidthMod);
 
             if (slot.invert)
                 slotSample = -slotSample;

@@ -182,6 +182,52 @@ float OscillatorStack::renderSample(float midiNote, const OscillatorParameters& 
     return clampFast((stacked + sub + noise) * compensation, -1.2f, 1.2f);
 }
 
+float OscillatorStack::renderSawStack(float midiNote, const OscillatorParameters& osc,
+                                      float pitchModSemitones, float outputGain) noexcept
+{
+    const auto stackCount = clampIntFast(osc.stackCount, 1, maxStackCount);
+    const auto sampleRateFloat = static_cast<float>(sampleRate);
+    const auto maxOscFrequency = sampleRateFloat * 0.45f;
+    const auto minOscIncrement = 1.0f / sampleRateFloat;
+    const auto maxOscIncrement = maxOscFrequency / sampleRateFloat;
+    const auto basePitch = midiNote
+        + osc.pitchSemitones
+        + osc.fineCents / 100.0f
+        + pitchModSemitones;
+    auto baseFrequency = cachedBaseFrequency;
+    if (!cachedBaseFrequencyValid
+        || !std::isfinite(basePitch)
+        || std::abs(cachedBasePitch - basePitch) > 0.000001f
+        || std::abs(cachedMaxFrequency - maxOscFrequency) > 0.001f)
+    {
+        baseFrequency = clampFast(midiNoteToHz(basePitch), 1.0f, maxOscFrequency);
+        cachedBaseFrequency = baseFrequency;
+        cachedBasePitch = basePitch;
+        cachedMaxFrequency = maxOscFrequency;
+        cachedBaseFrequencyValid = std::isfinite(basePitch);
+    }
+
+    const auto masterIncrement = clampFast(baseFrequency / sampleRateFloat, minOscIncrement, maxOscIncrement);
+    advancePhase(syncMasterPhase, masterIncrement);
+
+    const auto stackDetune = clampUnitFast(osc.stackDetune);
+    if (cachedDetuneStackCount != stackCount || std::abs(cachedDetuneAmount - stackDetune) > 0.000001f)
+        updateDetuneRatios(stackCount, stackDetune);
+
+    auto stackedSaw = 0.0f;
+    for (int i = 0; i < stackCount; ++i)
+    {
+        const auto increment = clampFast(masterIncrement * detuneRatios[static_cast<std::size_t>(i)],
+                                         minOscIncrement, maxOscIncrement);
+        auto& phase = phases[static_cast<std::size_t>(i)];
+        stackedSaw += renderSaw(phase, increment);
+        advancePhase(phase, increment);
+    }
+
+    return clampFast(stackedSaw * inverseSqrtForCount(stackCount) * outputGain,
+                     -1.2f, 1.2f);
+}
+
 float OscillatorStack::renderSaw(float& phase, float phaseIncrement) noexcept
 {
     return 2.0f * phase - 1.0f - polyBlep(phase, phaseIncrement);

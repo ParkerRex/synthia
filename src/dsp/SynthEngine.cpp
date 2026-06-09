@@ -101,6 +101,15 @@ OscillatorParameters toPreparedSlotOscillatorParameters(const LayerOscillatorPar
 
     return oscillator;
 }
+
+bool isPreparedSawStackOnly(const OscillatorParameters& oscillator) noexcept
+{
+    return oscillator.sawLevel > 0.0f
+        && oscillator.pulseLevel <= 0.0f
+        && oscillator.noiseLevel <= 0.0f
+        && oscillator.subLevel <= 0.0f
+        && oscillator.syncAmount <= 0.001f;
+}
 } // namespace
 
 void SynthEngine::prepare(double newSampleRate, int newMaxBlockSize)
@@ -291,8 +300,11 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
             preparedSlot.panWeight = preparedSlot.gain;
             preparedSlot.weightedPanBase = preparedSlot.pan * preparedSlot.gain;
             preparedSlot.invert = slot.invert;
-            if (!preparedSlot.legacy)
-                preparedSlot.oscillator = toPreparedSlotOscillatorParameters(slot, parameters);
+            preparedSlot.oscillator = preparedSlot.legacy
+                ? parameters.osc
+                : toPreparedSlotOscillatorParameters(slot, parameters);
+            preparedSlot.sawStackOnly = isPreparedSawStackOnly(preparedSlot.oscillator);
+            preparedSlot.sawStackGain = 0.7f * std::clamp(preparedSlot.oscillator.sawLevel, 0.0f, 1.0f);
         }
     }
     parameters.oscillatorRender.cacheValid = true;

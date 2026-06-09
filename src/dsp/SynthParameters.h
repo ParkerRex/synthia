@@ -209,10 +209,12 @@ struct LayerParameters
 struct PreparedOscillatorSlotParameters
 {
     bool legacy = false;
+    bool sawStackOnly = false;
     int layerIndex = 0;
     int oscillatorIndex = 0;
     int oscillatorStateIndex = 0;
     OscillatorParameters oscillator;
+    float sawStackGain = 0.0f;
     float gain = 0.0f;
     float pan = 0.0f;
     float stereo = 0.0f;
