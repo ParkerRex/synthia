@@ -143,5 +143,16 @@ private:
     ModulationSums lastDirectSums;
     ModulationSums lastTransModSums;
     float lastRampValue = 0.0f;
+    float cachedAmpDrive = 0.0f;
+    float cachedAmpDriveGain = 1.0f;
+    float cachedAmpDriveNormalizer = 1.0f;
+    bool cachedAmpDriveValid = false;
+    float cachedAmpGainDb = 0.0f;
+    float cachedAmpGain = 1.0f;
+    bool cachedAmpGainValid = false;
+    float cachedPan = 0.0f;
+    float cachedPanLeftGain = 0.70710677f;
+    float cachedPanRightGain = 0.70710677f;
+    bool cachedPanValid = false;
 };
 } // namespace synth

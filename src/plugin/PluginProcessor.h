@@ -17,6 +17,7 @@
 
 class SynthAudioProcessor final : public juce::AudioProcessor
                                 , private juce::Timer
+                                , private juce::AudioProcessorValueTreeState::Listener
 {
 public:
     SynthAudioProcessor();
@@ -308,6 +309,7 @@ private:
                            const juce::String& presetFilePath);
     void setPresetBaselineFingerprint(const synth::PresetStateFingerprint& fingerprint);
     void timerCallback() override;
+    void parameterChanged(const juce::String& parameterId, float newValue) override;
     void loadMidiControllerAssignments();
     void publishMidiControllerAssignments();
     bool assignMidiControllerInternal(int controllerNumber,
@@ -352,6 +354,8 @@ private:
     std::atomic<float> diagnosticTempoBpm { 128.0f };
     std::atomic<bool> panicRequested { false };
     std::atomic<std::uint64_t> parameterStateSequence { 0 };
+    std::atomic<std::uint64_t> presetParameterRevision { 1 };
+    std::atomic<std::uint64_t> presetBaselineRevision { 1 };
     mutable juce::CriticalSection presetMetadataLock;
     juce::String currentPresetName { "Init" };
     juce::String currentPresetFilePath;
@@ -359,6 +363,10 @@ private:
     mutable juce::CriticalSection presetWorkflowLock;
     synth::PresetStateFingerprint presetBaselineFingerprint;
     std::array<synth::PresetCompareSlot, 2> presetCompareSlots {};
+    mutable juce::CriticalSection presetDirtyStateLock;
+    mutable std::uint64_t cachedPresetParameterRevision = 0;
+    mutable std::uint64_t cachedPresetBaselineRevision = 0;
+    mutable synth::PresetDirtyState cachedPresetDirtyState;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthAudioProcessor)
 };

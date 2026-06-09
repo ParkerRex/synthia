@@ -369,6 +369,9 @@ struct TransModSlotParameters
 struct TransModParameters
 {
     std::array<TransModSlotParameters, transModSlotCount> slots {};
+    std::array<TransModSlotParameters, transModSlotCount> activeSlots {};
+    int activeSlotCount = 0;
+    bool activeSlotCacheValid = false;
 };
 
 struct PerformanceState

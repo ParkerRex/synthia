@@ -37,6 +37,10 @@ private:
     std::array<float, maxStackCount> detuneRatios {};
     int cachedDetuneStackCount = -1;
     float cachedDetuneAmount = -1.0f;
+    float cachedBasePitch = 0.0f;
+    float cachedMaxFrequency = 0.0f;
+    float cachedBaseFrequency = 0.0f;
+    bool cachedBaseFrequencyValid = false;
     float subPhase = 0.0f;
     float syncMasterPhase = 0.0f;
     unsigned int noiseState = 0x76543210u;

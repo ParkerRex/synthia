@@ -123,6 +123,9 @@ SynthAudioProcessor::SynthAudioProcessor()
 
     cacheParameterPointers();
     setPresetBaselineFingerprint(synth::fingerprintCurrentPresetState(parameters));
+    for (const auto& spec : synth::getParameterSpecs())
+        if (spec.presetSerialized)
+            parameters.addParameterListener(juce::String(spec.id), this);
     loadMidiControllerAssignments();
     startTimerHz(60);
 }
@@ -130,6 +133,9 @@ SynthAudioProcessor::SynthAudioProcessor()
 SynthAudioProcessor::~SynthAudioProcessor()
 {
     stopTimer();
+    for (const auto& spec : synth::getParameterSpecs())
+        if (spec.presetSerialized)
+            parameters.removeParameterListener(juce::String(spec.id), this);
 }
 
 void SynthAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -889,7 +895,28 @@ SynthAudioProcessor::PresetWorkflowSnapshot SynthAudioProcessor::getPresetWorkfl
         snapshot.compareSlotBReady = presetCompareSlots[1].captured;
     }
 
-    const auto dirtyState = synth::comparePresetDirtyState(parameters, baseline);
+    const auto parameterRevision = presetParameterRevision.load(std::memory_order_acquire);
+    const auto baselineRevision = presetBaselineRevision.load(std::memory_order_acquire);
+    synth::PresetDirtyState dirtyState;
+    auto cacheHit = false;
+    {
+        const juce::CriticalSection::ScopedLockType lock(presetDirtyStateLock);
+        cacheHit = cachedPresetParameterRevision == parameterRevision
+            && cachedPresetBaselineRevision == baselineRevision
+            && cachedPresetDirtyState.current.valid;
+        if (cacheHit)
+            dirtyState = cachedPresetDirtyState;
+    }
+
+    if (!cacheHit)
+    {
+        dirtyState = synth::comparePresetDirtyState(parameters, baseline);
+        const juce::CriticalSection::ScopedLockType lock(presetDirtyStateLock);
+        cachedPresetParameterRevision = parameterRevision;
+        cachedPresetBaselineRevision = baselineRevision;
+        cachedPresetDirtyState = dirtyState;
+    }
+
     snapshot.baselineValid = dirtyState.baseline.valid;
     snapshot.dirty = dirtyState.dirty;
     return snapshot;
@@ -1404,6 +1431,13 @@ void SynthAudioProcessor::setPresetBaselineFingerprint(const synth::PresetStateF
 {
     const juce::CriticalSection::ScopedLockType lock(presetWorkflowLock);
     presetBaselineFingerprint = fingerprint;
+    presetBaselineRevision.fetch_add(1, std::memory_order_release);
+}
+
+void SynthAudioProcessor::parameterChanged(const juce::String& parameterId, float newValue)
+{
+    juce::ignoreUnused(parameterId, newValue);
+    presetParameterRevision.fetch_add(1, std::memory_order_release);
 }
 
 void SynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData)

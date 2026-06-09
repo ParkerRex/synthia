@@ -258,6 +258,18 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
         slot.ampLevelDb = std::clamp(finiteOr(slot.ampLevelDb, 0.0f), -24.0f, 24.0f);
         slot.pan = std::clamp(finiteOr(slot.pan, 0.0f), -1.0f, 1.0f);
     }
+    parameters.transMod.activeSlotCount = 0;
+    for (const auto& slot : parameters.transMod.slots)
+    {
+        if (!slot.enabled || slot.source == ModSource::None)
+            continue;
+
+        if (parameters.transMod.activeSlotCount >= transModSlotCount)
+            break;
+
+        parameters.transMod.activeSlots[static_cast<std::size_t>(parameters.transMod.activeSlotCount++)] = slot;
+    }
+    parameters.transMod.activeSlotCacheValid = true;
     parameters.macro.motion = std::clamp(finiteOr(parameters.macro.motion, defaults.macro.motion), 0.0f, 1.0f);
     parameters.macro.width = std::clamp(finiteOr(parameters.macro.width, defaults.macro.width), 0.0f, 1.0f);
     parameters.macro.drive = std::clamp(finiteOr(parameters.macro.drive, defaults.macro.drive), 0.0f, 1.0f);

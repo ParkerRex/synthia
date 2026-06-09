@@ -410,19 +410,41 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     sample = filter.process(sample, effectiveNote, parameters, cutoffMod);
 
     const auto ampDrive = clampUnitFast(parameters.amp.drive + parameters.macro.drive * 0.35f);
-    const auto driveGain = 1.0f + ampDrive * 7.0f;
-    const auto driveNormalizer = softSaturate(driveGain);
-    sample = driveNormalizer > 0.0f ? softSaturate(sample * driveGain) / driveNormalizer : sample;
+    if (!cachedAmpDriveValid || std::abs(cachedAmpDrive - ampDrive) > 0.000001f)
+    {
+        cachedAmpDrive = ampDrive;
+        cachedAmpDriveGain = 1.0f + ampDrive * 7.0f;
+        cachedAmpDriveNormalizer = softSaturate(cachedAmpDriveGain);
+        cachedAmpDriveValid = true;
+    }
+
+    sample = cachedAmpDriveNormalizer > 0.0f
+        ? softSaturate(sample * cachedAmpDriveGain) / cachedAmpDriveNormalizer
+        : sample;
     sample *= amp * (0.35f + 0.65f * glidedVelocity);
-    sample *= decibelsToGain(parameters.amp.levelDb + lastTransModSums.ampLevelDb);
+    const auto ampGainDb = parameters.amp.levelDb + lastTransModSums.ampLevelDb;
+    if (!cachedAmpGainValid || std::abs(cachedAmpGainDb - ampGainDb) > 0.000001f)
+    {
+        cachedAmpGainDb = ampGainDb;
+        cachedAmpGain = decibelsToGain(ampGainDb);
+        cachedAmpGainValid = true;
+    }
+    sample *= cachedAmpGain;
 
     const auto voiceSpread = randomOnNote * parameters.amp.panSpread * 0.85f
         + unisonBi * parameters.amp.unisonSpread * 0.7f
         + randomOnNote * parameters.macro.width * 0.25f;
     const auto pan = clampFast(parameters.amp.pan + voiceSpread + layerMix.pan + lastTransModSums.pan, -1.0f, 1.0f);
-    const auto angle = (pan + 1.0f) * 0.5f * halfPi;
+    if (!cachedPanValid || std::abs(cachedPan - pan) > 0.000001f)
+    {
+        cachedPan = pan;
+        const auto angle = (pan + 1.0f) * 0.5f * halfPi;
+        cachedPanLeftGain = std::cos(angle);
+        cachedPanRightGain = std::sin(angle);
+        cachedPanValid = true;
+    }
 
-    auto output = StereoFrame { sanitize(sample * std::cos(angle)), sanitize(sample * std::sin(angle)) };
+    auto output = StereoFrame { sanitize(sample * cachedPanLeftGain), sanitize(sample * cachedPanRightGain) };
     if (stopFadeSamples > 0)
     {
         const auto fade = static_cast<float>(stopFadeSamples)
@@ -530,21 +552,6 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
     }
 
     auto activeSlotCount = 0;
-    for (const auto& layer : parameters.layers)
-    {
-        if (!shouldRenderLayer(layer, soloActive))
-            continue;
-
-        for (const auto& slot : layer.oscillators)
-        {
-            if (shouldRenderOscillatorSlot(slot))
-                ++activeSlotCount;
-        }
-    }
-
-    if (activeSlotCount <= 0)
-        return {};
-
     auto panWeight = 0.0f;
     auto weightedPan = 0.0f;
     for (int layerIndex = 0; layerIndex < layerCount; ++layerIndex)
@@ -560,6 +567,7 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
             if (!shouldRenderOscillatorSlot(slot))
                 continue;
 
+            ++activeSlotCount;
             const auto gain = layerGain * clampUnitFast(slot.level);
             auto slotSample = 0.0f;
             if (isLegacyOscillatorSlot(layerIndex, oscillatorIndex))
@@ -582,10 +590,13 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
 
             mix.sample += slotSample * gain;
             const auto slotPan = clampFast(layer.pan + slot.pan + unisonBi * slot.stereo * 0.65f, -1.0f, 1.0f);
-            weightedPan += slotPan * std::abs(gain);
-            panWeight += std::abs(gain);
+            weightedPan += slotPan * gain;
+            panWeight += gain;
         }
     }
+
+    if (activeSlotCount <= 0)
+        return {};
 
     mix.sample *= inverseSqrtForCount(activeSlotCount);
     mix.sample = sanitize(mix.sample);
@@ -698,10 +709,10 @@ Voice::ModulationSums Voice::evaluateTransMod(const SynthParameters& parameters,
                                               float effectiveNote, float velocityGlideValue) const noexcept
 {
     ModulationSums sums;
-    for (const auto& slot : parameters.transMod.slots)
-    {
+    auto accumulateSlot = [&sums, &parameters, lfoValue, rampValue, modEnvValue, ampEnvValue, effectiveNote,
+                           velocityGlideValue, this](const TransModSlotParameters& slot) noexcept {
         if (!slot.enabled || slot.source == ModSource::None)
-            continue;
+            return;
 
         const auto source = evalModSource(parameters, slot.source, lfoValue, rampValue, modEnvValue, ampEnvValue,
                                           effectiveNote, velocityGlideValue);
@@ -711,7 +722,7 @@ Voice::ModulationSums Voice::evaluateTransMod(const SynthParameters& parameters,
                             effectiveNote, velocityGlideValue);
         const auto amount = source * scaler;
         if (!std::isfinite(amount))
-            continue;
+            return;
 
         sums.oscPitchSemitones += amount * clampFast(slot.oscPitchSemitones, -48.0f, 48.0f);
         sums.pulseWidth += amount * clampFast(slot.pulseWidth, -1.0f, 1.0f);
@@ -719,6 +730,38 @@ Voice::ModulationSums Voice::evaluateTransMod(const SynthParameters& parameters,
             * (clampFast(slot.filterCutoffSemitones, -72.0f, 72.0f) + clampFast(slot.depth, -1.0f, 1.0f) * 72.0f);
         sums.ampLevelDb += amount * clampFast(slot.ampLevelDb, -48.0f, 48.0f);
         sums.pan += amount * clampFast(slot.pan, -1.0f, 1.0f);
+    };
+
+    if (parameters.transMod.activeSlotCacheValid)
+    {
+        const auto activeSlotCount = clampIntFast(parameters.transMod.activeSlotCount, 0, transModSlotCount);
+        if (activeSlotCount <= 0)
+            return {};
+
+        for (int slotIndex = 0; slotIndex < activeSlotCount; ++slotIndex)
+        {
+            const auto& slot = parameters.transMod.activeSlots[static_cast<std::size_t>(slotIndex)];
+            const auto source = evalModSource(parameters, slot.source, lfoValue, rampValue, modEnvValue,
+                                              ampEnvValue, effectiveNote, velocityGlideValue);
+            const auto scaler = slot.scaler == ModSource::None
+                ? 1.0f
+                : evalModSource(parameters, slot.scaler, lfoValue, rampValue, modEnvValue,
+                                ampEnvValue, effectiveNote, velocityGlideValue);
+            const auto amount = source * scaler;
+            if (!std::isfinite(amount))
+                continue;
+
+            sums.oscPitchSemitones += amount * slot.oscPitchSemitones;
+            sums.pulseWidth += amount * slot.pulseWidth;
+            sums.filterCutoffSemitones += amount * (slot.filterCutoffSemitones + slot.depth * 72.0f);
+            sums.ampLevelDb += amount * slot.ampLevelDb;
+            sums.pan += amount * slot.pan;
+        }
+    }
+    else
+    {
+        for (const auto& slot : parameters.transMod.slots)
+            accumulateSlot(slot);
     }
 
     sums.oscPitchSemitones = clampFast(sanitize(sums.oscPitchSemitones), -96.0f, 96.0f);

@@ -49,6 +49,7 @@ int clampIntFast(int value, int minimum, int maximum) noexcept
 void OscillatorStack::prepare(double newSampleRate) noexcept
 {
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 44100.0;
+    cachedBaseFrequencyValid = false;
     reset(0.0f);
 }
 
@@ -71,6 +72,7 @@ void OscillatorStack::resetState(float basePhase) noexcept
     subPhase = wrapUnit(basePhase * 0.5f);
     syncMasterPhase = basePhase;
     noiseState = 0x76543210u ^ static_cast<unsigned int>((basePhase * 16777215.0f) + 1.0f);
+    cachedBaseFrequencyValid = false;
 }
 
 float OscillatorStack::renderSample(float midiNote, const SynthParameters& parameters,
@@ -85,35 +87,67 @@ float OscillatorStack::renderSample(float midiNote, const OscillatorParameters& 
     const auto stackCount = clampIntFast(osc.stackCount, 1, maxStackCount);
     const auto sampleRateFloat = static_cast<float>(sampleRate);
     const auto maxOscFrequency = sampleRateFloat * 0.45f;
+    const auto minOscIncrement = 1.0f / sampleRateFloat;
+    const auto maxOscIncrement = maxOscFrequency / sampleRateFloat;
     const auto basePitch = midiNote
         + osc.pitchSemitones
         + osc.fineCents / 100.0f
         + pitchModSemitones;
-    const auto baseFrequency = clampFast(midiNoteToHz(basePitch), 1.0f, maxOscFrequency);
+    auto baseFrequency = cachedBaseFrequency;
+    if (!cachedBaseFrequencyValid
+        || !std::isfinite(basePitch)
+        || std::abs(cachedBasePitch - basePitch) > 0.000001f
+        || std::abs(cachedMaxFrequency - maxOscFrequency) > 0.001f)
+    {
+        baseFrequency = clampFast(midiNoteToHz(basePitch), 1.0f, maxOscFrequency);
+        cachedBaseFrequency = baseFrequency;
+        cachedBasePitch = basePitch;
+        cachedMaxFrequency = maxOscFrequency;
+        cachedBaseFrequencyValid = std::isfinite(basePitch);
+    }
     const auto syncAmount = clampUnitFast(osc.syncAmount);
-    const auto syncSlaveRatio = 1.0f + syncAmount * 4.0f;
-    const auto masterIncrement = clampFast(baseFrequency / sampleRateFloat, 0.0f, 0.49f);
+    const auto masterIncrement = clampFast(baseFrequency / sampleRateFloat, minOscIncrement, maxOscIncrement);
     const auto previousMaster = syncMasterPhase;
     advancePhase(syncMasterPhase, masterIncrement);
     const auto syncWrapped = syncAmount > 0.001f && syncMasterPhase < previousMaster;
 
-    auto stacked = 0.0f;
-    const auto pulseWidth = clampFast(osc.pulseWidth + pulseWidthMod * 0.45f, 0.05f, 0.95f);
     const auto stackDetune = clampUnitFast(osc.stackDetune);
     const auto sawLevel = clampUnitFast(osc.sawLevel);
     const auto pulseLevel = clampUnitFast(osc.pulseLevel);
     const auto subLevel = clampUnitFast(osc.subLevel);
     const auto noiseLevel = clampUnitFast(osc.noiseLevel);
-    updateDetuneRatios(stackCount, stackDetune);
+    if (cachedDetuneStackCount != stackCount || std::abs(cachedDetuneAmount - stackDetune) > 0.000001f)
+        updateDetuneRatios(stackCount, stackDetune);
+
+    if (sawLevel > 0.0f && pulseLevel <= 0.0f && subLevel <= 0.0f
+        && noiseLevel <= 0.0f && syncAmount <= 0.001f)
+    {
+        auto stackedSaw = 0.0f;
+        for (int i = 0; i < stackCount; ++i)
+        {
+            const auto increment = clampFast(masterIncrement * detuneRatios[static_cast<std::size_t>(i)],
+                                             minOscIncrement, maxOscIncrement);
+            auto& phase = phases[static_cast<std::size_t>(i)];
+            stackedSaw += renderSaw(phase, increment);
+            advancePhase(phase, increment);
+        }
+
+        const auto compensation = 0.7f / std::max(1.0f, sawLevel);
+        return clampFast(stackedSaw * inverseSqrtForCount(stackCount) * sawLevel * compensation,
+                         -1.2f, 1.2f);
+    }
+
+    auto stacked = 0.0f;
+    const auto syncSlaveRatio = 1.0f + syncAmount * 4.0f;
+    const auto pulseWidth = clampFast(osc.pulseWidth + pulseWidthMod * 0.45f, 0.05f, 0.95f);
 
     for (int i = 0; i < stackCount; ++i)
     {
         if (syncWrapped)
             phases[static_cast<std::size_t>(i)] = syncMasterPhase;
 
-        const auto frequency = clampFast(baseFrequency * detuneRatios[static_cast<std::size_t>(i)] * syncSlaveRatio,
-                                         1.0f, maxOscFrequency);
-        const auto increment = clampFast(frequency / sampleRateFloat, 0.0f, 0.49f);
+        const auto increment = clampFast(masterIncrement * detuneRatios[static_cast<std::size_t>(i)] * syncSlaveRatio,
+                                         minOscIncrement, maxOscIncrement);
 
         auto& phase = phases[static_cast<std::size_t>(i)];
         auto voice = 0.0f;
@@ -157,7 +191,10 @@ float OscillatorStack::renderPulse(float& phase, float phaseIncrement, float pul
 {
     auto value = phase < pulseWidth ? 1.0f : -1.0f;
     value += polyBlep(phase, phaseIncrement);
-    value -= polyBlep(wrapUnit(phase - pulseWidth), phaseIncrement);
+    auto fallingEdgePhase = phase - pulseWidth;
+    if (fallingEdgePhase < 0.0f)
+        fallingEdgePhase += 1.0f;
+    value -= polyBlep(fallingEdgePhase, phaseIncrement);
     return value;
 }
 
@@ -189,7 +226,7 @@ float OscillatorStack::advancePhase(float& phase, float increment) noexcept
 {
     phase += increment;
     if (phase >= 1.0f)
-        phase -= std::floor(phase);
+        phase -= 1.0f;
 
     return phase;
 }

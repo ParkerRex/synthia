@@ -23,5 +23,12 @@ private:
     double sampleRate = 44100.0;
     std::array<float, 4> stage {};
     float previousInput = 0.0f;
+    float cachedCutoffSemitones = -1.0f;
+    float cachedEffectiveSampleRate = 0.0f;
+    float cachedCoefficient = 0.0f;
+    float cachedDriveAmount = -1.0f;
+    float cachedResonance = -1.0f;
+    float cachedDriveGain = 1.0f;
+    float cachedFeedback = 0.0f;
 };
 } // namespace synth

@@ -519,12 +519,17 @@ class SynthAudioProcessorEditor::Meter final : public juce::Component
 public:
     void setLevel(float peakLinear, bool flagClip)
     {
+        const auto oldLitSegments = litSegmentsForPeak(peak);
+        const auto oldClipVisible = clipHold > 0;
+
         peak = std::isfinite(peakLinear) ? peakLinear : 0.0f;
         if (flagClip || peak >= 0.98f)
             clipHold = 12; // hold the clip indicator for a few timer ticks
         else if (clipHold > 0)
             --clipHold;
-        repaint();
+
+        if (oldLitSegments != litSegmentsForPeak(peak) || oldClipVisible != (clipHold > 0))
+            repaint();
     }
 
     void paint(juce::Graphics& g) override
@@ -560,6 +565,13 @@ public:
     }
 
 private:
+    static int litSegmentsForPeak(float peakLinear)
+    {
+        const auto db = peakLinear > 0.0001f ? juce::Decibels::gainToDecibels(peakLinear) : -100.0f;
+        const auto norm = juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 66.0f);
+        return juce::jlimit(0, 14, static_cast<int>(std::ceil(norm * 14.0f)));
+    }
+
     float peak = 0.0f;
     int clipHold = 0;
 };
@@ -4241,6 +4253,22 @@ void SynthAudioProcessorEditor::recallCompareSlot(int slotIndex)
 void SynthAudioProcessorEditor::refreshPresetWorkflow()
 {
     const auto snapshot = audioProcessor.getPresetWorkflowSnapshot();
+    if (hasPresetWorkflowSnapshot
+        && lastPresetWorkflowSnapshot.dirty == snapshot.dirty
+        && lastPresetWorkflowSnapshot.baselineValid == snapshot.baselineValid
+        && lastPresetWorkflowSnapshot.compareSlotAReady == snapshot.compareSlotAReady
+        && lastPresetWorkflowSnapshot.compareSlotBReady == snapshot.compareSlotBReady
+        && lastPresetWorkflowSnapshot.resetAvailable == snapshot.resetAvailable
+        && lastPresetWorkflowSnapshot.currentPreset == snapshot.currentPreset
+        && lastPresetWorkflowSnapshot.currentPresetPath == snapshot.currentPresetPath
+        && lastPresetWorkflowSnapshot.lastPresetStatus == snapshot.lastPresetStatus)
+    {
+        return;
+    }
+
+    lastPresetWorkflowSnapshot = snapshot;
+    hasPresetWorkflowSnapshot = true;
+
     const auto dirtyText = snapshot.dirty ? juce::String("EDITED") : juce::String("CLEAN");
     dirtyStatePill.setText(dirtyText, juce::dontSendNotification);
     dirtyStatePill.setColour(juce::Label::backgroundColourId,

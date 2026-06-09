@@ -196,6 +196,8 @@ private:
 
     std::vector<SynthAudioProcessor::PresetListItem> presetItems;
     std::optional<SynthAudioProcessor::PresetListItem> currentPresetMetadataItem;
+    SynthAudioProcessor::PresetWorkflowSnapshot lastPresetWorkflowSnapshot;
+    bool hasPresetWorkflowSnapshot = false;
     std::unique_ptr<juce::FileChooser> fileChooser;
     int lastInvalidSamples = 0;
 
