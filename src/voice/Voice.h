@@ -90,6 +90,25 @@ private:
         float pan = 0.0f;
     };
 
+    // Per-block snapshot of one active TransMod route. Sources that cannot
+    // change within a block (velocity, wheels, macros, per-note randoms, voice
+    // indices) are resolved to constants so the per-sample loop skips their
+    // switch dispatch entirely.
+    struct PreparedTransModSlot
+    {
+        ModSource source = ModSource::None;
+        ModSource scaler = ModSource::None;
+        bool sourceConstant = false;
+        bool scalerConstant = false;
+        float sourceValue = 0.0f;
+        float scalerValue = 1.0f;
+        float oscPitchSemitones = 0.0f;
+        float pulseWidth = 0.0f;
+        float filterCutoffSemitones = 0.0f;
+        float ampLevelDb = 0.0f;
+        float pan = 0.0f;
+    };
+
     float processGlide(const SynthParameters& parameters) noexcept;
     float processVelocityGlide(const SynthParameters& parameters) noexcept;
     void syncModulatorConfig(const SynthParameters& parameters) noexcept;
@@ -103,6 +122,10 @@ private:
     ModulationSums evaluateTransMod(const SynthParameters& parameters, float lfoValue,
                                     float rampValue, float modEnvValue, float ampEnvValue,
                                     float effectiveNote, float velocityGlideValue) const noexcept;
+    void prepareTransModSlots(const SynthParameters& parameters) noexcept;
+    ModulationSums evaluatePreparedTransMod(const SynthParameters& parameters, float lfoValue,
+                                            float rampValue, float modEnvValue, float ampEnvValue,
+                                            float effectiveNote, float velocityGlideValue) const noexcept;
 
     VoiceState state = VoiceState::Idle;
     int midiNote = -1;
@@ -160,5 +183,7 @@ private:
     float cachedVoiceBi = 0.0f;
     float cachedUnisonUni = 0.0f;
     float cachedUnisonBi = 0.0f;
+    std::array<PreparedTransModSlot, transModSlotCount> preparedTransModSlots {};
+    int preparedTransModCount = -1;
 };
 } // namespace synth
