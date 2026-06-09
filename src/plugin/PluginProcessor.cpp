@@ -179,6 +179,16 @@ void SynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
 
     const auto tempoBpm = currentTempoBpm();
     diagnosticTempoBpm.store(tempoBpm, std::memory_order_relaxed);
+    const auto hadMidi = !midiMessages.isEmpty();
+    if (!hadMidi && engine.getActiveVoiceCount() <= 0 && tailDrainSamplesRemaining <= 0)
+    {
+        buffer.clear();
+        diagnosticPeak.store(0.0f, std::memory_order_relaxed);
+        diagnosticActiveVoices.store(0, std::memory_order_relaxed);
+        diagnosticBlockSize.store(totalSamples, std::memory_order_relaxed);
+        return;
+    }
+
     auto parameterSnapshot = readParameters(tempoBpm, isNonRealtime());
     const auto sequenceAfterRead = parameterStateSequence.load(std::memory_order_acquire);
     if (sequenceBeforeRead != sequenceAfterRead || (sequenceAfterRead & 1u) != 0u)
@@ -221,6 +231,12 @@ void SynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     diagnosticInvalidSamples.fetch_add(blockInvalidSamples, std::memory_order_relaxed);
     diagnosticActiveVoices.store(blockActiveVoices, std::memory_order_relaxed);
     diagnosticBlockSize.store(totalSamples, std::memory_order_relaxed);
+    if (hadMidi || blockActiveVoices > 0)
+        tailDrainSamplesRemaining = std::max(tailDrainSamplesRemaining,
+                                             tailDrainSamplesFor(parameterSnapshot));
+    else if (tailDrainSamplesRemaining > 0)
+        tailDrainSamplesRemaining = std::max(0, tailDrainSamplesRemaining - totalSamples);
+
     midiMessages.clear();
 }
 
@@ -507,8 +523,8 @@ synth::SynthParameters SynthAudioProcessor::readParameters(float tempoBpm, bool 
         return std::isfinite(loaded) ? loaded : fallback;
     };
 
-    const synth::SynthParameters defaults;
-    synth::SynthParameters snapshot;
+    const auto& defaults = parameterDefaults;
+    auto snapshot = parameterDefaults;
     snapshot.voiceMode = static_cast<synth::VoiceMode>(static_cast<int>(std::round(value(raw.voiceMode, 2.0f))));
     snapshot.polyphony = static_cast<int>(std::round(value(raw.voicePolyphony, 8.0f)));
     snapshot.unisonCount = static_cast<int>(std::round(value(raw.voiceUnisonCount, 1.0f)));
@@ -709,6 +725,15 @@ float SynthAudioProcessor::currentTempoBpm() const noexcept
     }
 
     return 128.0f;
+}
+
+int SynthAudioProcessor::tailDrainSamplesFor(const synth::SynthParameters& snapshot) const noexcept
+{
+    const auto tailSeconds = std::max(std::max(snapshot.ampEnv.releaseMs, snapshot.modEnv.releaseMs) * 0.001f,
+                                      synth::fxTailLengthSeconds(snapshot));
+    const auto sampleRate = diagnosticSampleRate.load(std::memory_order_relaxed);
+    const auto safeSampleRate = sampleRate > 1000.0 ? sampleRate : 44100.0;
+    return std::max(0, static_cast<int>(std::ceil(static_cast<double>(tailSeconds) * safeSampleRate)));
 }
 
 juce::AudioProcessorEditor* SynthAudioProcessor::createEditor()

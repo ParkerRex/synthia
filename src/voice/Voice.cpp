@@ -259,6 +259,7 @@ void Voice::noteOn(int note, float normalizedVelocity, float randomValue,
     stopFadeSamples = 0;
     stopFadeTotalSamples = 0;
     setAllocationIndices(voiceIndex, voiceCount, newUnisonIndex, newUnisonCount);
+    syncModulatorConfig(parameters);
     if (shouldRetrigger)
     {
         ampEnvelope.noteOn();
@@ -364,7 +365,8 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     if (state == VoiceState::Idle)
         return {};
 
-    syncModulatorConfig(parameters);
+    if (!modulatorConfigInitialized)
+        syncModulatorConfig(parameters);
 
     const auto amp = ampEnvelope.process();
     const auto mod = modEnvelope.process();
@@ -395,7 +397,9 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     lastDirectSums.ampLevelDb = 0.0f;
     lastDirectSums.pan = 0.0f;
 
-    lastTransModSums = evaluateTransMod(parameters, lfoValue, rampValue, mod, amp, effectiveNote, glidedVelocity);
+    lastTransModSums = parameters.transMod.activeSlotCacheValid && parameters.transMod.activeSlotCount <= 0
+        ? ModulationSums {}
+        : evaluateTransMod(parameters, lfoValue, rampValue, mod, amp, effectiveNote, glidedVelocity);
     lastRampValue = rampValue;
 
     const auto oscPitchMod = lastDirectSums.oscPitchSemitones
@@ -464,6 +468,12 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     }
 
     return output;
+}
+
+void Voice::syncModulators(const SynthParameters& parameters) noexcept
+{
+    if (state != VoiceState::Idle)
+        syncModulatorConfig(parameters);
 }
 
 void Voice::syncModulatorConfig(const SynthParameters& parameters) noexcept

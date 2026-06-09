@@ -22,6 +22,7 @@ public:
     void panic() noexcept;
     void stopAllWithFade(int fadeSamples) noexcept;
     void syncVoiceLimit(const SynthParameters& parameters) noexcept;
+    void syncActiveVoiceModulators(const SynthParameters& parameters) noexcept;
     void process(int numSamples) noexcept;
     StereoFrame renderSample(const SynthParameters& parameters) noexcept;
 
@@ -42,6 +43,7 @@ private:
     bool retargetActiveNote(int fromNote, int toNote, float velocity, const SynthParameters& parameters) noexcept;
     bool allocationShapeChanged(const SynthParameters& parameters) const noexcept;
     void rememberAllocationShape(const SynthParameters& parameters) noexcept;
+    void syncMonoLfoConfig(const SynthParameters& parameters) noexcept;
     void markVoiceActive(int voiceIndex) noexcept;
     void removeActiveVoiceAt(int activeListIndex) noexcept;
 
@@ -59,6 +61,13 @@ private:
     int allocationPolyphony = 8;
     int allocationUnisonCount = 1;
     bool allocationShapeInitialized = false;
+    LfoShapeChoice cachedMonoLfoShape = LfoShapeChoice::SawDown;
+    LfoRateMode cachedMonoLfoRateMode = LfoRateMode::Sync;
+    int cachedMonoLfoSyncDivision = 3;
+    float cachedMonoLfoRateHz = 2.0f;
+    float cachedMonoLfoPhaseDegrees = 0.0f;
+    float cachedMonoTempoBpm = 120.0f;
+    bool monoLfoConfigInitialized = false;
     unsigned int randomState = 0xdecafbadu;
 };
 } // namespace synth

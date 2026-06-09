@@ -9,7 +9,13 @@ namespace
 {
 constexpr float twoPi = 6.28318530717958647692f;
 
-float softClip(float value) noexcept
+#if defined(__clang__) || defined(__GNUC__)
+#define SYNTHIA_ALWAYS_INLINE inline __attribute__((always_inline))
+#else
+#define SYNTHIA_ALWAYS_INLINE inline
+#endif
+
+SYNTHIA_ALWAYS_INLINE float softClip(float value) noexcept
 {
     if (value < -64.0f)
         value = -64.0f;
@@ -18,6 +24,17 @@ float softClip(float value) noexcept
 
     return value >= 0.0f ? value / (1.0f + value)
                          : value / (1.0f - value);
+}
+
+SYNTHIA_ALWAYS_INLINE float clampKnownFinite(float value, float minimum, float maximum) noexcept
+{
+    if (value < minimum)
+        return minimum;
+
+    if (value > maximum)
+        return maximum;
+
+    return value;
 }
 
 float clampFast(float value, float minimum, float maximum) noexcept
@@ -34,14 +51,14 @@ float clampFast(float value, float minimum, float maximum) noexcept
     return value;
 }
 
-float clampUnitFast(float value) noexcept
-{
-    return clampFast(value, 0.0f, 1.0f);
-}
-
-float flushTiny(float value) noexcept
+SYNTHIA_ALWAYS_INLINE float flushTiny(float value) noexcept
 {
     return value > -1.0e-20f && value < 1.0e-20f ? 0.0f : value;
+}
+
+SYNTHIA_ALWAYS_INLINE bool isTiny(float value) noexcept
+{
+    return value > -1.0e-15f && value < 1.0e-15f;
 }
 } // namespace
 
@@ -72,14 +89,15 @@ float Filter::process(float input, float midiNote, const SynthParameters& parame
     if (!filter.enabled)
         return input;
 
-    const auto keytrack = clampFast(filter.keytrack, -1.0f, 2.0f);
+    const auto keytrack = clampKnownFinite(filter.keytrack, -1.0f, 2.0f);
     const auto keytrackSemitones = (midiNote - 60.0f) * keytrack;
-    const auto cutoffSemitones = clampFast(filter.cutoffSemitones + keytrackSemitones + cutoffModSemitones,
-                                           0.0f, 136.0f);
+    const auto cutoffSemitones = clampKnownFinite(filter.cutoffSemitones + keytrackSemitones + cutoffModSemitones,
+                                                  0.0f, 136.0f);
     const auto oversampling = oversamplingFactor(filter.oversampling);
     const auto effectiveSampleRate = static_cast<float>(sampleRate) * static_cast<float>(oversampling);
-    const auto driveAmount = clampUnitFast(filter.drive);
-    const auto resonance = clampUnitFast(filter.resonance);
+    const auto driveAmount = clampKnownFinite(filter.drive, 0.0f, 1.0f);
+    const auto resonance = clampKnownFinite(filter.resonance, 0.0f, 1.0f);
+    const auto useL4FastPath = filter.mode == FilterMode::L4;
 
     if (std::abs(cachedCutoffSemitones - cutoffSemitones) > 0.000001f
         || std::abs(cachedEffectiveSampleRate - effectiveSampleRate) > 0.001f)
@@ -104,7 +122,9 @@ float Filter::process(float input, float midiNote, const SynthParameters& parame
     if (oversampling <= 1)
     {
         previousInput = input;
-        const auto value = processCore(input, cachedCoefficient, cachedFeedback, cachedDriveGain, filter.mode);
+        const auto value = useL4FastPath
+            ? processCoreL4(input, cachedCoefficient, cachedFeedback, cachedDriveGain)
+            : processCore(input, cachedCoefficient, cachedFeedback, cachedDriveGain, filter.mode);
         return std::isfinite(value) ? value : 0.0f;
     }
 
@@ -113,7 +133,9 @@ float Filter::process(float input, float midiNote, const SynthParameters& parame
     {
         const auto t = static_cast<float>(i + 1) / static_cast<float>(oversampling);
         const auto subInput = previousInput + (input - previousInput) * t;
-        value += processCore(subInput, cachedCoefficient, cachedFeedback, cachedDriveGain, filter.mode);
+        value += useL4FastPath
+            ? processCoreL4(subInput, cachedCoefficient, cachedFeedback, cachedDriveGain)
+            : processCore(subInput, cachedCoefficient, cachedFeedback, cachedDriveGain, filter.mode);
     }
     previousInput = input;
     value /= static_cast<float>(oversampling);
@@ -126,26 +148,46 @@ float Filter::cutoffSemitonesToHz(float semitones) noexcept
     return semitonesToHz(clampFast(semitones, 0.0f, 136.0f));
 }
 
-float Filter::processCore(float input, float coefficient, float feedback, float driveGain,
-                          FilterMode mode) noexcept
+SYNTHIA_ALWAYS_INLINE void Filter::processStages(float input, float coefficient, float feedback, float driveGain) noexcept
 {
     const auto drivenInput = softClip((input - feedback * clippedStage[3]) * driveGain);
+    const auto flushState = isTiny(input);
 
     auto previous = softClip(drivenInput);
-    stage[0] = flushTiny(stage[0] + coefficient * (previous - clippedStage[0]));
+    stage[0] += coefficient * (previous - clippedStage[0]);
+    if (flushState)
+        stage[0] = flushTiny(stage[0]);
     clippedStage[0] = softClip(stage[0]);
 
     previous = clippedStage[0];
-    stage[1] = flushTiny(stage[1] + coefficient * (previous - clippedStage[1]));
+    stage[1] += coefficient * (previous - clippedStage[1]);
+    if (flushState)
+        stage[1] = flushTiny(stage[1]);
     clippedStage[1] = softClip(stage[1]);
 
     previous = clippedStage[1];
-    stage[2] = flushTiny(stage[2] + coefficient * (previous - clippedStage[2]));
+    stage[2] += coefficient * (previous - clippedStage[2]);
+    if (flushState)
+        stage[2] = flushTiny(stage[2]);
     clippedStage[2] = softClip(stage[2]);
 
     previous = clippedStage[2];
-    stage[3] = flushTiny(stage[3] + coefficient * (previous - clippedStage[3]));
+    stage[3] += coefficient * (previous - clippedStage[3]);
+    if (flushState)
+        stage[3] = flushTiny(stage[3]);
     clippedStage[3] = softClip(stage[3]);
+}
+
+SYNTHIA_ALWAYS_INLINE float Filter::processCoreL4(float input, float coefficient, float feedback, float driveGain) noexcept
+{
+    processStages(input, coefficient, feedback, driveGain);
+    return stage[3];
+}
+
+SYNTHIA_ALWAYS_INLINE float Filter::processCore(float input, float coefficient, float feedback, float driveGain,
+                                                FilterMode mode) noexcept
+{
+    processStages(input, coefficient, feedback, driveGain);
 
     switch (mode)
     {

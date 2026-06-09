@@ -9,6 +9,12 @@ namespace
 {
 constexpr float pi = 3.14159265358979323846f;
 
+#if defined(__clang__) || defined(__GNUC__)
+#define SYNTHIA_ALWAYS_INLINE inline __attribute__((always_inline))
+#else
+#define SYNTHIA_ALWAYS_INLINE inline
+#endif
+
 float wrapUnit(float value) noexcept
 {
     value -= std::floor(value);
@@ -73,6 +79,8 @@ void OscillatorStack::resetState(float basePhase) noexcept
     syncMasterPhase = basePhase;
     noiseState = 0x76543210u ^ static_cast<unsigned int>((basePhase * 16777215.0f) + 1.0f);
     cachedBaseFrequencyValid = false;
+    cachedDetunedIncrementStackCount = -1;
+    cachedDetunedMasterIncrement = -1.0f;
 }
 
 float OscillatorStack::renderSample(float midiNote, const SynthParameters& parameters,
@@ -213,27 +221,51 @@ float OscillatorStack::renderSawStack(float midiNote, const OscillatorParameters
     const auto stackDetune = clampUnitFast(osc.stackDetune);
     if (cachedDetuneStackCount != stackCount || std::abs(cachedDetuneAmount - stackDetune) > 0.000001f)
         updateDetuneRatios(stackCount, stackDetune);
-
-    auto stackedSaw = 0.0f;
-    for (int i = 0; i < stackCount; ++i)
+    if (cachedDetunedIncrementStackCount != stackCount
+        || std::abs(cachedDetunedMasterIncrement - masterIncrement) > 0.000000001f)
     {
-        const auto increment = clampFast(masterIncrement * detuneRatios[static_cast<std::size_t>(i)],
-                                         minOscIncrement, maxOscIncrement);
-        auto& phase = phases[static_cast<std::size_t>(i)];
-        stackedSaw += renderSaw(phase, increment);
-        advancePhase(phase, increment);
+        updateDetunedIncrements(stackCount, masterIncrement, minOscIncrement, maxOscIncrement);
     }
 
-    return clampFast(stackedSaw * inverseSqrtForCount(stackCount) * outputGain,
-                     -1.2f, 1.2f);
+    const auto renderDetunedSaw = [this](int index) noexcept {
+        const auto arrayIndex = static_cast<std::size_t>(index);
+        const auto increment = detunedIncrements[arrayIndex];
+        auto& phase = phases[arrayIndex];
+        const auto sample = renderSaw(phase, increment);
+        advancePhase(phase, increment);
+        return sample;
+    };
+
+    auto stackedSaw = 0.0f;
+    switch (stackCount)
+    {
+        case 1:
+            stackedSaw = renderDetunedSaw(0);
+            break;
+        case 2:
+            stackedSaw = renderDetunedSaw(0) + renderDetunedSaw(1);
+            break;
+        case 3:
+            stackedSaw = renderDetunedSaw(0) + renderDetunedSaw(1) + renderDetunedSaw(2);
+            break;
+        case 4:
+            stackedSaw = renderDetunedSaw(0) + renderDetunedSaw(1) + renderDetunedSaw(2) + renderDetunedSaw(3);
+            break;
+        default:
+            for (int i = 0; i < stackCount; ++i)
+                stackedSaw += renderDetunedSaw(i);
+            break;
+    }
+
+    return clampFast(stackedSaw * outputGain, -1.2f, 1.2f);
 }
 
-float OscillatorStack::renderSaw(float& phase, float phaseIncrement) noexcept
+SYNTHIA_ALWAYS_INLINE float OscillatorStack::renderSaw(float& phase, float phaseIncrement) noexcept
 {
     return 2.0f * phase - 1.0f - polyBlep(phase, phaseIncrement);
 }
 
-float OscillatorStack::renderPulse(float& phase, float phaseIncrement, float pulseWidth) noexcept
+SYNTHIA_ALWAYS_INLINE float OscillatorStack::renderPulse(float& phase, float phaseIncrement, float pulseWidth) noexcept
 {
     auto value = phase < pulseWidth ? 1.0f : -1.0f;
     value += polyBlep(phase, phaseIncrement);
@@ -244,7 +276,7 @@ float OscillatorStack::renderPulse(float& phase, float phaseIncrement, float pul
     return value;
 }
 
-float OscillatorStack::renderSub(float phase, SubWave wave, float pulseWidth) const noexcept
+SYNTHIA_ALWAYS_INLINE float OscillatorStack::renderSub(float phase, SubWave wave, float pulseWidth) const noexcept
 {
     phase = wrapUnit(phase);
     switch (wave)
@@ -268,7 +300,7 @@ float OscillatorStack::renderNoise() noexcept
     return (static_cast<float>((noiseState >> 8) & 0x00ffffffu) / 8388607.5f) - 1.0f;
 }
 
-float OscillatorStack::advancePhase(float& phase, float increment) noexcept
+SYNTHIA_ALWAYS_INLINE float OscillatorStack::advancePhase(float& phase, float increment) noexcept
 {
     phase += increment;
     if (phase >= 1.0f)
@@ -277,7 +309,7 @@ float OscillatorStack::advancePhase(float& phase, float increment) noexcept
     return phase;
 }
 
-float OscillatorStack::polyBlep(float phase, float phaseIncrement) noexcept
+SYNTHIA_ALWAYS_INLINE float OscillatorStack::polyBlep(float phase, float phaseIncrement) noexcept
 {
     if (phaseIncrement <= 0.0f)
         return 0.0f;
@@ -315,10 +347,25 @@ void OscillatorStack::updateDetuneRatios(int stackCount, float stackDetune) noex
 
     cachedDetuneStackCount = stackCount;
     cachedDetuneAmount = stackDetune;
+    cachedDetunedIncrementStackCount = -1;
+    cachedDetunedMasterIncrement = -1.0f;
     for (int i = 0; i < stackCount; ++i)
     {
         const auto cents = detuneOffsetCents(i, stackCount, stackDetune);
         detuneRatios[static_cast<std::size_t>(i)] = std::pow(2.0f, cents / 1200.0f);
+    }
+}
+
+void OscillatorStack::updateDetunedIncrements(int stackCount, float masterIncrement,
+                                              float minIncrement, float maxIncrement) noexcept
+{
+    cachedDetunedIncrementStackCount = stackCount;
+    cachedDetunedMasterIncrement = masterIncrement;
+    for (int i = 0; i < stackCount; ++i)
+    {
+        const auto arrayIndex = static_cast<std::size_t>(i);
+        detunedIncrements[arrayIndex] = clampFast(masterIncrement * detuneRatios[arrayIndex],
+                                                  minIncrement, maxIncrement);
     }
 }
 } // namespace synth

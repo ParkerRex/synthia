@@ -301,6 +301,7 @@ private:
     void cacheParameterPointers();
     synth::SynthParameters readParameters(float tempoBpm, bool offlineRender) const noexcept;
     float currentTempoBpm() const noexcept;
+    int tailDrainSamplesFor(const synth::SynthParameters& snapshot) const noexcept;
     void handleMidiMessage(const juce::MidiMessage& message) noexcept;
     void handleMappedController(int controllerNumber, int controllerValue) noexcept;
     synth::RenderStats renderSegment(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept;
@@ -332,6 +333,7 @@ private:
 
     juce::AudioProcessorValueTreeState parameters;
     synth::SynthEngine engine;
+    const synth::SynthParameters parameterDefaults {};
     RawParameterPointers raw;
     std::array<std::atomic<int>, 128> midiControllerParameterIndices {};
     std::array<PendingMidiControllerValue, 128> pendingMidiControllerValues {};
@@ -353,6 +355,7 @@ private:
     std::atomic<float> diagnosticPeak { 0.0f };
     std::atomic<float> diagnosticTempoBpm { 128.0f };
     std::atomic<bool> panicRequested { false };
+    int tailDrainSamplesRemaining = 0;
     std::atomic<std::uint64_t> parameterStateSequence { 0 };
     std::atomic<std::uint64_t> presetParameterRevision { 1 };
     std::atomic<std::uint64_t> presetBaselineRevision { 1 };

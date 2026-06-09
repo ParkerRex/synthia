@@ -17,6 +17,8 @@ public:
     static float cutoffSemitonesToHz(float semitones) noexcept;
 
 private:
+    void processStages(float input, float coefficient, float feedback, float driveGain) noexcept;
+    float processCoreL4(float input, float coefficient, float feedback, float driveGain) noexcept;
     float processCore(float input, float coefficient, float feedback, float driveGain,
                       FilterMode mode) noexcept;
 

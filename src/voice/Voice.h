@@ -64,10 +64,12 @@ public:
     void stopWithFade(int fadeSamples) noexcept;
     void reset() noexcept;
     void process(int numSamples) noexcept;
+    void syncModulators(const SynthParameters& parameters) noexcept;
     StereoFrame renderSample(const SynthParameters& parameters, const float* monoLfoValue = nullptr) noexcept;
 
     bool isActive() const noexcept { return state != VoiceState::Idle; }
     bool isHeld() const noexcept { return state == VoiceState::Held; }
+    bool isStopFading() const noexcept { return stopFadeSamples > 0 && stopFadeTotalSamples > 0; }
     int getMidiNote() const noexcept { return midiNote; }
     float normalizationPowerWeight() const noexcept;
     VoiceSnapshot snapshot() const noexcept;

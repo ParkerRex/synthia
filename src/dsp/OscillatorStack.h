@@ -33,12 +33,17 @@ private:
     static float polyBlep(float phase, float phaseIncrement) noexcept;
     void resetState(float basePhase) noexcept;
     void updateDetuneRatios(int stackCount, float stackDetune) noexcept;
+    void updateDetunedIncrements(int stackCount, float masterIncrement,
+                                 float minIncrement, float maxIncrement) noexcept;
 
     double sampleRate = 44100.0;
     std::array<float, maxStackCount> phases {};
     std::array<float, maxStackCount> detuneRatios {};
+    std::array<float, maxStackCount> detunedIncrements {};
     int cachedDetuneStackCount = -1;
     float cachedDetuneAmount = -1.0f;
+    int cachedDetunedIncrementStackCount = -1;
+    float cachedDetunedMasterIncrement = -1.0f;
     float cachedBasePitch = 0.0f;
     float cachedMaxFrequency = 0.0f;
     float cachedBaseFrequency = 0.0f;

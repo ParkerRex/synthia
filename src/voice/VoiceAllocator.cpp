@@ -219,6 +219,7 @@ void VoiceAllocator::panic() noexcept
     for (auto& voice : voices)
         voice.reset();
     activeVoiceSlotCount = 0;
+    monoLfoConfigInitialized = false;
 }
 
 void VoiceAllocator::stopAllWithFade(int fadeSamples) noexcept
@@ -235,6 +236,29 @@ void VoiceAllocator::stopAllWithFade(int fadeSamples) noexcept
 void VoiceAllocator::syncVoiceLimit(const SynthParameters& parameters) noexcept
 {
     enforceVoiceLimit(parameters);
+}
+
+void VoiceAllocator::syncActiveVoiceModulators(const SynthParameters& parameters) noexcept
+{
+    for (int activeIndex = 0; activeIndex < activeVoiceSlotCount;)
+    {
+        const auto voiceIndex = activeVoiceIndices[static_cast<std::size_t>(activeIndex)];
+        if (voiceIndex < 0 || voiceIndex >= static_cast<int>(voices.size()))
+        {
+            removeActiveVoiceAt(activeIndex);
+            continue;
+        }
+
+        auto& voice = voices[static_cast<std::size_t>(voiceIndex)];
+        if (!voice.isActive())
+        {
+            removeActiveVoiceAt(activeIndex);
+            continue;
+        }
+
+        voice.syncModulators(parameters);
+        ++activeIndex;
+    }
 }
 
 void VoiceAllocator::process(int numSamples) noexcept
@@ -274,9 +298,7 @@ StereoFrame VoiceAllocator::renderSample(const SynthParameters& parameters) noex
     auto monoValue = 0.0f;
     if (useMonoLfo)
     {
-        monoLfo.setShape(toLfoShape(parameters.lfo.shape));
-        monoLfo.setRateHz(effectiveLfoRateHz(parameters));
-        monoLfo.setPhaseDegrees(parameters.lfo.phaseDegrees);
+        syncMonoLfoConfig(parameters);
         monoValue = monoLfo.process();
     }
 
@@ -298,7 +320,7 @@ StereoFrame VoiceAllocator::renderSample(const SynthParameters& parameters) noex
             continue;
         }
 
-        normalizationPower += voice.normalizationPowerWeight();
+        normalizationPower += voice.isStopFading() ? voice.normalizationPowerWeight() : 1.0f;
         const auto voiceFrame = voice.renderSample(parameters, useMonoLfo ? &monoValue : nullptr);
         frame.left += voiceFrame.left;
         frame.right += voiceFrame.right;
@@ -320,6 +342,31 @@ StereoFrame VoiceAllocator::renderSample(const SynthParameters& parameters) noex
     }
 
     return frame;
+}
+
+void VoiceAllocator::syncMonoLfoConfig(const SynthParameters& parameters) noexcept
+{
+    const auto lfoConfigChanged = !monoLfoConfigInitialized
+        || cachedMonoLfoShape != parameters.lfo.shape
+        || cachedMonoLfoRateMode != parameters.lfo.rateMode
+        || cachedMonoLfoSyncDivision != parameters.lfo.syncDivision
+        || std::abs(cachedMonoLfoRateHz - parameters.lfo.rateHz) > 0.000001f
+        || std::abs(cachedMonoLfoPhaseDegrees - parameters.lfo.phaseDegrees) > 0.000001f
+        || std::abs(cachedMonoTempoBpm - parameters.tempoBpm) > 0.000001f;
+
+    if (!lfoConfigChanged)
+        return;
+
+    monoLfo.setShape(toLfoShape(parameters.lfo.shape));
+    monoLfo.setRateHz(effectiveLfoRateHz(parameters));
+    monoLfo.setPhaseDegrees(parameters.lfo.phaseDegrees);
+    cachedMonoLfoShape = parameters.lfo.shape;
+    cachedMonoLfoRateMode = parameters.lfo.rateMode;
+    cachedMonoLfoSyncDivision = parameters.lfo.syncDivision;
+    cachedMonoLfoRateHz = parameters.lfo.rateHz;
+    cachedMonoLfoPhaseDegrees = parameters.lfo.phaseDegrees;
+    cachedMonoTempoBpm = parameters.tempoBpm;
+    monoLfoConfigInitialized = true;
 }
 
 int VoiceAllocator::activeVoiceCount() const noexcept

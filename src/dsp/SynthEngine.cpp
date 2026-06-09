@@ -304,7 +304,9 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
                 ? parameters.osc
                 : toPreparedSlotOscillatorParameters(slot, parameters);
             preparedSlot.sawStackOnly = isPreparedSawStackOnly(preparedSlot.oscillator);
-            preparedSlot.sawStackGain = 0.7f * std::clamp(preparedSlot.oscillator.sawLevel, 0.0f, 1.0f);
+            preparedSlot.sawStackGain = 0.7f
+                * std::clamp(preparedSlot.oscillator.sawLevel, 0.0f, 1.0f)
+                * inverseSqrtForCount(std::clamp(preparedSlot.oscillator.stackCount, 1, 8));
         }
     }
     parameters.oscillatorRender.cacheValid = true;
@@ -458,6 +460,7 @@ RenderStats SynthEngine::process(float* left, float* right, int numSamples) noex
 {
     RenderStats stats;
     stats.samplesRendered = std::max(0, numSamples);
+    voices.syncActiveVoiceModulators(parameters);
 
     for (int i = 0; i < stats.samplesRendered; ++i)
     {
