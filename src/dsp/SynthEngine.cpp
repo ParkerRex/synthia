@@ -32,6 +32,75 @@ bool directChordConfigChanged(const ChordParameters& before, const ChordParamete
 
     return false;
 }
+
+int preparedLayerOscillatorIndex(int layerIndex, int oscillatorIndex) noexcept
+{
+    return layerIndex * oscillatorSlotsPerLayer + oscillatorIndex;
+}
+
+bool preparedIsLegacyOscillatorSlot(int layerIndex, int oscillatorIndex) noexcept
+{
+    return layerIndex == 0 && oscillatorIndex == 0;
+}
+
+bool preparedHasSoloLayer(const SynthParameters& parameters) noexcept
+{
+    for (const auto& layer : parameters.layers)
+    {
+        if (layer.enabled && layer.solo)
+            return true;
+    }
+
+    return false;
+}
+
+bool preparedShouldRenderLayer(const LayerParameters& layer, bool soloActive) noexcept
+{
+    if (!layer.enabled || layer.mute)
+        return false;
+
+    return !soloActive || layer.solo;
+}
+
+bool preparedShouldRenderOscillatorSlot(const LayerOscillatorParameters& oscillator) noexcept
+{
+    return oscillator.enabled && oscillator.voices > 0 && oscillator.level > 0.0f;
+}
+
+OscillatorParameters toPreparedSlotOscillatorParameters(const LayerOscillatorParameters& slot,
+                                                        const SynthParameters& parameters) noexcept
+{
+    OscillatorParameters oscillator;
+    oscillator.pitchSemitones = static_cast<float>(slot.octave * 12 + slot.note);
+    oscillator.fineCents = slot.fineCents;
+    oscillator.stackCount = std::clamp(slot.voices, 1, 8);
+    oscillator.stackDetune = slot.detune;
+    oscillator.pulseWidth = parameters.osc.pulseWidth;
+    oscillator.subWave = parameters.osc.subWave;
+    oscillator.subOctave = 1;
+    oscillator.subPulseWidth = parameters.osc.subPulseWidth;
+
+    switch (slot.waveform)
+    {
+        case OscillatorSlotWaveform::Saw:
+            oscillator.sawLevel = 1.0f;
+            break;
+        case OscillatorSlotWaveform::Pulse:
+            oscillator.sawLevel = 0.0f;
+            oscillator.pulseLevel = 1.0f;
+            break;
+        case OscillatorSlotWaveform::Noise:
+            oscillator.sawLevel = 0.0f;
+            oscillator.noiseLevel = 1.0f;
+            break;
+        case OscillatorSlotWaveform::Sub:
+            oscillator.sawLevel = 0.0f;
+            oscillator.subLevel = 1.0f;
+            break;
+    }
+
+    return oscillator;
+}
 } // namespace
 
 void SynthEngine::prepare(double newSampleRate, int newMaxBlockSize)
@@ -189,6 +258,44 @@ void SynthEngine::setParameters(const SynthParameters& newParameters) noexcept
     parameters.osc.subWave = static_cast<SubWave>(std::clamp(static_cast<int>(parameters.osc.subWave), 0, 3));
     parameters.osc.subOctave = std::clamp(parameters.osc.subOctave, 1, 3);
     parameters.osc.phaseReset = std::clamp(parameters.osc.phaseReset, 0, 3);
+    parameters.oscillatorRender.activeSlotCount = 0;
+    parameters.oscillatorRender.cacheValid = false;
+    const auto soloLayerActive = preparedHasSoloLayer(parameters);
+    for (int layerIndex = 0; layerIndex < layerCount; ++layerIndex)
+    {
+        const auto& layer = parameters.layers[static_cast<std::size_t>(layerIndex)];
+        if (!preparedShouldRenderLayer(layer, soloLayerActive))
+            continue;
+
+        const auto layerGain = decibelsToGain(layer.levelDb);
+        for (int oscillatorIndex = 0; oscillatorIndex < oscillatorSlotsPerLayer; ++oscillatorIndex)
+        {
+            const auto& slot = layer.oscillators[static_cast<std::size_t>(oscillatorIndex)];
+            if (!preparedShouldRenderOscillatorSlot(slot))
+                continue;
+
+            if (parameters.oscillatorRender.activeSlotCount >= preparedOscillatorSlotCount)
+                break;
+
+            auto& preparedSlot =
+                parameters.oscillatorRender.activeSlots[static_cast<std::size_t>(
+                    parameters.oscillatorRender.activeSlotCount++)];
+            preparedSlot = {};
+            preparedSlot.legacy = preparedIsLegacyOscillatorSlot(layerIndex, oscillatorIndex);
+            preparedSlot.layerIndex = layerIndex;
+            preparedSlot.oscillatorIndex = oscillatorIndex;
+            preparedSlot.oscillatorStateIndex = preparedLayerOscillatorIndex(layerIndex, oscillatorIndex);
+            preparedSlot.gain = layerGain * slot.level;
+            preparedSlot.pan = layer.pan + slot.pan;
+            preparedSlot.stereo = slot.stereo;
+            preparedSlot.panWeight = preparedSlot.gain;
+            preparedSlot.weightedPanBase = preparedSlot.pan * preparedSlot.gain;
+            preparedSlot.invert = slot.invert;
+            if (!preparedSlot.legacy)
+                preparedSlot.oscillator = toPreparedSlotOscillatorParameters(slot, parameters);
+        }
+    }
+    parameters.oscillatorRender.cacheValid = true;
     parameters.filter.cutoffSemitones = std::clamp(finiteOr(parameters.filter.cutoffSemitones, defaults.filter.cutoffSemitones), 0.0f, 136.0f);
     parameters.filter.resonance = std::clamp(finiteOr(parameters.filter.resonance, defaults.filter.resonance), 0.0f, 1.0f);
     parameters.filter.drive = std::clamp(finiteOr(parameters.filter.drive, defaults.filter.drive), 0.0f, 1.0f);

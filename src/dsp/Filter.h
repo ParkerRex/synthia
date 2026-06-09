@@ -22,6 +22,7 @@ private:
 
     double sampleRate = 44100.0;
     std::array<float, 4> stage {};
+    std::array<float, 4> clippedStage {};
     float previousInput = 0.0f;
     float cachedCutoffSemitones = -1.0f;
     float cachedEffectiveSampleRate = 0.0f;

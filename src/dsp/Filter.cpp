@@ -54,6 +54,7 @@ void Filter::prepare(double newSampleRate) noexcept
 void Filter::reset() noexcept
 {
     stage.fill(0.0f);
+    clippedStage.fill(0.0f);
     previousInput = 0.0f;
     cachedCutoffSemitones = -1.0f;
     cachedEffectiveSampleRate = 0.0f;
@@ -128,12 +129,23 @@ float Filter::cutoffSemitonesToHz(float semitones) noexcept
 float Filter::processCore(float input, float coefficient, float feedback, float driveGain,
                           FilterMode mode) noexcept
 {
-    const auto drivenInput = softClip((input - feedback * softClip(stage[3])) * driveGain);
+    const auto drivenInput = softClip((input - feedback * clippedStage[3]) * driveGain);
 
-    stage[0] = flushTiny(stage[0] + coefficient * (softClip(drivenInput) - softClip(stage[0])));
-    stage[1] = flushTiny(stage[1] + coefficient * (softClip(stage[0]) - softClip(stage[1])));
-    stage[2] = flushTiny(stage[2] + coefficient * (softClip(stage[1]) - softClip(stage[2])));
-    stage[3] = flushTiny(stage[3] + coefficient * (softClip(stage[2]) - softClip(stage[3])));
+    auto previous = softClip(drivenInput);
+    stage[0] = flushTiny(stage[0] + coefficient * (previous - clippedStage[0]));
+    clippedStage[0] = softClip(stage[0]);
+
+    previous = clippedStage[0];
+    stage[1] = flushTiny(stage[1] + coefficient * (previous - clippedStage[1]));
+    clippedStage[1] = softClip(stage[1]);
+
+    previous = clippedStage[1];
+    stage[2] = flushTiny(stage[2] + coefficient * (previous - clippedStage[2]));
+    clippedStage[2] = softClip(stage[2]);
+
+    previous = clippedStage[2];
+    stage[3] = flushTiny(stage[3] + coefficient * (previous - clippedStage[3]));
+    clippedStage[3] = softClip(stage[3]);
 
     switch (mode)
     {

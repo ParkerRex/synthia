@@ -215,6 +215,10 @@ void Voice::setAllocationIndices(int index, int total, int newUnisonIndex, int n
     voiceCount = std::max(1, total);
     unisonIndex = std::max(0, newUnisonIndex);
     unisonCount = std::max(1, newUnisonCount);
+    cachedVoiceUni = unipolarIndex(voiceIndex, voiceCount);
+    cachedVoiceBi = bipolarIndex(voiceIndex, voiceCount);
+    cachedUnisonUni = unipolarIndex(unisonIndex, unisonCount);
+    cachedUnisonBi = bipolarIndex(unisonIndex, unisonCount);
 }
 
 void Voice::noteOn(int note, float normalizedVelocity, float randomValue,
@@ -401,7 +405,7 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     const auto cutoffMod = lastDirectSums.filterCutoffSemitones
         + lastTransModSums.filterCutoffSemitones;
 
-    const auto unisonBi = bipolarIndex(unisonIndex, unisonCount);
+    const auto unisonBi = cachedUnisonBi;
     const auto analogPitchMod = randomOnNote * parameters.amp.analog * 0.07f
         + unisonBi * parameters.amp.analog * 0.12f;
     const auto layerMix = renderLayerOscillators(parameters, effectiveNote, oscPitchMod,
@@ -418,9 +422,12 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
         cachedAmpDriveValid = true;
     }
 
-    sample = cachedAmpDriveNormalizer > 0.0f
-        ? softSaturate(sample * cachedAmpDriveGain) / cachedAmpDriveNormalizer
-        : sample;
+    if (ampDrive > 0.0f)
+    {
+        sample = cachedAmpDriveNormalizer > 0.0f
+            ? softSaturate(sample * cachedAmpDriveGain) / cachedAmpDriveNormalizer
+            : sample;
+    }
     sample *= amp * (0.35f + 0.65f * glidedVelocity);
     const auto ampGainDb = parameters.amp.levelDb + lastTransModSums.ampLevelDb;
     if (!cachedAmpGainValid || std::abs(cachedAmpGainDb - ampGainDb) > 0.000001f)
@@ -525,8 +532,41 @@ Voice::LayerOscillatorMix Voice::renderLayerOscillators(const SynthParameters& p
                                                         float pitchModSemitones, float pulseWidthMod,
                                                         float analogPitchMod, float unisonBi) noexcept
 {
-    const auto soloActive = hasSoloLayer(parameters);
     LayerOscillatorMix mix;
+    if (parameters.oscillatorRender.cacheValid)
+    {
+        const auto activeSlotCount = clampIntFast(parameters.oscillatorRender.activeSlotCount,
+                                                  0, preparedOscillatorSlotCount);
+        if (activeSlotCount <= 0)
+            return {};
+
+        auto panWeight = 0.0f;
+        auto weightedPan = 0.0f;
+        for (int slotIndex = 0; slotIndex < activeSlotCount; ++slotIndex)
+        {
+            const auto& slot = parameters.oscillatorRender.activeSlots[static_cast<std::size_t>(slotIndex)];
+            auto slotSample = slot.legacy
+                ? oscillator.renderSample(effectiveNote, parameters, pitchModSemitones + analogPitchMod, pulseWidthMod)
+                : layerOscillators[static_cast<std::size_t>(slot.oscillatorStateIndex)]
+                    .renderSample(effectiveNote, slot.oscillator,
+                                  pitchModSemitones + analogPitchMod,
+                                  pulseWidthMod);
+
+            if (slot.invert)
+                slotSample = -slotSample;
+
+            mix.sample += slotSample * slot.gain;
+            weightedPan += slot.weightedPanBase + unisonBi * slot.stereo * 0.65f * slot.gain;
+            panWeight += slot.panWeight;
+        }
+
+        mix.sample *= inverseSqrtForCount(activeSlotCount);
+        mix.sample = sanitize(mix.sample);
+        mix.pan = panWeight > 0.0f ? clampFast(weightedPan / panWeight, -1.0f, 1.0f) : 0.0f;
+        return mix;
+    }
+
+    const auto soloActive = hasSoloLayer(parameters);
     if (layerCount == 2 && oscillatorSlotsPerLayer == 2)
     {
         const auto& layerA = parameters.layers[0];
@@ -682,13 +722,13 @@ float Voice::evalModSource(const SynthParameters& parameters, ModSource source, 
         case ModSource::Aftertouch:
             return clampUnitFast(parameters.performance.aftertouch);
         case ModSource::VoiceUni:
-            return unipolarIndex(voiceIndex, voiceCount);
+            return cachedVoiceUni;
         case ModSource::VoiceBi:
-            return bipolarIndex(voiceIndex, voiceCount);
+            return cachedVoiceBi;
         case ModSource::UnisonUni:
-            return unipolarIndex(unisonIndex, unisonCount);
+            return cachedUnisonUni;
         case ModSource::UnisonBi:
-            return bipolarIndex(unisonIndex, unisonCount);
+            return cachedUnisonBi;
         case ModSource::RandomOnNote:
             return clampFast(randomOnNote, -1.0f, 1.0f);
         case ModSource::Macro1:
@@ -785,10 +825,10 @@ VoiceSnapshot Voice::snapshot() const noexcept
         randomOnNote,
         currentMidiNote,
         currentVelocity,
-        unipolarIndex(voiceIndex, voiceCount),
-        bipolarIndex(voiceIndex, voiceCount),
-        unipolarIndex(unisonIndex, unisonCount),
-        bipolarIndex(unisonIndex, unisonCount),
+        cachedVoiceUni,
+        cachedVoiceBi,
+        cachedUnisonUni,
+        cachedUnisonBi,
         lastDirectSums.oscPitchSemitones,
         lastDirectSums.pulseWidth,
         lastDirectSums.filterCutoffSemitones,

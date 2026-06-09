@@ -149,6 +149,7 @@ enum class ModSource
 inline constexpr int transModSlotCount = 8;
 inline constexpr int layerCount = 2;
 inline constexpr int oscillatorSlotsPerLayer = 2;
+inline constexpr int preparedOscillatorSlotCount = layerCount * oscillatorSlotsPerLayer;
 inline constexpr int arpStepCount = 16;
 inline constexpr int chordVoiceCount = 8;
 
@@ -203,6 +204,28 @@ struct LayerParameters
     bool solo = false;
     bool mute = false;
     std::array<LayerOscillatorParameters, oscillatorSlotsPerLayer> oscillators {};
+};
+
+struct PreparedOscillatorSlotParameters
+{
+    bool legacy = false;
+    int layerIndex = 0;
+    int oscillatorIndex = 0;
+    int oscillatorStateIndex = 0;
+    OscillatorParameters oscillator;
+    float gain = 0.0f;
+    float pan = 0.0f;
+    float stereo = 0.0f;
+    float panWeight = 0.0f;
+    float weightedPanBase = 0.0f;
+    bool invert = false;
+};
+
+struct PreparedOscillatorRenderParameters
+{
+    std::array<PreparedOscillatorSlotParameters, preparedOscillatorSlotCount> activeSlots {};
+    int activeSlotCount = 0;
+    bool cacheValid = false;
 };
 
 struct FilterParameters
@@ -417,6 +440,7 @@ struct SynthParameters
         },
         LayerParameters {}
     };
+    PreparedOscillatorRenderParameters oscillatorRender;
     OscillatorParameters osc;
     FilterParameters filter;
     AmpParameters amp;

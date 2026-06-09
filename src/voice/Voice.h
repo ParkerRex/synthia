@@ -154,5 +154,9 @@ private:
     float cachedPanLeftGain = 0.70710677f;
     float cachedPanRightGain = 0.70710677f;
     bool cachedPanValid = false;
+    float cachedVoiceUni = 0.0f;
+    float cachedVoiceBi = 0.0f;
+    float cachedUnisonUni = 0.0f;
+    float cachedUnisonBi = 0.0f;
 };
 } // namespace synth
