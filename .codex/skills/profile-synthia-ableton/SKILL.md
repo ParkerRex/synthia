@@ -16,7 +16,7 @@ Follow this order:
 1. Stop any playback left over from a previous profile.
 2. Set up or verify AbletonMCP.
 3. Build and locally install an optimized Synthia bundle.
-4. Restart or rescan Ableton so it maps the new plugin image.
+4. Close and reopen Ableton with `osascript` so it maps the new plugin image.
 5. Verify the installed VST3 inode equals the inode mapped by Ableton.
 6. Position playback at bar 65, beat `256.0`.
 7. Start playback, capture CPU/sample evidence, stop playback.
@@ -37,6 +37,7 @@ Follow this order:
 - Do not reduce synth capability to win CPU: no hard voice caps, no stack-count caps, no lower default quality, no weakening presets.
 - Do not profile a Debug bundle for CPU decisions. Use `RelWithDebInfo` for profiling and `Release` for distribution candidates.
 - Start playback at bar 65 for the validation loop. Earlier bars are not representative for this set.
+- After every successful new local build/install, gracefully quit and reopen Ableton before profiling. Do not trust plugin rescan alone for CPU comparisons.
 - Verify the playhead after positioning it. The setter response can be stale; trust a follow-up session read.
 - Use AbletonMCP for transport when available.
 - Preserve the user's current Ableton set; do not rebuild the test arrangement unless explicitly asked.
@@ -214,6 +215,22 @@ shasum -a 256 "$HOME/Library/Audio/Plug-Ins/VST3/Synthia.vst3/Contents/MacOS/Syn
 dwarfdump --uuid "$HOME/Library/Audio/Plug-Ins/VST3/Synthia.vst3/Contents/MacOS/Synthia"
 ```
 
+After recording the inode, close and reopen Ableton before profiling that build:
+
+```bash
+VALIDATION_SET="/Users/parkerrex/Desktop/testing-synth Project/demp.als"
+osascript -e 'tell application "Ableton Live 11 Suite" to quit' || true
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  if ! ps -axo args= | rg -q 'Contents/MacOS/Live'; then
+    break
+  fi
+  sleep 1
+done
+open "$VALIDATION_SET"
+```
+
+If the target machine uses a different Ableton app name, change only the AppleScript application name. Do not use `kill`/`killall` unless the user explicitly approves it.
+
 ## Prove Ableton loaded the current build
 
 ```bash
@@ -223,7 +240,7 @@ lsof -p "$LIVE_PID" 2>/dev/null | rg -i 'Synthia|sylenth'
 stat -f '%i %Sm %m %z %N' "$HOME/Library/Audio/Plug-Ins/VST3/Synthia.vst3/Contents/MacOS/Synthia"
 ```
 
-If the `lsof` inode differs from the installed inode, stop. Restart Ableton, rescan plugins, or reload the set before profiling.
+If the `lsof` inode differs from the installed inode after the mandatory reopen, stop. The profile is invalid until Ableton maps the installed binary.
 
 A valid profile must record:
 
