@@ -66,6 +66,12 @@ public:
     void process(int numSamples) noexcept;
     void syncModulators(const SynthParameters& parameters) noexcept;
     StereoFrame renderSample(const SynthParameters& parameters, const float* monoLfoValue = nullptr) noexcept;
+    // Renders up to renderBlockMaxSamples in staged passes, accumulating into the
+    // caller's buffers and adding this voice's per-sample normalization weights.
+    // Returns false when the voice went idle during the block. Per-sample math
+    // and lifecycle ordering mirror renderSample exactly.
+    bool renderBlock(const SynthParameters& parameters, float* accumLeft, float* accumRight,
+                     float* normalizationWeights, const float* monoLfoValues, int numSamples) noexcept;
 
     bool isActive() const noexcept { return state != VoiceState::Idle; }
     bool isHeld() const noexcept { return state == VoiceState::Held; }

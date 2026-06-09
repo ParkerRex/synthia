@@ -462,12 +462,7 @@ RenderStats SynthEngine::process(float* left, float* right, int numSamples) noex
     stats.samplesRendered = std::max(0, numSamples);
     voices.syncActiveVoiceModulators(parameters);
 
-    for (int i = 0; i < stats.samplesRendered; ++i)
-    {
-        if (parameters.arp.enabled)
-            processArpEvent(arpeggiator.processSample(parameters, sampleRate));
-
-        const auto frame = voices.renderSample(parameters);
+    const auto emitSample = [&stats, left, right, this](int index, StereoFrame frame) noexcept {
         const auto fxFrame = fx.process({ frame.left, frame.right }, parameters);
         auto l = fxFrame.left;
         auto r = fxFrame.right;
@@ -488,12 +483,34 @@ RenderStats SynthEngine::process(float* left, float* right, int numSamples) noex
         r = std::clamp(r, -1.0f, 1.0f);
 
         if (left != nullptr)
-            left[i] = l;
+            left[index] = l;
 
         if (right != nullptr)
-            right[i] = r;
+            right[index] = r;
 
         stats.peak = std::max(stats.peak, std::max(std::abs(l), std::abs(r)));
+    };
+
+    if (parameters.arp.enabled)
+    {
+        // Arp events fire per sample, so the arp path keeps the per-sample loop.
+        for (int i = 0; i < stats.samplesRendered; ++i)
+        {
+            processArpEvent(arpeggiator.processSample(parameters, sampleRate));
+            emitSample(i, voices.renderSample(parameters));
+        }
+    }
+    else
+    {
+        float blockLeft[renderBlockMaxSamples];
+        float blockRight[renderBlockMaxSamples];
+        for (int start = 0; start < stats.samplesRendered; start += renderBlockMaxSamples)
+        {
+            const auto blockSamples = std::min(renderBlockMaxSamples, stats.samplesRendered - start);
+            voices.renderBlock(parameters, blockLeft, blockRight, blockSamples);
+            for (int i = 0; i < blockSamples; ++i)
+                emitSample(start + i, StereoFrame { blockLeft[i], blockRight[i] });
+        }
     }
 
     stats.activeVoices = voices.activeVoiceCount();

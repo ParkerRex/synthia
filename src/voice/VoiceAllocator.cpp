@@ -344,6 +344,70 @@ StereoFrame VoiceAllocator::renderSample(const SynthParameters& parameters) noex
     return frame;
 }
 
+void VoiceAllocator::renderBlock(const SynthParameters& parameters, float* outLeft, float* outRight,
+                                 int numSamples) noexcept
+{
+    numSamples = std::min(numSamples, renderBlockMaxSamples);
+    if (numSamples <= 0)
+        return;
+
+    const auto useMonoLfo = parameters.lfo.mono
+        || parameters.lfo.gateMode == LfoGateMode::Mono
+        || parameters.lfo.gateMode == LfoGateMode::Song;
+    float monoValues[renderBlockMaxSamples];
+    if (useMonoLfo)
+    {
+        syncMonoLfoConfig(parameters);
+        for (int i = 0; i < numSamples; ++i)
+            monoValues[i] = monoLfo.process();
+    }
+
+    float weights[renderBlockMaxSamples];
+    for (int i = 0; i < numSamples; ++i)
+    {
+        outLeft[i] = 0.0f;
+        outRight[i] = 0.0f;
+        weights[i] = 0.0f;
+    }
+
+    for (int activeIndex = 0; activeIndex < activeVoiceSlotCount;)
+    {
+        const auto voiceIndex = activeVoiceIndices[static_cast<std::size_t>(activeIndex)];
+        if (voiceIndex < 0 || voiceIndex >= static_cast<int>(voices.size()))
+        {
+            removeActiveVoiceAt(activeIndex);
+            continue;
+        }
+
+        auto& voice = voices[static_cast<std::size_t>(voiceIndex)];
+        if (!voice.isActive())
+        {
+            removeActiveVoiceAt(activeIndex);
+            continue;
+        }
+
+        const auto stillActive = voice.renderBlock(parameters, outLeft, outRight, weights,
+                                                   useMonoLfo ? monoValues : nullptr, numSamples);
+        if (!stillActive)
+        {
+            removeActiveVoiceAt(activeIndex);
+            continue;
+        }
+
+        ++activeIndex;
+    }
+
+    for (int i = 0; i < numSamples; ++i)
+    {
+        if (weights[i] > 1.0f)
+        {
+            const auto compensation = inverseSqrtForWeight(weights[i]);
+            outLeft[i] *= compensation;
+            outRight[i] *= compensation;
+        }
+    }
+}
+
 void VoiceAllocator::syncMonoLfoConfig(const SynthParameters& parameters) noexcept
 {
     const auto lfoConfigChanged = !monoLfoConfigInitialized

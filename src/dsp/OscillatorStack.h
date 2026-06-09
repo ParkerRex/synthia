@@ -19,6 +19,9 @@ public:
                        float pitchModSemitones, float pulseWidthMod) noexcept;
     float renderSawStack(float midiNote, const OscillatorParameters& parameters,
                          float pitchModSemitones, float outputGain) noexcept;
+    void renderSawStackBlock(const float* midiNote, const float* pitchModSemitones,
+                             float analogPitchMod, const OscillatorParameters& parameters,
+                             float outputGain, float* out, int numSamples) noexcept;
 
     static float detuneOffsetCents(int index, int count, float detune) noexcept;
 

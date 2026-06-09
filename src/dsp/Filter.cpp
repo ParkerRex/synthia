@@ -231,6 +231,18 @@ float Filter::processPrepared(float input, float midiNote, const SynthParameters
     return std::isfinite(value) ? value : 0.0f;
 }
 
+// Block variant: identical per-sample calls so results stay bit-exact with the
+// scalar prepared entry; batching keeps filter state hot across the loop.
+void Filter::processPreparedBlock(float* samples, const float* midiNote, const SynthParameters& parameters,
+                                  const float* cutoffModSemitones, int numSamples) noexcept
+{
+    if (!preparedEnabled)
+        return;
+
+    for (int i = 0; i < numSamples; ++i)
+        samples[i] = processPrepared(samples[i], midiNote[i], parameters, cutoffModSemitones[i]);
+}
+
 float Filter::cutoffSemitonesToHz(float semitones) noexcept
 {
     return semitonesToHz(clampFast(semitones, 0.0f, 136.0f));

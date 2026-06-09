@@ -508,6 +508,280 @@ StereoFrame Voice::renderSample(const SynthParameters& parameters, const float* 
     return output;
 }
 
+bool Voice::renderBlock(const SynthParameters& parameters, float* accumLeft, float* accumRight,
+                        float* normalizationWeights, const float* monoLfoValues, int numSamples) noexcept
+{
+    if (state == VoiceState::Idle)
+        return false;
+
+    if (numSamples <= 0)
+        return true;
+
+    if (!modulatorConfigInitialized)
+        syncModulatorConfig(parameters);
+
+    numSamples = std::min(numSamples, renderBlockMaxSamples);
+
+    float noteArr[renderBlockMaxSamples];
+    float oscPitchModArr[renderBlockMaxSamples];
+    float pulseModArr[renderBlockMaxSamples];
+    float cutoffModArr[renderBlockMaxSamples];
+    float ampFactorArr[renderBlockMaxSamples];
+    float transAmpDbArr[renderBlockMaxSamples];
+    float transPanArr[renderBlockMaxSamples];
+    float fadeArr[renderBlockMaxSamples];
+    float mixBuf[renderBlockMaxSamples];
+    float mixPanArr[renderBlockMaxSamples];
+
+    const auto macroMotion = parameters.macro.motion - 0.5f;
+    const auto unisonBi = cachedUnisonBi;
+    const auto analogPitchMod = randomOnNote * parameters.amp.analog * 0.07f
+        + unisonBi * parameters.amp.analog * 0.12f;
+
+    // Pass A: modulators, glide, TransMod, and stop-fade lifecycle, in exact
+    // per-sample order. Death by release end contributes weight but no audio for
+    // its sample; death by stop-fade end contributes both. reset() is deferred
+    // until after the audio passes because they consume member state.
+    auto rendered = 0;
+    auto died = false;
+    for (int i = 0; i < numSamples; ++i)
+    {
+        normalizationWeights[i] += isStopFading() ? normalizationPowerWeight() : 1.0f;
+
+        const auto amp = ampEnvelope.process();
+        const auto mod = modEnvelope.process();
+        const auto lfoValue = monoLfoValues != nullptr ? monoLfoValues[i] : lfo.process();
+        const auto rampValue = ramp.process(parameters.ramp, parameters.tempoBpm);
+        const auto effectiveNote = processGlide(parameters);
+        const auto glidedVelocity = processVelocityGlide(parameters);
+
+        if (state == VoiceState::Releasing && !ampEnvelope.isActive() && stopFadeSamples <= 0)
+        {
+            died = true;
+            break;
+        }
+
+        const auto keytrackSource = (effectiveNote - 60.0f) / 12.0f;
+        lastDirectSums.oscPitchSemitones = keytrackSource * parameters.direct.oscKeytrackSemitones
+            + lfoValue * parameters.direct.oscLfoSemitones
+            + mod * parameters.direct.oscModEnvSemitones
+            + macroMotion * 2.0f;
+        lastDirectSums.pulseWidth = keytrackSource * parameters.direct.pulseKeytrack
+            + lfoValue * parameters.direct.pulseLfo
+            + mod * parameters.direct.pulseModEnv;
+        lastDirectSums.filterCutoffSemitones = (effectiveNote - 60.0f) * parameters.direct.filterKeytrack
+            + lfoValue * parameters.direct.filterLfoSemitones
+            + mod * parameters.direct.filterModEnvSemitones
+            + macroMotion * 12.0f;
+        lastDirectSums.ampLevelDb = 0.0f;
+        lastDirectSums.pan = 0.0f;
+
+        if (preparedTransModCount == 0)
+            lastTransModSums = ModulationSums {};
+        else if (preparedTransModCount > 0)
+            lastTransModSums = evaluatePreparedTransMod(parameters, lfoValue, rampValue, mod, amp,
+                                                        effectiveNote, glidedVelocity);
+        else
+            lastTransModSums = parameters.transMod.activeSlotCacheValid && parameters.transMod.activeSlotCount <= 0
+                ? ModulationSums {}
+                : evaluateTransMod(parameters, lfoValue, rampValue, mod, amp, effectiveNote, glidedVelocity);
+        lastRampValue = rampValue;
+
+        noteArr[i] = effectiveNote;
+        oscPitchModArr[i] = lastDirectSums.oscPitchSemitones + lastTransModSums.oscPitchSemitones;
+        pulseModArr[i] = lastDirectSums.pulseWidth + lastTransModSums.pulseWidth;
+        cutoffModArr[i] = lastDirectSums.filterCutoffSemitones + lastTransModSums.filterCutoffSemitones;
+        ampFactorArr[i] = amp * (0.35f + 0.65f * glidedVelocity);
+        transAmpDbArr[i] = lastTransModSums.ampLevelDb;
+        transPanArr[i] = lastTransModSums.pan;
+
+        if (stopFadeSamples > 0)
+        {
+            fadeArr[i] = static_cast<float>(stopFadeSamples)
+                / static_cast<float>(std::max(1, stopFadeTotalSamples));
+            --stopFadeSamples;
+            rendered = i + 1;
+            if (stopFadeSamples <= 0)
+            {
+                died = true;
+                break;
+            }
+        }
+        else
+        {
+            fadeArr[i] = 1.0f;
+            rendered = i + 1;
+        }
+    }
+
+    if (rendered > 0)
+    {
+        // Pass B: oscillator mix across the block, slot-major so each stack's
+        // phase state stays hot. Accumulation order per sample matches the
+        // per-sample slot loop.
+        if (parameters.oscillatorRender.cacheValid)
+        {
+            const auto activeSlotCount = clampIntFast(parameters.oscillatorRender.activeSlotCount,
+                                                      0, preparedOscillatorSlotCount);
+            if (activeSlotCount <= 0)
+            {
+                for (int i = 0; i < rendered; ++i)
+                {
+                    mixBuf[i] = 0.0f;
+                    mixPanArr[i] = 0.0f;
+                }
+            }
+            else if (activeSlotCount == 1)
+            {
+                const auto& slot = parameters.oscillatorRender.activeSlots[0];
+                auto& oscillatorStack = slot.legacy
+                    ? oscillator
+                    : layerOscillators[static_cast<std::size_t>(slot.oscillatorStateIndex)];
+                if (slot.sawStackOnly)
+                {
+                    oscillatorStack.renderSawStackBlock(noteArr, oscPitchModArr, analogPitchMod,
+                                                        slot.oscillator, slot.sawStackGain, mixBuf, rendered);
+                }
+                else
+                {
+                    for (int i = 0; i < rendered; ++i)
+                        mixBuf[i] = oscillatorStack.renderSample(noteArr[i], slot.oscillator,
+                                                                 oscPitchModArr[i] + analogPitchMod,
+                                                                 pulseModArr[i]);
+                }
+
+                const auto slotPan = clampFast(slot.pan + unisonBi * slot.stereo * 0.65f, -1.0f, 1.0f);
+                for (int i = 0; i < rendered; ++i)
+                {
+                    auto slotSample = mixBuf[i];
+                    if (slot.invert)
+                        slotSample = -slotSample;
+
+                    mixBuf[i] = sanitize(slotSample * slot.gain);
+                    mixPanArr[i] = slotPan;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < rendered; ++i)
+                    mixBuf[i] = 0.0f;
+
+                auto panWeight = 0.0f;
+                auto weightedPan = 0.0f;
+                float slotBuf[renderBlockMaxSamples];
+                for (int slotIndex = 0; slotIndex < activeSlotCount; ++slotIndex)
+                {
+                    const auto& slot =
+                        parameters.oscillatorRender.activeSlots[static_cast<std::size_t>(slotIndex)];
+                    auto& oscillatorStack = slot.legacy
+                        ? oscillator
+                        : layerOscillators[static_cast<std::size_t>(slot.oscillatorStateIndex)];
+                    if (slot.sawStackOnly)
+                    {
+                        oscillatorStack.renderSawStackBlock(noteArr, oscPitchModArr, analogPitchMod,
+                                                            slot.oscillator, slot.sawStackGain,
+                                                            slotBuf, rendered);
+                    }
+                    else
+                    {
+                        for (int i = 0; i < rendered; ++i)
+                            slotBuf[i] = oscillatorStack.renderSample(noteArr[i], slot.oscillator,
+                                                                      oscPitchModArr[i] + analogPitchMod,
+                                                                      pulseModArr[i]);
+                    }
+
+                    for (int i = 0; i < rendered; ++i)
+                    {
+                        auto slotSample = slotBuf[i];
+                        if (slot.invert)
+                            slotSample = -slotSample;
+
+                        mixBuf[i] += slotSample * slot.gain;
+                    }
+
+                    weightedPan += slot.weightedPanBase + unisonBi * slot.stereo * 0.65f * slot.gain;
+                    panWeight += slot.panWeight;
+                }
+
+                const auto slotScale = inverseSqrtForCount(activeSlotCount);
+                const auto mixPan = panWeight > 0.0f
+                    ? clampFast(weightedPan / panWeight, -1.0f, 1.0f)
+                    : 0.0f;
+                for (int i = 0; i < rendered; ++i)
+                {
+                    mixBuf[i] = sanitize(mixBuf[i] * slotScale);
+                    mixPanArr[i] = mixPan;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < rendered; ++i)
+            {
+                const auto layerMix = renderLayerOscillators(parameters, noteArr[i], oscPitchModArr[i],
+                                                             pulseModArr[i], analogPitchMod, unisonBi);
+                mixBuf[i] = layerMix.sample;
+                mixPanArr[i] = layerMix.pan;
+            }
+        }
+
+        // Pass C: filter across the block.
+        filter.processPreparedBlock(mixBuf, noteArr, parameters, cutoffModArr, rendered);
+
+        // Pass D: drive, gain, pan, fade, and accumulation, with the same
+        // per-sample cache behavior as renderSample.
+        const auto ampDrive = clampUnitFast(parameters.amp.drive + parameters.macro.drive * 0.35f);
+        if (!cachedAmpDriveValid || std::abs(cachedAmpDrive - ampDrive) > 0.000001f)
+        {
+            cachedAmpDrive = ampDrive;
+            cachedAmpDriveGain = 1.0f + ampDrive * 7.0f;
+            cachedAmpDriveNormalizer = softSaturate(cachedAmpDriveGain);
+            cachedAmpDriveValid = true;
+        }
+
+        const auto applyDrive = ampDrive > 0.0f && cachedAmpDriveNormalizer > 0.0f;
+        const auto voiceSpread = randomOnNote * parameters.amp.panSpread * 0.85f
+            + unisonBi * parameters.amp.unisonSpread * 0.7f
+            + randomOnNote * parameters.macro.width * 0.25f;
+        const auto panBase = parameters.amp.pan + voiceSpread;
+        for (int i = 0; i < rendered; ++i)
+        {
+            auto sample = mixBuf[i];
+            if (applyDrive)
+                sample = softSaturate(sample * cachedAmpDriveGain) / cachedAmpDriveNormalizer;
+
+            sample *= ampFactorArr[i];
+            const auto ampGainDb = parameters.amp.levelDb + transAmpDbArr[i];
+            if (!cachedAmpGainValid || std::abs(cachedAmpGainDb - ampGainDb) > 0.000001f)
+            {
+                cachedAmpGainDb = ampGainDb;
+                cachedAmpGain = decibelsToGain(ampGainDb);
+                cachedAmpGainValid = true;
+            }
+            sample *= cachedAmpGain;
+
+            const auto pan = clampFast(panBase + mixPanArr[i] + transPanArr[i], -1.0f, 1.0f);
+            if (!cachedPanValid || std::abs(cachedPan - pan) > 0.000001f)
+            {
+                cachedPan = pan;
+                const auto angle = (pan + 1.0f) * 0.5f * halfPi;
+                cachedPanLeftGain = std::cos(angle);
+                cachedPanRightGain = std::sin(angle);
+                cachedPanValid = true;
+            }
+
+            const auto fade = fadeArr[i];
+            accumLeft[i] += sanitize(sample * cachedPanLeftGain) * fade;
+            accumRight[i] += sanitize(sample * cachedPanRightGain) * fade;
+        }
+    }
+
+    if (died)
+        reset();
+
+    return state != VoiceState::Idle;
+}
+
 void Voice::syncModulators(const SynthParameters& parameters) noexcept
 {
     if (state != VoiceState::Idle)

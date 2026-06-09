@@ -273,6 +273,87 @@ float OscillatorStack::renderSawStack(float midiNote, const OscillatorParameters
     return clampFast(stackedSaw * outputGain, -1.2f, 1.2f);
 }
 
+// Block variant of renderSawStack: identical per-sample math and cache logic so
+// results stay bit-exact with the scalar entry; only the block-constant detune
+// ratio check is hoisted, and phases stay register-resident across the loop.
+void OscillatorStack::renderSawStackBlock(const float* midiNote, const float* pitchModSemitones,
+                                          float analogPitchMod, const OscillatorParameters& osc,
+                                          float outputGain, float* out, int numSamples) noexcept
+{
+    const auto stackCount = clampIntFast(osc.stackCount, 1, maxStackCount);
+    const auto sampleRateFloat = static_cast<float>(sampleRate);
+    const auto maxOscFrequency = sampleRateFloat * 0.45f;
+    const auto minOscIncrement = 1.0f / sampleRateFloat;
+    const auto maxOscIncrement = maxOscFrequency / sampleRateFloat;
+
+    const auto stackDetune = clampUnitFast(osc.stackDetune);
+    if (cachedDetuneStackCount != stackCount || std::abs(cachedDetuneAmount - stackDetune) > 0.000001f)
+        updateDetuneRatios(stackCount, stackDetune);
+
+    for (int sampleIndex = 0; sampleIndex < numSamples; ++sampleIndex)
+    {
+        const auto effectivePitchMod = pitchModSemitones[sampleIndex] + analogPitchMod;
+        const auto basePitch = midiNote[sampleIndex]
+            + osc.pitchSemitones
+            + osc.fineCents / 100.0f
+            + effectivePitchMod;
+        auto baseFrequency = cachedBaseFrequency;
+        if (!cachedBaseFrequencyValid
+            || !std::isfinite(basePitch)
+            || std::abs(cachedBasePitch - basePitch) > 0.000001f
+            || std::abs(cachedMaxFrequency - maxOscFrequency) > 0.001f)
+        {
+            baseFrequency = clampFast(midiNoteToHz(basePitch), 1.0f, maxOscFrequency);
+            cachedBaseFrequency = baseFrequency;
+            cachedBasePitch = basePitch;
+            cachedMaxFrequency = maxOscFrequency;
+            cachedBaseFrequencyValid = std::isfinite(basePitch);
+        }
+
+        const auto masterIncrement = clampKnownFinite(baseFrequency / sampleRateFloat,
+                                                      minOscIncrement, maxOscIncrement);
+        advancePhase(syncMasterPhase, masterIncrement);
+
+        if (cachedDetunedIncrementStackCount != stackCount
+            || std::abs(cachedDetunedMasterIncrement - masterIncrement) > 0.000000001f)
+        {
+            updateDetunedIncrements(stackCount, masterIncrement, minOscIncrement, maxOscIncrement);
+        }
+
+        const auto renderDetunedSaw = [this](int index) noexcept {
+            const auto arrayIndex = static_cast<std::size_t>(index);
+            const auto increment = detunedIncrements[arrayIndex];
+            auto& phase = phases[arrayIndex];
+            const auto sample = renderSaw(phase, increment);
+            advancePhase(phase, increment);
+            return sample;
+        };
+
+        auto stackedSaw = 0.0f;
+        switch (stackCount)
+        {
+            case 1:
+                stackedSaw = renderDetunedSaw(0);
+                break;
+            case 2:
+                stackedSaw = renderDetunedSaw(0) + renderDetunedSaw(1);
+                break;
+            case 3:
+                stackedSaw = renderDetunedSaw(0) + renderDetunedSaw(1) + renderDetunedSaw(2);
+                break;
+            case 4:
+                stackedSaw = renderDetunedSaw(0) + renderDetunedSaw(1) + renderDetunedSaw(2) + renderDetunedSaw(3);
+                break;
+            default:
+                for (int i = 0; i < stackCount; ++i)
+                    stackedSaw += renderDetunedSaw(i);
+                break;
+        }
+
+        out[sampleIndex] = clampFast(stackedSaw * outputGain, -1.2f, 1.2f);
+    }
+}
+
 SYNTHIA_ALWAYS_INLINE float OscillatorStack::renderSaw(float& phase, float phaseIncrement) noexcept
 {
     return 2.0f * phase - 1.0f - polyBlep(phase, phaseIncrement);

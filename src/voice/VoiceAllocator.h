@@ -25,6 +25,11 @@ public:
     void syncActiveVoiceModulators(const SynthParameters& parameters) noexcept;
     void process(int numSamples) noexcept;
     StereoFrame renderSample(const SynthParameters& parameters) noexcept;
+    // Renders up to renderBlockMaxSamples into the caller's buffers (overwritten,
+    // not accumulated), preserving renderSample's per-sample normalization and
+    // voice-removal semantics.
+    void renderBlock(const SynthParameters& parameters, float* outLeft, float* outRight,
+                     int numSamples) noexcept;
 
     int activeVoiceCount() const noexcept;
     const Voice* getVoice(int index) const noexcept;

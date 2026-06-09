@@ -150,6 +150,10 @@ inline constexpr int transModSlotCount = 8;
 inline constexpr int layerCount = 2;
 inline constexpr int oscillatorSlotsPerLayer = 2;
 inline constexpr int preparedOscillatorSlotCount = layerCount * oscillatorSlotsPerLayer;
+
+// Sub-block size for block-based voice rendering; render-path scratch buffers
+// are stack arrays of this size, so keep it small enough to stay in L1.
+inline constexpr int renderBlockMaxSamples = 64;
 inline constexpr int arpStepCount = 16;
 inline constexpr int chordVoiceCount = 8;
 

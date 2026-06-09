@@ -16,6 +16,8 @@ public:
     void prepareBlock(const SynthParameters& parameters) noexcept;
     float processPrepared(float input, float midiNote, const SynthParameters& parameters,
                           float cutoffModSemitones) noexcept;
+    void processPreparedBlock(float* samples, const float* midiNote, const SynthParameters& parameters,
+                              const float* cutoffModSemitones, int numSamples) noexcept;
 
     static float cutoffSemitonesToHz(float semitones) noexcept;
 
