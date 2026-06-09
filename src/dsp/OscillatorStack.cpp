@@ -35,6 +35,19 @@ float clampFast(float value, float minimum, float maximum) noexcept
     return value;
 }
 
+// Only for values proven finite by construction (e.g. derived from an
+// already-clamped cached base frequency); skips the isfinite guard.
+SYNTHIA_ALWAYS_INLINE float clampKnownFinite(float value, float minimum, float maximum) noexcept
+{
+    if (value < minimum)
+        return minimum;
+
+    if (value > maximum)
+        return maximum;
+
+    return value;
+}
+
 float clampUnitFast(float value) noexcept
 {
     return clampFast(value, 0.0f, 1.0f);
@@ -114,7 +127,7 @@ float OscillatorStack::renderSample(float midiNote, const OscillatorParameters& 
         cachedBaseFrequencyValid = std::isfinite(basePitch);
     }
     const auto syncAmount = clampUnitFast(osc.syncAmount);
-    const auto masterIncrement = clampFast(baseFrequency / sampleRateFloat, minOscIncrement, maxOscIncrement);
+    const auto masterIncrement = clampKnownFinite(baseFrequency / sampleRateFloat, minOscIncrement, maxOscIncrement);
     const auto previousMaster = syncMasterPhase;
     advancePhase(syncMasterPhase, masterIncrement);
     const auto syncWrapped = syncAmount > 0.001f && syncMasterPhase < previousMaster;
@@ -215,7 +228,7 @@ float OscillatorStack::renderSawStack(float midiNote, const OscillatorParameters
         cachedBaseFrequencyValid = std::isfinite(basePitch);
     }
 
-    const auto masterIncrement = clampFast(baseFrequency / sampleRateFloat, minOscIncrement, maxOscIncrement);
+    const auto masterIncrement = clampKnownFinite(baseFrequency / sampleRateFloat, minOscIncrement, maxOscIncrement);
     advancePhase(syncMasterPhase, masterIncrement);
 
     const auto stackDetune = clampUnitFast(osc.stackDetune);
