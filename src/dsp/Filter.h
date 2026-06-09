@@ -13,6 +13,9 @@ public:
     void reset() noexcept;
     float process(float input, float midiNote, const SynthParameters& parameters,
                   float cutoffModSemitones) noexcept;
+    void prepareBlock(const SynthParameters& parameters) noexcept;
+    float processPrepared(float input, float midiNote, const SynthParameters& parameters,
+                          float cutoffModSemitones) noexcept;
 
     static float cutoffSemitonesToHz(float semitones) noexcept;
 
@@ -33,5 +36,11 @@ private:
     float cachedResonance = -1.0f;
     float cachedDriveGain = 1.0f;
     float cachedFeedback = 0.0f;
+    bool preparedEnabled = false;
+    bool preparedUseL4 = false;
+    FilterMode preparedMode = FilterMode::L4;
+    int preparedOversampling = 1;
+    float preparedKeytrack = 0.0f;
+    float preparedEffectiveSampleRate = 0.0f;
 };
 } // namespace synth

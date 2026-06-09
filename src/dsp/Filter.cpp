@@ -26,6 +26,20 @@ SYNTHIA_ALWAYS_INLINE float softClip(float value) noexcept
                          : value / (1.0f - value);
 }
 
+// softClip(softClip(x)) collapses algebraically to clamp(x)/(1 + 2*|clamp(x)|):
+// softClip is sign-preserving and maps into (-1, 1), so the outer clamp never
+// engages and the two divisions fuse into one.
+SYNTHIA_ALWAYS_INLINE float doubleSoftClip(float value) noexcept
+{
+    if (value < -64.0f)
+        value = -64.0f;
+    else if (value > 64.0f)
+        value = 64.0f;
+
+    return value >= 0.0f ? value / (1.0f + 2.0f * value)
+                         : value / (1.0f - 2.0f * value);
+}
+
 SYNTHIA_ALWAYS_INLINE float clampKnownFinite(float value, float minimum, float maximum) noexcept
 {
     if (value < minimum)
@@ -143,6 +157,80 @@ float Filter::process(float input, float midiNote, const SynthParameters& parame
     return std::isfinite(value) ? value : 0.0f;
 }
 
+// Per-block snapshot of every parameter-derived value that is constant within a
+// host block. processPrepared() then only re-derives the cutoff-dependent
+// coefficient, which can change per sample under modulation.
+void Filter::prepareBlock(const SynthParameters& parameters) noexcept
+{
+    const auto& filter = parameters.filter;
+    preparedEnabled = filter.enabled;
+    if (!preparedEnabled)
+        return;
+
+    preparedKeytrack = clampKnownFinite(filter.keytrack, -1.0f, 2.0f);
+    preparedOversampling = oversamplingFactor(filter.oversampling);
+    preparedEffectiveSampleRate = static_cast<float>(sampleRate) * static_cast<float>(preparedOversampling);
+    preparedMode = filter.mode;
+    preparedUseL4 = filter.mode == FilterMode::L4;
+
+    const auto driveAmount = clampKnownFinite(filter.drive, 0.0f, 1.0f);
+    const auto resonance = clampKnownFinite(filter.resonance, 0.0f, 1.0f);
+    if (std::abs(cachedDriveAmount - driveAmount) > 0.000001f
+        || std::abs(cachedResonance - resonance) > 0.000001f)
+    {
+        cachedDriveGain = 1.0f + driveAmount * 9.0f;
+        cachedFeedback = resonance * (3.85f / (1.0f + driveAmount * 1.35f));
+        cachedDriveAmount = driveAmount;
+        cachedResonance = resonance;
+    }
+}
+
+float Filter::processPrepared(float input, float midiNote, const SynthParameters& parameters,
+                              float cutoffModSemitones) noexcept
+{
+    if (!preparedEnabled)
+        return input;
+
+    const auto keytrackSemitones = (midiNote - 60.0f) * preparedKeytrack;
+    const auto cutoffSemitones = clampKnownFinite(parameters.filter.cutoffSemitones + keytrackSemitones
+                                                      + cutoffModSemitones,
+                                                  0.0f, 136.0f);
+    if (std::abs(cachedCutoffSemitones - cutoffSemitones) > 0.000001f
+        || std::abs(cachedEffectiveSampleRate - preparedEffectiveSampleRate) > 0.001f)
+    {
+        const auto cutoffHz = clampFast(cutoffSemitonesToHz(cutoffSemitones), 8.0f,
+                                        0.45f * preparedEffectiveSampleRate);
+        const auto safeSampleRate = preparedEffectiveSampleRate > 1000.0f ? preparedEffectiveSampleRate : 1000.0f;
+        const auto normalizedCutoff = twoPi * cutoffHz / safeSampleRate;
+        cachedCoefficient = clampFast(normalizedCutoff / (1.0f + normalizedCutoff), 0.00001f, 0.99f);
+        cachedCutoffSemitones = cutoffSemitones;
+        cachedEffectiveSampleRate = preparedEffectiveSampleRate;
+    }
+
+    if (preparedOversampling <= 1)
+    {
+        previousInput = input;
+        const auto value = preparedUseL4
+            ? processCoreL4(input, cachedCoefficient, cachedFeedback, cachedDriveGain)
+            : processCore(input, cachedCoefficient, cachedFeedback, cachedDriveGain, preparedMode);
+        return std::isfinite(value) ? value : 0.0f;
+    }
+
+    auto value = 0.0f;
+    for (int i = 0; i < preparedOversampling; ++i)
+    {
+        const auto t = static_cast<float>(i + 1) / static_cast<float>(preparedOversampling);
+        const auto subInput = previousInput + (input - previousInput) * t;
+        value += preparedUseL4
+            ? processCoreL4(subInput, cachedCoefficient, cachedFeedback, cachedDriveGain)
+            : processCore(subInput, cachedCoefficient, cachedFeedback, cachedDriveGain, preparedMode);
+    }
+    previousInput = input;
+    value /= static_cast<float>(preparedOversampling);
+
+    return std::isfinite(value) ? value : 0.0f;
+}
+
 float Filter::cutoffSemitonesToHz(float semitones) noexcept
 {
     return semitonesToHz(clampFast(semitones, 0.0f, 136.0f));
@@ -150,10 +238,9 @@ float Filter::cutoffSemitonesToHz(float semitones) noexcept
 
 SYNTHIA_ALWAYS_INLINE void Filter::processStages(float input, float coefficient, float feedback, float driveGain) noexcept
 {
-    const auto drivenInput = softClip((input - feedback * clippedStage[3]) * driveGain);
     const auto flushState = isTiny(input);
 
-    auto previous = softClip(drivenInput);
+    auto previous = doubleSoftClip((input - feedback * clippedStage[3]) * driveGain);
     stage[0] += coefficient * (previous - clippedStage[0]);
     if (flushState)
         stage[0] = flushTiny(stage[0]);
