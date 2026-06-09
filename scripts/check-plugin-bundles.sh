@@ -3,8 +3,12 @@ set -euo pipefail
 
 build_dir="${1:-build}"
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-artifact_root="$root_dir/$build_dir/SynthiaPlugin_artefacts"
 product_bundle="Synthia"
+
+case "$build_dir" in
+  /*) artifact_root="$build_dir/SynthiaPlugin_artefacts" ;;
+  *) artifact_root="$root_dir/$build_dir/SynthiaPlugin_artefacts" ;;
+esac
 
 fail() {
   printf 'error: %s\n' "$*" >&2
